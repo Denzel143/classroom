@@ -223,6 +223,8 @@
         .btn-header-action { padding: 10px 18px; font-size: 14px; border-radius: var(--radius-md); font-weight: 600;}
         #btn-bagikan-kelas { background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
         #btn-bagikan-kelas:hover { background: var(--accent-hover); transform: translateY(-2px);}
+        #btn-edit-kelas { background: rgba(255,255,255,0.9); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        #btn-edit-kelas:hover { background: #FFFFFF; transform: translateY(-2px); }
         #btn-hapus-kelas { background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(4px); }
         #btn-hapus-kelas:hover { background: var(--danger); color: white; }
         
@@ -488,6 +490,18 @@
         </div>
     </div>
 
+    <div id="edit-class-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3 style="margin-top:0; color:var(--primary);">Edit Nama Kelas</h3>
+            <label>Nama Kelas Baru</label>
+            <input type="text" id="input-edit-class-name" placeholder="Masukkan nama kelas...">
+            <div class="modal-actions">
+                <button id="btn-batal-edit-class" class="btn-batal">Batal</button>
+                <button id="btn-simpan-edit-class" class="btn-buat">Simpan</button>
+            </div>
+        </div>
+    </div>
+
     <div id="class-room-section" class="container hidden">
         <div id="class-detail-section">
             <div style="display:flex; gap:12px; flex-wrap: wrap; margin-bottom: 20px;">
@@ -501,6 +515,7 @@
                 </div>
                 <div class="header-actions">
                     <button id="btn-bagikan-kelas" class="btn-header-action">🔗 Bagikan Kode</button>
+                    <button id="btn-edit-kelas" class="btn-header-action hidden">✏️ Edit Nama</button>
                     <button id="btn-hapus-kelas" class="btn-header-action hidden">Hapus Kelas</button>
                 </div>
             </div>
@@ -667,7 +682,7 @@
 
         // Klik logo EduClass untuk balik ke Beranda/Dashboard
         document.getElementById('logo-home').addEventListener('click', () => {
-            navigateTo('/dashboard');
+            navigateTo('/classroom/dashboard');
         });
 
         function showSection(sectionId) {
@@ -689,33 +704,33 @@
             const path = window.location.pathname;
             
             if (!currentUserId) {
-                if (path !== '/login') {
-                    history.replaceState(null, '', '/login');
+                if (path !== '/classroom/login') {
+                    history.replaceState(null, '', '/classroom/login');
                 }
                 showSection('login-section');
                 return;
             }
 
-            if (path === '/login' || path === '/') {
-                history.replaceState(null, '', '/dashboard');
+            if (path === '/classroom/login' || path === '/' || path === '/login' || path === '/dashboard' || path === '/classroom' || path === '/classroom/') {
+                history.replaceState(null, '', '/classroom/dashboard');
                 resolveRoute();
                 return;
             }
 
-            if (path.startsWith('/dashboard/')) {
-                const classId = path.split('/')[2];
+            if (path.startsWith('/classroom/dashboard/')) {
+                const classId = path.split('/')[3];
                 if (classId) {
                     showSection('class-room-section');
                     setupClassRoom(classId);
                 } else {
-                    history.replaceState(null, '', '/dashboard');
+                    history.replaceState(null, '', '/classroom/dashboard');
                     resolveRoute();
                 }
-            } else if (path === '/dashboard') {
+            } else if (path === '/classroom/dashboard') {
                 showSection('dashboard-section');
                 cleanupClassRoom();
             } else {
-                history.replaceState(null, '', '/dashboard');
+                history.replaceState(null, '', '/classroom/dashboard');
                 resolveRoute();
             }
         }
@@ -838,7 +853,7 @@
         }
 
         window.masukKelas = function(classId) {
-            navigateTo(`/dashboard/${classId}`);
+            navigateTo(`/classroom/dashboard/${classId}`);
         }
 
         function setupClassRoom(classId) {
@@ -854,6 +869,7 @@
             
             const btnTambahPengumuman = document.getElementById('btn-show-announcement-modal');
             const btnHapusKelas = document.getElementById('btn-hapus-kelas');
+            const btnEditKelas = document.getElementById('btn-edit-kelas');
             const btnUndangAnggota = document.getElementById('btn-buka-undang-anggota');
             const hintEdit = document.getElementById('hint-edit');
             
@@ -861,7 +877,7 @@
             classRoomListener = onValue(classRef, (snapshot) => {
                 if(!snapshot.exists()) {
                     cleanupClassRoom();
-                    navigateTo('/dashboard');
+                    navigateTo('/classroom/dashboard');
                     return;
                 }
                 
@@ -876,11 +892,13 @@
                 if (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) {
                     btnTambahPengumuman.classList.remove('hidden');
                     btnHapusKelas.classList.remove('hidden');
+                    btnEditKelas.classList.remove('hidden');
                     btnUndangAnggota.classList.remove('hidden');
                     hintEdit.classList.remove('hidden');
                 } else {
                     btnTambahPengumuman.classList.add('hidden');
                     btnHapusKelas.classList.add('hidden');
+                    btnEditKelas.classList.add('hidden');
                     btnUndangAnggota.classList.add('hidden');
                     hintEdit.classList.add('hidden');
                 }
@@ -888,6 +906,32 @@
             
             loadAnnouncements(classId);
         }
+
+        // ================= EDIT KELAS (GURU) =================
+        document.getElementById('btn-edit-kelas').addEventListener('click', () => {
+            document.getElementById('edit-class-modal-overlay').classList.remove('hidden');
+            document.getElementById('input-edit-class-name').value = currentClassData.className || '';
+        });
+
+        document.getElementById('btn-batal-edit-class').addEventListener('click', () => {
+            document.getElementById('edit-class-modal-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('btn-simpan-edit-class').addEventListener('click', async () => {
+            const newName = document.getElementById('input-edit-class-name').value.trim();
+            if(!newName) return await customAlert("Nama kelas tidak boleh kosong!");
+            
+            const btn = document.getElementById('btn-simpan-edit-class');
+            btn.disabled = true;
+            btn.innerText = "Menyimpan...";
+            
+            await update(ref(db, `classes/${currentViewedClassId}`), { className: newName });
+            
+            document.getElementById('edit-class-modal-overlay').classList.add('hidden');
+            btn.disabled = false;
+            btn.innerText = "Simpan";
+            await customAlert("Nama kelas berhasil diubah!");
+        });
 
         // ================= GURU FUNCTIONS =================
         const btnGuruOptions = document.getElementById('btn-show-guru-options');
@@ -1074,7 +1118,7 @@
                     });
                     await Promise.all(promises);
                 }
-                navigateTo('/dashboard');
+                navigateTo('/classroom/dashboard');
                 await customAlert("Kelas berhasil dihapus.");
             }
         });
@@ -1174,8 +1218,33 @@
         });
         document.getElementById('btn-close-members').addEventListener('click', () => membersModal.classList.add('hidden'));
 
-        function renderAnggotaList() {
+        async function renderAnggotaList() {
             const c = document.getElementById('members-list-container');
+            c.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Memuat anggota...</div>';
+            
+            // Pastikan allUsersDB sudah terisi untuk mencocokkan ID dengan nama
+            if(allUsersDB.length === 0) {
+                await loadAllUsersForSearch();
+            }
+
+            // Fetch semua undangan untuk mencari siapa saja yang sedang diundang ke kelas ini
+            let invitedUsers = [];
+            try {
+                const invSnap = await get(ref(db, 'invitations'));
+                if(invSnap.exists()) {
+                    const allInvites = invSnap.val();
+                    for(let uid in allInvites) {
+                        if(allInvites[uid][currentViewedClassId]) {
+                            const userMatch = allUsersDB.find(u => u.id === uid);
+                            const uname = userMatch ? userMatch.username : "User Tidak Dikenal";
+                            invitedUsers.push({ uid, uname });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Gagal memuat undangan", e);
+            }
+            
             c.innerHTML = '';
             
             c.innerHTML += `<div class="member-category">Pengajar</div>`;
@@ -1205,6 +1274,25 @@
             } else {
                 c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada siswa.</p>`;
             }
+
+            // Kategori Diundang
+            c.innerHTML += `<div class="member-category" style="margin-top:30px;">Diundang</div>`;
+            if(invitedUsers.length > 0) {
+                invitedUsers.forEach(inv => {
+                    let removeBtn = '';
+                    if(currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) {
+                        removeBtn = `<button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="batalUndang('${inv.uid}', '${inv.uname}')">Batal Undang</button>`;
+                    }
+                    c.innerHTML += `
+                        <div class="result-item" style="cursor:default; border-radius: var(--radius-md); margin-bottom:5px; background: var(--bg-color); opacity: 0.8;">
+                            <span style="font-size:15px; color:var(--text-muted); font-style: italic;">${inv.uname} (Menunggu)</span>
+                            ${removeBtn}
+                        </div>
+                    `;
+                });
+            } else {
+                 c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada yang diundang.</p>`;
+            }
         }
 
         window.keluarkanSiswa = async function(id, name) {
@@ -1212,6 +1300,14 @@
             if(c) {
                 await remove(ref(db, `classes/${currentViewedClassId}/students/${id}`));
                 renderAnggotaList();
+            }
+        }
+
+        window.batalUndang = async function(uid, uname) {
+            const c = await customConfirm(`Batalkan undangan untuk ${uname}?`);
+            if(c) {
+                await remove(ref(db, `invitations/${uid}/${currentViewedClassId}`));
+                renderAnggotaList(); 
             }
         }
 
