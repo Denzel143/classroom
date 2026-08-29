@@ -59,8 +59,11 @@
         button { 
             cursor: pointer; border: none; border-radius: var(--radius-md); 
             padding: 12px 20px; font-weight: 600; font-size: 0.95rem;
-            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); 
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
         }
+        button:focus { outline: none; }
         button:active { transform: scale(0.95); }
         
         input, textarea { 
