@@ -255,6 +255,78 @@
             padding: 6px 12px; font-size: 12px; border-radius: 99px; z-index: 10; position: relative;
         }
         .btn-hapus-announcement:hover { background: var(--danger); color: white;}
+
+        /* ================= Fitur Komentar ================= */
+        .announcement-footer { display: flex; justify-content: flex-start; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+        .btn-komentar {
+            background: var(--primary-light); color: var(--primary);
+            padding: 8px 16px; font-size: 13px; border-radius: 99px;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-komentar:hover { background: var(--primary); color: white; }
+
+        .comment-modal-card { max-width: 600px; height: 85vh; }
+        .comment-modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 0 0 16px 0; padding-bottom: 16px; border-bottom: 2px solid var(--border);
+        }
+        .comment-modal-header h3 { margin: 0; color: var(--primary); }
+
+        .comment-list-container { flex-grow: 1; min-height: 0; overflow-y: auto; overflow-x: auto; padding-right: 4px; margin-bottom: 14px; }
+        .comment-empty { color: var(--text-muted); text-align: center; padding: 50px 20px; }
+
+        .comment-item { position: relative; margin-bottom: 14px; min-width: fit-content; }
+        .comment-bubble, .comment-edit-box {
+            background: #F8F9FA; border-radius: var(--radius-md); padding: 12px 16px;
+            transition: background 0.15s; position: relative; min-width: 220px;
+        }
+        .comment-bubble { cursor: pointer; }
+        .comment-bubble:hover { background: var(--primary-light); }
+        .comment-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+        .comment-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .comment-name { font-weight: 700; font-size: 14px; color: var(--text-main); }
+        .comment-badge-guru {
+            background: var(--primary); color: #fff; font-size: 10px; font-weight: 800;
+            padding: 2px 8px; border-radius: 99px; letter-spacing: 0.5px;
+        }
+        .comment-time { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+        .comment-text { white-space: pre-wrap; line-height: 1.5; font-size: 14px; margin: 0; user-select: text; }
+        .comment-edited-tag { font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+        .comment-children { margin-left: 30px; padding-left: 18px; border-left: 2px solid var(--border); }
+        .comment-item.is-reply { padding-top: 2px; }
+        .comment-item.is-reply::before {
+            content: ''; position: absolute; left: -18px; top: 20px; width: 18px; height: 2px; background: var(--border);
+        }
+
+        .comment-menu-wrap { position: relative; flex-shrink: 0; }
+        .comment-menu-btn { background: transparent; padding: 2px 8px; font-size: 18px; color: var(--text-muted); border-radius: 50%; line-height: 1; }
+        .comment-menu-btn:hover { background: var(--border); }
+        .comment-menu-dropdown {
+            position: absolute; right: 0; top: 110%; background: var(--surface);
+            border-radius: var(--radius-sm); box-shadow: var(--shadow-floating);
+            min-width: 150px; z-index: 50; overflow: hidden; padding: 6px;
+        }
+        .comment-menu-dropdown button { display: block; width: 100%; text-align: left; background: transparent; padding: 10px 12px; font-size: 13px; border-radius: 8px; color: var(--text-main); font-weight: 500; }
+        .comment-menu-dropdown button:hover { background: var(--bg-color); }
+        .comment-menu-dropdown button.danger { color: var(--danger); }
+
+        .comment-edit-box textarea { margin: 6px 0 0 0; }
+        .comment-edit-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+        .comment-edit-actions button { padding: 8px 16px; font-size: 13px; }
+
+        .reply-banner {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--primary-light); color: var(--primary);
+            padding: 10px 16px; border-radius: var(--radius-md); margin-bottom: 10px;
+            font-size: 13px; font-weight: 600;
+        }
+        .reply-banner button { background: transparent; color: var(--primary); padding: 2px 10px; font-size: 16px; font-weight: 800; }
+        .reply-banner button:hover { background: rgba(26,115,232,0.15); border-radius: 50%; }
+
+        .comment-input-row { display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+        .comment-input-row textarea { margin: 0; resize: none; }
+        .comment-input-row button { white-space: nowrap; padding: 16px 22px; }
         
         /* Undangan Alert */
         .invitation-card { 
@@ -580,6 +652,27 @@
                 </div>
             </div>
 
+            <div id="comment-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-card comment-modal-card">
+                    <div class="comment-modal-header">
+                        <h3>Komentar</h3>
+                        <button id="btn-close-comments" class="btn-batal" style="padding: 8px 16px; border-radius: 99px;">Tutup</button>
+                    </div>
+
+                    <div id="comment-list-container" class="comment-list-container"></div>
+
+                    <div id="reply-banner" class="reply-banner hidden">
+                        <span>Membalas <strong id="reply-target-name"></strong></span>
+                        <button type="button" onclick="cancelReply()">✕</button>
+                    </div>
+
+                    <div class="comment-input-row">
+                        <textarea id="input-comment" rows="1" placeholder="Tulis komentar..."></textarea>
+                        <button id="btn-send-comment" class="btn-buat">Kirim</button>
+                    </div>
+                </div>
+            </div>
+
             <div>
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 20px;">
                     <h3 style="margin: 0; font-size: 1.4rem;">Forum Kelas</h3>
@@ -647,6 +740,15 @@
         let inviteListener = null;
         let editingAnnouncementId = null;
         let allUsersDB = [];
+
+        // State untuk fitur Komentar
+        let commentsAllListener = null;
+        let commentModalListener = null;
+        let currentCommentAnnouncementId = null;
+        let replyingToCommentId = null;
+        let editingCommentId = null;
+        let commentCounts = {};
+        let lastCommentsArr = [];
         
         // Cache array kelas untuk quick switcher
         window.cachedClasses = [];
@@ -906,6 +1008,20 @@
                 classRoomListener();
                 classRoomListener = null;
             }
+            if(commentsAllListener) {
+                commentsAllListener();
+                commentsAllListener = null;
+            }
+            if(commentModalListener) {
+                commentModalListener();
+                commentModalListener = null;
+            }
+            document.getElementById('comment-modal-overlay').classList.add('hidden');
+            currentCommentAnnouncementId = null;
+            replyingToCommentId = null;
+            editingCommentId = null;
+            commentCounts = {};
+            lastCommentsArr = [];
             currentViewedClassId = null;
             currentClassData = null;
             
@@ -966,6 +1082,7 @@
             });
             
             loadAnnouncements(classId);
+            attachCommentCountListener(classId);
         }
 
         // ================= EDIT KELAS (GURU) =================
@@ -1510,6 +1627,8 @@
                     const clickAttr = isOwner ? `onclick="handleAnnouncementClick('${data.id}', \`${escText}\`)"` : '';
                     const cursorStyle = isOwner ? `cursor:pointer;` : '';
 
+                    const jumlahKomentar = commentCounts[data.id] || 0;
+
                     list.innerHTML += `
                         <div class="announcement-card">
                             <div class="announcement-header">
@@ -1517,11 +1636,261 @@
                                 ${btnHapus}
                             </div>
                             <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${data.text}</div>
+                            <div class="announcement-footer">
+                                <button class="btn-komentar" onclick="openComments('${data.id}')">💬 Komentar (<span id="comment-count-${data.id}">${jumlahKomentar}</span>)</button>
+                            </div>
                         </div>
                     `;
                 });
             });
         }
+
+        // ================= KOMENTAR =================
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Hitung jumlah komentar tiap materi/pengumuman secara real-time (untuk badge angka)
+        function attachCommentCountListener(classId) {
+            if (commentsAllListener) { commentsAllListener(); commentsAllListener = null; }
+            const allCommentsRef = ref(db, `comments/${classId}`);
+            commentsAllListener = onValue(allCommentsRef, (snapshot) => {
+                commentCounts = {};
+                snapshot.forEach(annNode => {
+                    let count = 0;
+                    annNode.forEach(() => { count++; });
+                    commentCounts[annNode.key] = count;
+                    const badge = document.getElementById(`comment-count-${annNode.key}`);
+                    if (badge) badge.innerText = count;
+                });
+            });
+        }
+
+        window.openComments = function(announcementId) {
+            currentCommentAnnouncementId = announcementId;
+            replyingToCommentId = null;
+            editingCommentId = null;
+            document.getElementById('input-comment').value = '';
+            document.getElementById('reply-banner').classList.add('hidden');
+            document.getElementById('comment-modal-overlay').classList.remove('hidden');
+            document.getElementById('comment-list-container').innerHTML = '<p class="comment-empty">Memuat komentar...</p>';
+
+            if (commentModalListener) { commentModalListener(); commentModalListener = null; }
+            const cRef = ref(db, `comments/${currentViewedClassId}/${announcementId}`);
+            commentModalListener = onValue(cRef, (snapshot) => {
+                const arr = [];
+                snapshot.forEach(c => arr.push({ id: c.key, ...c.val() }));
+                lastCommentsArr = arr;
+                renderCommentList(arr);
+            });
+        }
+
+        document.getElementById('btn-close-comments').addEventListener('click', () => {
+            document.getElementById('comment-modal-overlay').classList.add('hidden');
+            if (commentModalListener) { commentModalListener(); commentModalListener = null; }
+            currentCommentAnnouncementId = null;
+            replyingToCommentId = null;
+            editingCommentId = null;
+            lastCommentsArr = [];
+        });
+
+        function renderCommentList(arr) {
+            const container = document.getElementById('comment-list-container');
+
+            if (arr.length === 0) {
+                container.innerHTML = '<p class="comment-empty">Belum ada komentar. Jadilah yang pertama berkomentar!</p>';
+                return;
+            }
+
+            const sorted = [...arr].sort((a, b) => a.timestamp - b.timestamp);
+
+            // Kelompokkan komentar berdasarkan induknya (replyTo) agar terbentuk struktur pohon/akar
+            const childrenMap = {};
+            sorted.forEach(c => {
+                const parentKey = c.replyTo || 'root';
+                if (!childrenMap[parentKey]) childrenMap[parentKey] = [];
+                childrenMap[parentKey].push(c);
+            });
+
+            const isTeacherViewer = currentUserData.role === 'guru';
+
+            function renderNode(comment, isReply) {
+                const isOwner = comment.senderId === currentUserId;
+                const canEdit = isOwner;
+                const canDelete = isOwner || isTeacherViewer;
+
+                const guruBadge = comment.senderRole === 'guru' ? `<span class="comment-badge-guru">GURU</span>` : '';
+                const date = new Date(comment.timestamp).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const editedTag = comment.edited ? `<span class="comment-edited-tag">(diedit)</span>` : '';
+                const escText = escapeHtml(comment.text);
+                const escName = escapeHtml(comment.senderName);
+
+                let innerHtml;
+                if (editingCommentId === comment.id) {
+                    innerHtml = `
+                        <div class="comment-edit-box" id="comment-item-inner-${comment.id}">
+                            <div class="comment-name-row">
+                                <span class="comment-name">${escName}</span>
+                                ${guruBadge}
+                            </div>
+                            <textarea id="edit-comment-input" rows="3">${escText}</textarea>
+                            <div class="comment-edit-actions">
+                                <button type="button" class="btn-batal" onclick="cancelEditComment()">Batal</button>
+                                <button type="button" class="btn-buat" onclick="saveEditComment('${comment.id}')">Simpan</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    let menuHtml = '';
+                    if (canEdit || canDelete) {
+                        let options = '';
+                        if (canEdit) options += `<button type="button" onclick="startEditComment('${comment.id}')">✏️ Edit</button>`;
+                        if (canDelete) options += `<button type="button" class="danger" onclick="deleteComment('${comment.id}')">🗑️ Hapus</button>`;
+                        menuHtml = `
+                            <div class="comment-menu-wrap">
+                                <button type="button" class="comment-menu-btn" onclick="toggleCommentMenu(event, '${comment.id}')">⋮</button>
+                                <div class="comment-menu-dropdown hidden" id="menu-${comment.id}">${options}</div>
+                            </div>
+                        `;
+                    }
+
+                    innerHtml = `
+                        <div class="comment-bubble" data-id="${comment.id}" data-name="${escName}">
+                            <div class="comment-top">
+                                <div class="comment-name-row">
+                                    <span class="comment-name">${escName}</span>
+                                    ${guruBadge}
+                                    <span class="comment-time">• ${date}</span>
+                                    ${editedTag}
+                                </div>
+                                ${menuHtml}
+                            </div>
+                            <p class="comment-text">${escText}</p>
+                        </div>
+                    `;
+                }
+
+                const kids = childrenMap[comment.id] || [];
+                const kidsHtml = kids.length > 0
+                    ? `<div class="comment-children">${kids.map(k => renderNode(k, true)).join('')}</div>`
+                    : '';
+
+                return `<div class="comment-item ${isReply ? 'is-reply' : ''}" id="comment-item-${comment.id}">${innerHtml}${kidsHtml}</div>`;
+            }
+
+            const topLevel = childrenMap['root'] || [];
+            container.innerHTML = topLevel.map(c => renderNode(c, false)).join('');
+        }
+
+        // Klik dua kali pada komentar (di area manapun, kecuali sedang diedit) untuk membalasnya
+        document.getElementById('comment-list-container').addEventListener('dblclick', (e) => {
+            const bubble = e.target.closest('.comment-bubble');
+            if (!bubble) return;
+            setReplyTarget(bubble.dataset.id, bubble.dataset.name);
+        });
+
+        window.setReplyTarget = function(commentId, name) {
+            replyingToCommentId = commentId;
+            document.getElementById('reply-target-name').innerText = name;
+            document.getElementById('reply-banner').classList.remove('hidden');
+            document.getElementById('input-comment').focus();
+        }
+
+        window.cancelReply = function() {
+            replyingToCommentId = null;
+            document.getElementById('reply-banner').classList.add('hidden');
+        }
+
+        // Menu titik tiga (edit / hapus)
+        window.toggleCommentMenu = function(e, commentId) {
+            e.stopPropagation();
+            document.querySelectorAll('.comment-menu-dropdown').forEach(el => {
+                if (el.id !== `menu-${commentId}`) el.classList.add('hidden');
+            });
+            const menu = document.getElementById(`menu-${commentId}`);
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.comment-menu-dropdown').forEach(el => el.classList.add('hidden'));
+        });
+
+        window.startEditComment = function(commentId) {
+            editingCommentId = commentId;
+            renderCommentList(lastCommentsArr);
+            setTimeout(() => {
+                const ta = document.getElementById('edit-comment-input');
+                if (ta) { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; }
+            }, 30);
+        }
+
+        window.cancelEditComment = function() {
+            editingCommentId = null;
+            renderCommentList(lastCommentsArr);
+        }
+
+        window.saveEditComment = async function(commentId) {
+            const ta = document.getElementById('edit-comment-input');
+            const text = ta.value.trim();
+            if (!text) return await customAlert("Komentar tidak boleh kosong!");
+
+            await update(ref(db, `comments/${currentViewedClassId}/${currentCommentAnnouncementId}/${commentId}`), { text, edited: true });
+            editingCommentId = null;
+        }
+
+        window.deleteComment = async function(commentId) {
+            const confirmed = await customConfirm("Hapus komentar ini beserta seluruh balasannya?");
+            if (!confirmed) return;
+
+            // Kumpulkan komentar ini beserta semua balasan turunannya (rekursif) agar ikut terhapus
+            const idsToDelete = [commentId];
+            function collectChildren(parentId) {
+                lastCommentsArr.filter(c => c.replyTo === parentId).forEach(c => {
+                    idsToDelete.push(c.id);
+                    collectChildren(c.id);
+                });
+            }
+            collectChildren(commentId);
+
+            const updates = {};
+            idsToDelete.forEach(id => {
+                updates[`comments/${currentViewedClassId}/${currentCommentAnnouncementId}/${id}`] = null;
+            });
+            await update(ref(db), updates);
+
+            if (replyingToCommentId && idsToDelete.includes(replyingToCommentId)) {
+                cancelReply();
+            }
+        }
+
+        document.getElementById('btn-send-comment').addEventListener('click', async () => {
+            const input = document.getElementById('input-comment');
+            const text = input.value.trim();
+            if (!text || !currentCommentAnnouncementId) return;
+
+            const btn = document.getElementById('btn-send-comment');
+            btn.disabled = true;
+
+            await push(ref(db, `comments/${currentViewedClassId}/${currentCommentAnnouncementId}`), {
+                text,
+                senderId: currentUserId,
+                senderName: currentUserData.username,
+                senderRole: currentUserData.role,
+                timestamp: Date.now(),
+                replyTo: replyingToCommentId || null
+            });
+
+            input.value = '';
+            cancelReply();
+            btn.disabled = false;
+        });
+
+        document.getElementById('input-comment').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('btn-send-comment').click();
+            }
+        });
 
         function loadSiswaClasses() {
             const classesRef = ref(db, 'classes');
