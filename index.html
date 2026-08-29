@@ -9,16 +9,16 @@
 
         :root { 
             /* Tema Warna: Biru, Kuning, Merah */
-            --primary: #1A73E8; /* Biru Google */
+            --primary: #1A73E8; 
             --primary-light: #E8F0FE;
-            --accent: #FFC107; /* Kuning ceria */
+            --accent: #FFC107; 
             --accent-hover: #FFB300;
-            --danger: #EA4335; /* Merah tegas */
+            --danger: #EA4335; 
             --danger-light: #FCE8E6;
             --success: #34A853;
             
             /* Background & Permukaan One UI */
-            --bg-color: #F2F4F8; /* Abu-abu kebiruan super soft */
+            --bg-color: #F2F4F8; 
             --surface: #FFFFFF;
             --text-main: #202124;
             --text-muted: #5F6368;
@@ -73,10 +73,11 @@
         header { 
             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);
             padding: 16px 32px; display: flex; justify-content: space-between; 
-            align-items: center; position: sticky; top: 0; z-index: 900;
+            align-items: center; position: sticky; top: 0; z-index: 800;
             border-bottom: 1px solid rgba(0,0,0,0.05);
         }
-        header h2 { margin: 0; color: var(--primary); font-size: 1.5rem; }
+        header h2 { margin: 0; color: var(--primary); font-size: 1.5rem; transition: transform 0.2s; }
+        header h2:hover { transform: scale(1.02); }
         #btn-logout { background: var(--danger-light); color: var(--danger); padding: 10px 20px; border-radius: 99px;}
         #btn-logout:hover { background: var(--danger); color: white; }
 
@@ -133,7 +134,7 @@
         .fab-btn { 
             position: fixed; bottom: 40px; right: 40px; 
             background: var(--accent); color: #000; font-size: 28px; 
-            width: 65px; height: 65px; border-radius: 22px; /* Squircle */
+            width: 65px; height: 65px; border-radius: 22px; 
             box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4); 
             display: flex; justify-content: center; align-items: center; 
             padding: 0; z-index: 99; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -202,14 +203,7 @@
         #class-detail-section { 
             background: transparent; padding: 0; min-height: 400px; margin-top: 10px;
         }
-        .back-btn { 
-            background: var(--surface); color: var(--text-main); display: inline-flex; 
-            align-items: center; gap: 8px; border-radius: 99px; padding: 10px 20px;
-            box-shadow: var(--shadow-sm); margin-bottom: 20px;
-        }
-        .back-btn:hover { background: #F8F9FA; box-shadow: var(--shadow-md); transform: translateY(-2px);}
         
-        /* Bikin Banner Header ala Google Classroom x Samsung */
         .class-header { 
             background: linear-gradient(135deg, var(--primary), #4285F4);
             border-radius: var(--radius-lg); padding: 40px 32px; 
@@ -217,7 +211,6 @@
             align-items: flex-end; box-shadow: var(--shadow-md);
             position: relative; overflow: hidden;
         }
-        /* Hiasan background abstrak di header */
         .class-header::after {
             content: ''; position: absolute; right: -20px; top: -50px;
             width: 200px; height: 200px; background: rgba(255,255,255,0.1);
@@ -268,6 +261,90 @@
             font-weight: 700; border-bottom: 2px solid var(--primary-light); 
             padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
         }
+
+        /* Bottom Sheet Quick Switch Class (Edge Panel Bawah) */
+        #bottom-panel-handle {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 28px;
+            background: var(--surface);
+            border-radius: 14px 14px 0 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 850;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        #bottom-panel-handle:hover {
+            transform: translateX(-50%) translateY(-3px);
+            background: var(--primary-light);
+        }
+        #bottom-panel-handle svg {
+            color: var(--text-muted);
+            width: 20px;
+            height: 20px;
+        }
+        #bottom-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+            z-index: 900;
+            padding: 24px;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            transform: translateY(110%);
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        #bottom-panel.open {
+            transform: translateY(0);
+        }
+        .bottom-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 860px;
+            margin: 0 auto 16px auto;
+        }
+        .bottom-panel-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
+        .horizontal-list {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            max-width: 860px;
+            margin: 0 auto;
+            /* Hide scrollbar for clean look */
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+        }
+        .horizontal-list::-webkit-scrollbar { display: none; }
+        
+        .mini-class-card {
+            flex: 0 0 220px;
+            background: var(--bg-color);
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .mini-class-card:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-2px);
+        }
+        .mini-class-card h4 { margin:0 0 6px 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
+        .mini-class-card p { margin:0; font-size: 13px; color: var(--text-muted); }
+
     </style>
 </head>
 <body>
@@ -279,7 +356,7 @@
     </div>
 
     <header id="main-header" class="hidden">
-        <h2>EduClass</h2>
+        <h2 id="logo-home" style="cursor:pointer;" title="Kembali ke Dashboard">EduClass</h2>
         <button id="btn-logout">Logout</button>
     </header>
 
@@ -378,11 +455,38 @@
         </div>
     </div>
 
+    <div id="bottom-panel-handle" class="hidden" title="Lompat ke Kelas Lain">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </div>
+    <div id="bottom-panel">
+        <div class="bottom-panel-header">
+            <h4>Lompat ke Kelas Lain</h4>
+            <button id="close-bottom-panel" class="btn-batal" style="padding: 6px 16px; border-radius:99px; font-size:13px;">Tutup</button>
+        </div>
+        <div id="bottom-panel-list" class="horizontal-list">
+            </div>
+    </div>
+
+    <div id="share-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3 style="margin-top:0; color:var(--primary);">Bagikan Kelas</h3>
+            <p style="font-size:14px; color:var(--text-muted); margin-top:-10px; margin-bottom: 20px;">Salin kode unik di bawah ini dan bagikan kepada siswa atau rekan guru agar bisa bergabung.</p>
+            <div style="display:flex; gap:12px; align-items:center; margin-bottom:20px;">
+                <input type="text" id="share-code-input" readonly style="margin:0; font-size:1.1rem; font-weight:700; text-align:center; letter-spacing:1px; background:var(--primary-light); color:var(--primary);">
+                <button id="btn-copy-code" class="btn-buat" style="margin:0; white-space:nowrap; padding: 16px 20px;">Salin Kode</button>
+            </div>
+            <div class="modal-actions center">
+                <button id="btn-close-share" class="btn-batal" style="width: 100%;">Tutup</button>
+            </div>
+        </div>
+    </div>
+
     <div id="class-room-section" class="container hidden">
         <div id="class-detail-section">
-            <div style="display:flex; gap:12px; flex-wrap: wrap;">
-                <button class="back-btn" id="btn-back-dashboard">← Kembali</button>
-                <button class="back-btn" id="btn-lihat-anggota" style="background:var(--primary-light); color:var(--primary); font-weight: 700;">👥 Anggota (<span id="member-count-display">0</span>)</button>
+            <div style="display:flex; gap:12px; flex-wrap: wrap; margin-bottom: 20px;">
+                <button class="btn-batal" id="btn-lihat-anggota" style="background:var(--primary-light); color:var(--primary); font-weight: 700; border-radius: 99px; padding: 10px 20px;">👥 Anggota Kelas (<span id="member-count-display">0</span>)</button>
             </div>
             
             <div class="class-header">
@@ -462,7 +566,6 @@
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getDatabase, ref, get, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // GANTI DENGAN CONFIG ANDA
         const firebaseConfig = {
           apiKey: "AIzaSyDJr-6PSzrDEC7J9XfI38g3C_r65x9OlLA",
           authDomain: "public-database-e58ab.firebaseapp.com",
@@ -492,6 +595,9 @@
         let inviteListener = null;
         let editingAnnouncementId = null;
         let allUsersDB = []; 
+
+        // Cache array kelas untuk quick switcher
+        window.cachedClasses = [];
 
         // ================= SISTEM CUSTOM ALERT & CONFIRM =================
         window.customAlert = function(message) {
@@ -527,7 +633,6 @@
 
         // ================= SISTEM ROUTING SPA (HISTORY API) =================
         
-        // Fungsi pembungkus untuk navigasi tanpa refresh (mengubah URL)
         window.navigateTo = function(path) {
             if (window.location.pathname !== path) {
                 history.pushState(null, '', path);
@@ -535,12 +640,15 @@
             resolveRoute();
         }
 
-        // Listener Back / Forward button peramban
         window.addEventListener('popstate', () => {
             resolveRoute();
         });
 
-        // Menampilkan blok halaman berdasarkan ID section
+        // Klik logo EduClass untuk balik ke Beranda/Dashboard
+        document.getElementById('logo-home').addEventListener('click', () => {
+            navigateTo('/dashboard');
+        });
+
         function showSection(sectionId) {
             document.getElementById('global-loading').classList.add('hidden');
             document.getElementById('login-section').classList.add('hidden');
@@ -556,11 +664,9 @@
             }
         }
 
-        // Logika router
         function resolveRoute() {
             const path = window.location.pathname;
             
-            // Jika BUKAN login
             if (!currentUserId) {
                 if (path !== '/login') {
                     history.replaceState(null, '', '/login');
@@ -569,14 +675,12 @@
                 return;
             }
 
-            // Jika SUDAH login tapi terdampar di halaman publik
             if (path === '/login' || path === '/') {
                 history.replaceState(null, '', '/dashboard');
                 resolveRoute(); 
                 return;
             }
             
-            // Logika URL Kelas Spesifik /dashboard/KODE_KELAS
             if (path.startsWith('/dashboard/')) {
                 const classId = path.split('/')[2];
                 if (classId) {
@@ -590,7 +694,6 @@
                 showSection('dashboard-section');
                 cleanupClassRoom(); 
             } else {
-                // Fallback untuk sembarang rute
                 history.replaceState(null, '', '/dashboard');
                 resolveRoute();
             }
@@ -619,21 +722,19 @@
                         loadSiswaInvites();
                     }
 
-                    // Panggil router untuk merender sesuai URL
                     resolveRoute();
                 } else {
                     await customAlert("Data akun tidak ditemukan.");
                     auth.signOut();
                 }
             } else {
-                // Saat tidak login, pastikan semua memori pendengar kelas dikosongkan
                 if(inviteListener) { inviteListener(); inviteListener = null; }
                 cleanupClassRoom();
                 
                 currentUserId = null;
                 currentUserData = null;
+                window.cachedClasses = [];
                 
-                // Routing otomatis akan mengubah URL jadi /login
                 resolveRoute();
             }
         });
@@ -647,32 +748,76 @@
 
         document.getElementById('btn-logout').addEventListener('click', () => { signOut(auth); });
 
+        // ================= PANEL QUICK SWITCH KELAS =================
+        const bottomPanelHandle = document.getElementById('bottom-panel-handle');
+        const bottomPanel = document.getElementById('bottom-panel');
+
+        bottomPanelHandle.addEventListener('click', () => {
+            updateQuickSwitchPanel();
+            bottomPanel.classList.add('open');
+            bottomPanelHandle.classList.add('hidden'); // Sembunyikan handle saat panel terbuka
+        });
+
+        document.getElementById('close-bottom-panel').addEventListener('click', () => {
+            bottomPanel.classList.remove('open');
+            if(currentViewedClassId) bottomPanelHandle.classList.remove('hidden'); // Munculkan lagi
+        });
+
+        function updateQuickSwitchPanel() {
+            const listContainer = document.getElementById('bottom-panel-list');
+            listContainer.innerHTML = '';
+            
+            // Saring agar kelas yang sedang dibuka tidak ikut tampil
+            const otherClasses = window.cachedClasses.filter(c => c.id !== currentViewedClassId);
+            
+            if(otherClasses.length === 0) {
+                listContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px; font-style:italic; padding-left:10px;">Tidak ada kelas lain untuk saat ini.</p>';
+                return;
+            }
+
+            otherClasses.forEach(c => {
+                listContainer.innerHTML += `
+                    <div class="mini-class-card" onclick="masukKelasPanel('${c.id}')">
+                        <h4>${c.name}</h4>
+                        <p>Guru: ${c.teacher}</p>
+                    </div>
+                `;
+            });
+        }
+
+        window.masukKelasPanel = function(id) {
+            bottomPanel.classList.remove('open');
+            // Sedikit delay transisi agar mulus sebelum rute dipindah
+            setTimeout(() => { masukKelas(id); }, 200);
+        }
+
         // ================= NAVIGASI RUANG KELAS =================
-        
-        // Membersihkan pendengar di ruangan (kalau pindah keluar)
         function cleanupClassRoom() {
             if(announcementListener) { announcementListener(); announcementListener = null; }
             if(classRoomListener) { classRoomListener(); classRoomListener = null; }
             currentViewedClassId = null;
             currentClassData = null;
+            
+            // Sembunyikan Handle Bottom Panel saat di luar kelas
+            bottomPanelHandle.classList.add('hidden');
+            bottomPanel.classList.remove('open');
         }
 
-        // Fungsi yang dipanggil lewat HTML onclick dari kartu kelas (hanya butuh classId)
         window.masukKelas = function(classId) {
             navigateTo(`/dashboard/${classId}`);
         }
 
-        // Setup Ruangan Kelas Berdasarkan ID dari URL
         function setupClassRoom(classId) {
-            // Hindari render ulang yang tidak perlu
             if (currentViewedClassId === classId) return;
             
             cleanupClassRoom(); 
             currentViewedClassId = classId;
             
-            // Set Loading text sblm datanya diunduh Firebase
             document.getElementById('room-class-name').innerText = "Memuat data...";
             document.getElementById('room-class-teacher').innerText = "Guru: ...";
+            
+            // Tampilkan kembali Bottom Panel Handle
+            bottomPanelHandle.classList.remove('hidden');
 
             const btnTambahPengumuman = document.getElementById('btn-show-announcement-modal');
             const btnHapusKelas = document.getElementById('btn-hapus-kelas');
@@ -690,7 +835,6 @@
                 } else {
                     currentClassData = snapshot.val();
 
-                    // Tampilkan informasi kelas asli
                     document.getElementById('room-class-name').innerText = currentClassData.className;
                     document.getElementById('room-class-teacher').innerText = `Guru: ${currentClassData.teacherName}`;
 
@@ -729,8 +873,6 @@
             loadAnnouncements(classId);
         }
 
-        document.getElementById('btn-back-dashboard').addEventListener('click', () => navigateTo('/dashboard'));
-
         document.getElementById('btn-hapus-kelas').addEventListener('click', async () => {
             if(!currentViewedClassId) return;
             const confirmed = await customConfirm("Yakin ingin MENGHAPUS kelas ini secara permanen?");
@@ -740,11 +882,36 @@
             }
         });
 
-        // ================= FITUR SHARE KODE KELAS =================
-        document.getElementById('btn-bagikan-kelas').addEventListener('click', async () => {
+        // ================= FITUR SHARE KODE KELAS (BARU DENGAN MODAL & COPY) =================
+        document.getElementById('btn-bagikan-kelas').addEventListener('click', () => {
             if(!currentViewedClassId) return;
-            await customAlert(`Silakan bagikan kode kelas di bawah ini kepada siswa atau guru lain:\n\n${currentViewedClassId}`);
+            document.getElementById('share-code-input').value = currentViewedClassId;
+            document.getElementById('share-modal-overlay').classList.remove('hidden');
         });
+
+        document.getElementById('btn-close-share').addEventListener('click', () => {
+            document.getElementById('share-modal-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('btn-copy-code').addEventListener('click', async () => {
+            const codeInput = document.getElementById('share-code-input');
+            const btn = document.getElementById('btn-copy-code');
+            
+            try {
+                await navigator.clipboard.writeText(codeInput.value);
+                // Ubah gaya sementara agar terlihat jelas sudah dicopy
+                btn.innerText = "✓ Tersalin!";
+                btn.style.background = "var(--success)";
+                
+                setTimeout(() => {
+                    btn.innerText = "Salin Kode";
+                    btn.style.background = ""; // Balikin ke default
+                }, 2000);
+            } catch (err) {
+                await customAlert("Gagal menyalin kode. Silakan salin secara manual.");
+            }
+        });
+
 
         // ================= GABUNG KELAS VIA KODE =================
         const joinModal = document.getElementById('join-class-modal-overlay');
@@ -1179,10 +1346,17 @@
             onValue(ref(db, 'classes'), (snapshot) => {
                 const container = document.getElementById('guru-class-list');
                 container.innerHTML = ''; let hasClass = false;
+                
+                window.cachedClasses = []; // Simpan ulang data list kelas untuk Bottom Panel
+                
                 snapshot.forEach(child => {
                     const data = child.val();
                     if(data.teacherId === currentUserId || (data.contributors && data.contributors[currentUserId])) {
                         hasClass = true;
+                        
+                        // Push ke cache
+                        window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
+                        
                         const studentCount = data.students ? Object.keys(data.students).length : 0;
                         const contributorCount = data.contributors ? Object.keys(data.contributors).length : 0;
                         const totalMembers = 1 + studentCount + contributorCount;
@@ -1198,6 +1372,8 @@
                         `;
                     }
                 });
+                
+                if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); // Render panel langsung jika sedang terbuka
                 if(!hasClass) container.innerHTML = '<p style="color:var(--text-muted);">Anda belum memiliki kelas.</p>';
             });
         }
@@ -1206,10 +1382,17 @@
             onValue(ref(db, 'classes'), (snapshot) => {
                 const container = document.getElementById('siswa-class-list');
                 container.innerHTML = ''; let hasClass = false;
+                
+                window.cachedClasses = []; // Simpan ulang data list kelas untuk Bottom Panel
+                
                 snapshot.forEach(child => {
                     const data = child.val();
                     if(data.students && data.students[currentUserId]) {
                         hasClass = true;
+                        
+                        // Push ke cache
+                        window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
+                        
                         container.innerHTML += `
                             <div class="class-card" onclick="masukKelas('${child.key}')">
                                 <h3>${data.className}</h3>
@@ -1221,6 +1404,8 @@
                         `;
                     }
                 });
+                
+                if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); // Render panel langsung jika sedang terbuka
                 if(!hasClass) container.innerHTML = '<p style="color:var(--text-muted);">Anda belum tergabung dalam kelas manapun.</p>';
             });
         }
