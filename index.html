@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <!-- Mencegah zoom di perangkat mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>EduClass - Dashboard</title>
     <style>
@@ -39,17 +40,22 @@
             background-color: var(--bg-color); 
             color: var(--text-main); 
             -webkit-font-smoothing: antialiased; 
+            /* Mencegah pull-to-refresh di mobile */
             overscroll-behavior-y: none;
+            /* Mencegah pinch zoom tapi tetap izinkan scroll atas-bawah */
             touch-action: pan-y;
         }
         
+        /* Utility */
         .hidden { display: none !important; }
         .container { max-width: 860px; margin: 0 auto; padding: 24px; padding-bottom: 100px;}
         
+        /* Typography */
         h1, h2, h3 { letter-spacing: -0.03em; margin-top: 0; }
         h2 { font-size: 1.75rem; font-weight: 700; }
         h3 { font-size: 1.25rem; font-weight: 600; }
 
+        /* Form Elements One UI Style */
         button { 
             cursor: pointer; border: none; border-radius: var(--radius-md); 
             padding: 12px 20px; font-weight: 600; font-size: 0.95rem;
@@ -73,6 +79,7 @@
         }
         label { font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-left: 4px; }
         
+        /* Navbar / Header */
         header { 
             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);
             padding: 16px 32px; display: flex; justify-content: space-between; 
@@ -84,6 +91,7 @@
         #btn-logout { background: var(--danger-light); color: var(--danger); padding: 10px 20px; border-radius: 99px;}
         #btn-logout:hover { background: var(--danger); color: white; }
 
+        /* Loading Layar Penuh */
         #global-loading { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: var(--bg-color); display: flex; flex-direction: column; 
@@ -96,6 +104,7 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* Login Screen */
         #login-section { 
             max-width: 420px; margin: 100px auto; background: var(--surface); 
             padding: 40px; border-radius: var(--radius-lg); 
@@ -105,6 +114,7 @@
         #login-btn { background: var(--accent); color: #000; width: 100%; padding: 16px; font-size: 1.1rem; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);}
         #login-btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
 
+        /* Dashboard Global */
         .welcome-text { 
             font-size: 1.5rem; margin-bottom: 30px; font-weight: 500;
             background: var(--surface); padding: 24px; border-radius: var(--radius-lg);
@@ -113,6 +123,7 @@
         .welcome-text strong { color: var(--primary); font-weight: 700;}
         .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         
+        /* Kartu Kelas */
         .class-card { 
             background: var(--surface); border: none; padding: 28px; 
             border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); 
@@ -129,6 +140,7 @@
         .class-card h3 { margin: 0 0 12px 0; color: var(--text-main); font-size: 1.3rem;}
         .class-card p { margin:0; font-size:14px; color: var(--text-muted); }
 
+        /* FAB Button */
         .fab-btn { 
             position: fixed; bottom: 40px; right: 40px; 
             background: var(--accent); color: #000; font-size: 28px; 
@@ -139,6 +151,7 @@
         }
         .fab-btn:hover { transform: translateY(-5px) scale(1.05); background: var(--accent-hover); box-shadow: 0 12px 25px rgba(255, 193, 7, 0.5);}
 
+        /* Overlay / Modal */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
@@ -157,11 +170,13 @@
         }
         @keyframes slideUp { to { transform: translateY(0) scale(1); opacity: 1; } }
         
+        /* Custom Alert & Confirm */
         #custom-alert-overlay, #custom-confirm-overlay { z-index: 2000; }
         .alert-card { max-width: 400px; text-align: center; }
         .alert-card h3 { margin-top: 0; font-size: 1.5rem;}
         .alert-card p { margin-bottom: 24px; font-size: 16px; line-height: 1.6; color: var(--text-muted);}
         
+        /* Live Search Results & Selected Students */
         .search-results-box { 
             border: 1px solid var(--border); border-top: none; max-height: 200px; 
             overflow-y: auto; border-radius: 0 0 var(--radius-md) var(--radius-md); 
@@ -182,6 +197,7 @@
         }
         .remove-badge { cursor: pointer; color: var(--danger); font-size: 16px; font-weight: bold; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: white;}
         
+        /* Tombol Aksi Standard */
         .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: auto; padding-top: 20px;}
         .modal-actions.center { justify-content: center; }
         .btn-batal { background: #F1F3F4; color: var(--text-main); }
@@ -193,6 +209,7 @@
         .btn-outline { border: 2px solid var(--primary); color: var(--primary); background: transparent; }
         .btn-outline:hover { background: var(--primary-light); }
 
+        /* Tampilan Detail Kelas */
         #class-detail-section { 
             background: transparent; padding: 0; min-height: 400px; margin-top: 10px;
         }
@@ -221,10 +238,11 @@
         #btn-hapus-kelas { background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(4px); }
         #btn-hapus-kelas:hover { background: var(--danger); color: white; }
         
+        /* Tampilan Pengumuman */
         .announcement-card { 
             background: var(--surface); border: none; border-radius: var(--radius-md); 
             padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow-sm); 
-            transition: box-shadow 0.2s;
+            user-select: none; transition: box-shadow 0.2s;
         }
         .announcement-card:hover { box-shadow: var(--shadow-md); }
         .announcement-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -238,6 +256,7 @@
         }
         .btn-hapus-announcement:hover { background: var(--danger); color: white;}
         
+        /* Undangan Alert */
         .invitation-card { 
             background: var(--surface); border: 2px solid var(--accent); 
             padding: 24px; border-radius: var(--radius-lg); 
@@ -248,100 +267,101 @@
             content: '🔔'; position: absolute; right: 20px; top: -10px; font-size: 80px; opacity: 0.1;
         }
 
+        /* Label Kategori Anggota */
         .member-category { 
             margin: 24px 0 10px 0; font-size: 15px; color: var(--primary); 
             font-weight: 700; border-bottom: 2px solid var(--primary-light); 
             padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
         }
 
+        /* Bottom Sheet Quick Switch Class */
         #bottom-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
-            box-shadow: 0 -8px 30px rgba(0,0,0,0.15); z-index: 900;
-            padding: 24px; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-            transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+            z-index: 900;
+            padding: 24px;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        #bottom-panel.open { transform: translateY(0); }
+        #bottom-panel.open {
+            transform: translateY(0);
+        }
         #bottom-panel-handle {
-            position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
-            width: 70px; height: 28px; background: var(--surface);
-            border-radius: 14px 14px 0 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
-            display: flex; justify-content: center; align-items: center;
-            cursor: pointer; z-index: 850; transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: absolute;
+            top: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 28px;
+            background: var(--surface);
+            border-radius: 14px 14px 0 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 850;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        #bottom-panel-handle:hover { transform: translateX(-50%); background: var(--primary-light); }
-        #bottom-panel-handle svg { color: var(--text-muted); width: 20px; height: 20px; transition: transform 0.3s ease; }
-        #bottom-panel.open #bottom-panel-handle svg { transform: rotate(180deg); }
+        #bottom-panel-handle:hover {
+            transform: translateX(-50%);
+            background: var(--primary-light);
+        }
+        #bottom-panel-handle svg {
+            color: var(--text-muted);
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s ease;
+        }
+        #bottom-panel.open #bottom-panel-handle svg {
+            transform: rotate(180deg);
+        }
 
-        .bottom-panel-header { display: flex; justify-content: space-between; align-items: center; max-width: 860px; margin: 0 auto 16px auto; }
+        .bottom-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 860px;
+            margin: 0 auto 16px auto;
+        }
         .bottom-panel-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
         .horizontal-list {
-            display: flex; gap: 16px; overflow-x: auto; padding-bottom: 15px;
-            max-width: 860px; margin: 0 auto; scrollbar-width: none; -ms-overflow-style: none;
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            max-width: 860px;
+            margin: 0 auto;
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
         }
         .horizontal-list::-webkit-scrollbar { display: none; }
         
         .mini-class-card {
-            flex: 0 0 220px; background: var(--bg-color); padding: 16px 24px;
-            border-radius: 99px; cursor: pointer; border: 2px solid transparent;
-            transition: all 0.2s; display: flex; flex-direction: column; justify-content: center;
+            flex: 0 0 220px;
+            background: var(--bg-color);
+            padding: 16px 24px;
+            border-radius: 99px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        .mini-class-card:hover { border-color: var(--primary); background: var(--surface); }
+        .mini-class-card:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+        }
         .mini-class-card h4 { margin:0 0 6px 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
         .mini-class-card p { margin:0; font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
-        /* CSS KOMENTAR */
-        #comments-modal-overlay { z-index: 1500; }
-        .comment-container {
-            flex-grow: 1; overflow-y: auto; overflow-x: auto; 
-            padding-right: 5px; margin-bottom: 16px;
-        }
-        .comment-item {
-            padding: 10px; background: #f8f9fa; border-radius: var(--radius-sm);
-            margin-bottom: 8px; position: relative; border: 1px solid var(--border);
-            user-select: none;
-        }
-        .comment-item:hover { background: #f1f3f4; }
-        .comment-replies {
-            margin-left: 24px; border-left: 2px solid var(--border);
-            padding-left: 12px; margin-top: 8px; position: relative;
-        }
-        .comment-replies::before {
-            content: ''; position: absolute; left: -2px; top: 15px;
-            width: 12px; height: 2px; background: var(--border);
-        }
-        .comment-role-guru {
-            background: var(--primary-light); color: var(--primary);
-            font-size: 10px; padding: 2px 6px; border-radius: 4px;
-            margin-left: 6px; font-weight: 700; letter-spacing: 0.5px;
-        }
-        .comment-menu {
-            position: absolute; right: 0; top: 25px;
-            background: white; border: 1px solid var(--border);
-            border-radius: 8px; box-shadow: var(--shadow-sm);
-            z-index: 10; min-width: 100px; overflow: hidden;
-        }
-        .comment-menu button {
-            display: block; width: 100%; text-align: left;
-            padding: 10px 16px; background: none; border-radius: 0;
-            font-size: 13px; border-bottom: 1px solid #f1f3f4;
-        }
-        .comment-menu button:hover { background: var(--bg-color); }
-        .comment-menu button:last-child { border-bottom: none; }
-        .comment-menu .btn-edit { color: var(--text-main); }
-        .comment-menu .btn-hapus { color: var(--danger); font-weight: 600; }
-
-        #reply-indicator {
-            display: flex; justify-content: space-between; align-items: center;
-            background: var(--primary-light); padding: 8px 12px;
-            border-radius: 8px; margin-bottom: 12px; font-size: 13px;
-            border-left: 4px solid var(--primary);
-        }
-        #cancel-reply-btn {
-            cursor: pointer; color: var(--danger); font-weight: bold;
-            width: 20px; height: 20px; display: flex; 
-            align-items: center; justify-content: center;
-        }
     </style>
 </head>
 <body>
@@ -570,32 +590,6 @@
         </div>
     </div>
 
-    <!-- MODAL KOMENTAR -->
-    <div id="comments-modal-overlay" class="modal-overlay hidden">
-        <div class="modal-card" style="height: 85vh; display: flex; flex-direction: column; max-width: 600px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3 style="margin:0; color:var(--primary);">Komentar Forum</h3>
-                <button id="btn-close-comments" class="btn-batal" style="padding: 6px 16px; border-radius: 99px;">Tutup</button>
-            </div>
-            
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: -10px; margin-bottom: 16px;">(Klik 2x pada komentar untuk membalas)</p>
-            
-            <div id="comments-list-container" class="comment-container">
-            </div>
-
-            <div style="border-top: 1px solid var(--border); padding-top: 16px;">
-                <div id="reply-indicator" class="hidden">
-                    <span>Membalas <strong id="reply-target-name"></strong></span>
-                    <span id="cancel-reply-btn" title="Batal Membalas">✕</span>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: flex-start;">
-                    <textarea id="input-comment" rows="2" placeholder="Tulis komentar Anda..." style="margin: 0; flex-grow: 1; resize: none;"></textarea>
-                    <button id="btn-send-comment" class="btn-buat" style="height: 100%;">Kirim</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -616,10 +610,29 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        document.addEventListener('wheel', (e) => { if (e.ctrlKey) { e.preventDefault(); } }, { passive: false });
-        document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) { e.preventDefault(); } }, { passive: false });
-        document.addEventListener('keydown', (e) => { if (e.key === 'F5' || (e.ctrlKey && (e.key === 'r' || e.key === 'R'))) { e.preventDefault(); } });
+        // ================= GLOBAL LISTENER UNTUK BLOKIR ZOOM & RELOAD =================
+        // Cegah Zoom dengan Ctrl + Scroll (Mouse Wheel)
+        document.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
 
+        // Cegah Pinch-to-Zoom dengan jari
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Cegah Reload Keyboard Shortcuts (F5, Ctrl+R, Ctrl+Shift+R)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F5' || (e.ctrlKey && (e.key === 'r' || e.key === 'R'))) {
+                e.preventDefault();
+            }
+        });
+
+        // ================= UI Elements Global =================
         const mainHeader = document.getElementById('main-header');
         const guruDashboard = document.getElementById('guru-dashboard');
         const siswaDashboard = document.getElementById('siswa-dashboard');
@@ -634,13 +647,11 @@
         let inviteListener = null;
         let editingAnnouncementId = null;
         let allUsersDB = [];
+        
+        // Cache array kelas untuk quick switcher
         window.cachedClasses = [];
 
-        // VAR KOMENTAR
-        let currentAnnouncementIdForComment = null;
-        let currentReplyToId = null;
-        let commentListeners = {};
-
+        // ================= SISTEM CUSTOM ALERT & CONFIRM =================
         window.customAlert = function(message) {
             return new Promise((resolve) => {
                 const overlay = document.getElementById('custom-alert-overlay');
@@ -648,7 +659,11 @@
                 overlay.classList.remove('hidden');
                 
                 const btnOk = document.getElementById('custom-alert-btn');
-                const handleClick = () => { overlay.classList.add('hidden'); btnOk.removeEventListener('click', handleClick); resolve(); };
+                const handleClick = () => {
+                    overlay.classList.add('hidden');
+                    btnOk.removeEventListener('click', handleClick);
+                    resolve();
+                };
                 btnOk.addEventListener('click', handleClick);
             });
         };
@@ -662,87 +677,159 @@
                 const btnOk = document.getElementById('custom-confirm-ok');
                 const btnCancel = document.getElementById('custom-confirm-cancel');
                 
-                const handleOk = () => { cleanup(); resolve(true); };
-                const handleCancel = () => { cleanup(); resolve(false); };
-                const cleanup = () => { overlay.classList.add('hidden'); btnOk.removeEventListener('click', handleOk); btnCancel.removeEventListener('click', handleCancel); };
+                const handleOk = () => {
+                    cleanup();
+                    resolve(true);
+                };
+                
+                const handleCancel = () => {
+                    cleanup();
+                    resolve(false);
+                };
+                
+                const cleanup = () => {
+                    overlay.classList.add('hidden');
+                    btnOk.removeEventListener('click', handleOk);
+                    btnCancel.removeEventListener('click', handleCancel);
+                };
                 
                 btnOk.addEventListener('click', handleOk);
                 btnCancel.addEventListener('click', handleCancel);
             });
         };
 
-        window.addEventListener('beforeunload', (e) => { if (currentUserId) { e.preventDefault(); e.returnValue = ''; } });
+        // Native Alert jika user tidak sengaja memencet tombol "Reload/Refresh" di address bar Browser
+        window.addEventListener('beforeunload', (e) => {
+            if (currentUserId) { // Hanya aktif jika sudah login
+                e.preventDefault();
+                e.returnValue = ''; 
+            }
+        });
 
+
+        // ================= SISTEM ROUTING SPA (HISTORY API) & EXIT TRAP =================
         window.navigateTo = function(path) {
-            if (window.location.pathname !== path) { history.pushState({ path: path }, '', path); }
+            if (window.location.pathname !== path) {
+                history.pushState({ path: path }, '', path);
+            }
             resolveRoute();
         }
 
         window.addEventListener('popstate', async (e) => {
+            // Mengecek apakah user terjebak di trap dashboard
             if (e.state && e.state.trap) {
+                // Restore state dashboard agar tidak merusak history jika user Batal keluar
                 history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
+                
+                // Munculkan konfirmasi keluar
                 const confirmExit = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi EduClass?");
-                if (confirmExit) { history.go(-2); }
-            } else { resolveRoute(); }
+                if (confirmExit) {
+                    // Paksa browser back 2 kali (melewati trap) agar benar-benar keluar web
+                    history.go(-2); 
+                }
+            } else {
+                resolveRoute();
+            }
         });
 
-        document.getElementById('logo-home').addEventListener('click', () => { navigateTo('/classroom/dashboard'); });
+        // Klik logo EduClass untuk balik ke Beranda/Dashboard
+        document.getElementById('logo-home').addEventListener('click', () => {
+            navigateTo('/classroom/dashboard');
+        });
 
         function showSection(sectionId) {
             document.getElementById('global-loading').classList.add('hidden');
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('dashboard-section').classList.add('hidden');
             document.getElementById('class-room-section').classList.add('hidden');
+            
             document.getElementById(sectionId).classList.remove('hidden');
             
-            if (sectionId !== 'login-section' && currentUserId) { mainHeader.classList.remove('hidden'); } 
-            else { mainHeader.classList.add('hidden'); }
+            if (sectionId !== 'login-section' && currentUserId) {
+                mainHeader.classList.remove('hidden');
+            } else {
+                mainHeader.classList.add('hidden');
+            }
         }
 
         function resolveRoute() {
             const path = window.location.pathname;
+            
             if (!currentUserId) {
-                if (path !== '/classroom/login') { history.replaceState({ path: '/classroom/login' }, '', '/classroom/login'); }
-                showSection('login-section'); return;
+                if (path !== '/classroom/login') {
+                    history.replaceState({ path: '/classroom/login' }, '', '/classroom/login');
+                }
+                showSection('login-section');
+                return;
             }
+
+            // Normalisasi URL root atau login yang sukses untuk mengarah ke dashboard
             if (path === '/classroom/login' || path === '/' || path === '/login' || path === '/dashboard' || path === '/classroom' || path === '/classroom/') {
+                // Pasang "Trap" / Jebakan Back Button untuk dashboard
                 history.replaceState({ trap: true }, '', '/classroom/dashboard'); 
                 history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
-                resolveRoute(); return;
+                
+                resolveRoute();
+                return;
             }
+
             if (path.startsWith('/classroom/dashboard/')) {
                 const classId = path.split('/')[3];
-                if (classId) { showSection('class-room-section'); setupClassRoom(classId); } 
-                else { navigateTo('/classroom/dashboard'); }
+                if (classId) {
+                    showSection('class-room-section');
+                    setupClassRoom(classId);
+                } else {
+                    navigateTo('/classroom/dashboard');
+                }
             } else if (path === '/classroom/dashboard') {
+                // Periksa apakah user langsung reload di halaman dashboard. Jika ya, inisialisasi Trap.
                 if (!history.state || (!history.state.path && !history.state.trap)) {
                     history.replaceState({ trap: true }, '', '/classroom/dashboard');
                     history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
                 }
-                showSection('dashboard-section'); cleanupClassRoom();
-            } else { navigateTo('/classroom/dashboard'); }
+                showSection('dashboard-section');
+                cleanupClassRoom();
+            } else {
+                navigateTo('/classroom/dashboard');
+            }
         }
 
+        // ================= SISTEM AUTENTIKASI =================
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUserId = user.uid;
                 const userSnap = await get(ref(db, `users/${user.uid}`));
+                
                 if (userSnap.exists()) {
                     currentUserData = userSnap.val();
                     document.getElementById('user-name-display').innerText = currentUserData.username || "Pengguna";
                     document.getElementById('user-role-display').innerText = currentUserData.role;
+                    
                     if (currentUserData.role === 'guru') {
-                        guruDashboard.classList.remove('hidden'); siswaDashboard.classList.add('hidden');
-                        loadGuruClasses(); loadSiswaInvites();
+                        guruDashboard.classList.remove('hidden');
+                        siswaDashboard.classList.add('hidden');
+                        loadGuruClasses();
+                        loadSiswaInvites();
                     } else if (currentUserData.role === 'siswa') {
-                        siswaDashboard.classList.remove('hidden'); guruDashboard.classList.add('hidden');
-                        loadSiswaClasses(); loadSiswaInvites();
+                        siswaDashboard.classList.remove('hidden');
+                        guruDashboard.classList.add('hidden');
+                        loadSiswaClasses();
+                        loadSiswaInvites();
                     }
                     resolveRoute();
-                } else { await customAlert("Data akun tidak ditemukan."); auth.signOut(); }
+                } else {
+                    await customAlert("Data akun tidak ditemukan.");
+                    auth.signOut();
+                }
             } else {
-                if(inviteListener) { inviteListener(); inviteListener = null; }
-                cleanupClassRoom(); currentUserId = null; currentUserData = null; window.cachedClasses = [];
+                if(inviteListener) {
+                    inviteListener();
+                    inviteListener = null;
+                }
+                cleanupClassRoom();
+                currentUserId = null;
+                currentUserData = null;
+                window.cachedClasses = [];
                 resolveRoute();
             }
         });
@@ -750,51 +837,95 @@
         document.getElementById('login-btn').addEventListener('click', async () => {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-password').value;
-            try { await signInWithEmailAndPassword(auth, email, pass); document.getElementById('login-error').classList.add('hidden'); } 
-            catch (error) { document.getElementById('login-error').innerText = "Email atau password salah!"; document.getElementById('login-error').classList.remove('hidden'); }
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                document.getElementById('login-error').classList.add('hidden');
+            } catch (error) {
+                document.getElementById('login-error').innerText = "Email atau password salah!";
+                document.getElementById('login-error').classList.remove('hidden');
+            }
         });
 
+        // Penambahan konfirmasi pada tombol Logout
         document.getElementById('btn-logout').addEventListener('click', async () => {
             const isConfirmed = await customConfirm("Apakah Anda yakin ingin keluar dari akun?");
-            if (isConfirmed) { signOut(auth); }
+            if (isConfirmed) {
+                signOut(auth);
+            }
         });
 
+        // ================= PANEL QUICK SWITCH KELAS =================
         const bottomPanelHandle = document.getElementById('bottom-panel-handle');
         const bottomPanel = document.getElementById('bottom-panel');
 
         bottomPanelHandle.addEventListener('click', () => {
-            if (bottomPanel.classList.contains('open')) { bottomPanel.classList.remove('open'); } 
-            else { updateQuickSwitchPanel(); bottomPanel.classList.add('open'); }
+            if (bottomPanel.classList.contains('open')) {
+                bottomPanel.classList.remove('open');
+            } else {
+                updateQuickSwitchPanel();
+                bottomPanel.classList.add('open');
+            }
         });
 
         function updateQuickSwitchPanel() {
-            const listContainer = document.getElementById('bottom-panel-list'); listContainer.innerHTML = '';
+            const listContainer = document.getElementById('bottom-panel-list');
+            listContainer.innerHTML = '';
+            
+            // Saring agar kelas yang sedang dibuka tidak ikut tampil
             const otherClasses = window.cachedClasses.filter(c => c.id !== currentViewedClassId);
-            if(otherClasses.length === 0) { listContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px; font-style:italic; padding-left:10px;">Tidak ada kelas lain untuk saat ini.</p>'; return; }
-            otherClasses.forEach(c => { listContainer.innerHTML += `<div class="mini-class-card" onclick="masukKelasPanel('${c.id}')"><h4>${c.name}</h4><p>Guru: ${c.teacher}</p></div>`; });
+            
+            if(otherClasses.length === 0) {
+                listContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px; font-style:italic; padding-left:10px;">Tidak ada kelas lain untuk saat ini.</p>';
+                return;
+            }
+            
+            otherClasses.forEach(c => {
+                listContainer.innerHTML += `
+                    <div class="mini-class-card" onclick="masukKelasPanel('${c.id}')">
+                        <h4>${c.name}</h4>
+                        <p>Guru: ${c.teacher}</p>
+                    </div>
+                `;
+            });
         }
 
-        window.masukKelasPanel = function(id) { bottomPanel.classList.remove('open'); setTimeout(() => { masukKelas(id); }, 200); }
-        window.masukKelas = function(classId) { navigateTo(`/classroom/dashboard/${classId}`); }
+        window.masukKelasPanel = function(id) {
+            bottomPanel.classList.remove('open');
+            setTimeout(() => {
+                masukKelas(id);
+            }, 200);
+        }
 
+        // ================= NAVIGASI RUANG KELAS =================
         function cleanupClassRoom() {
-            if(announcementListener) { announcementListener(); announcementListener = null; }
-            if(classRoomListener) { classRoomListener(); classRoomListener = null; }
+            if(announcementListener) {
+                announcementListener();
+                announcementListener = null;
+            }
+            if(classRoomListener) {
+                classRoomListener();
+                classRoomListener = null;
+            }
+            currentViewedClassId = null;
+            currentClassData = null;
             
-            // Clean up comment listeners
-            Object.values(commentListeners).forEach(unsubscribe => unsubscribe());
-            commentListeners = {};
+            // Sembunyikan Panel saat di luar kelas
+            bottomPanel.classList.add('hidden');
+            bottomPanel.classList.remove('open');
+        }
 
-            currentViewedClassId = null; currentClassData = null;
-            bottomPanel.classList.add('hidden'); bottomPanel.classList.remove('open');
+        window.masukKelas = function(classId) {
+            navigateTo(`/classroom/dashboard/${classId}`);
         }
 
         function setupClassRoom(classId) {
             if (currentViewedClassId === classId) return;
             cleanupClassRoom();
+            
             currentViewedClassId = classId;
             document.getElementById('room-class-name').innerText = "Memuat data...";
             document.getElementById('room-class-teacher').innerText = "Guru: ...";
+            
             bottomPanel.classList.remove('hidden');
             
             const btnTambahPengumuman = document.getElementById('btn-show-announcement-modal');
@@ -805,7 +936,12 @@
             
             const classRef = ref(db, `classes/${classId}`);
             classRoomListener = onValue(classRef, (snapshot) => {
-                if(!snapshot.exists()) { cleanupClassRoom(); navigateTo('/classroom/dashboard'); return; }
+                if(!snapshot.exists()) {
+                    cleanupClassRoom();
+                    navigateTo('/classroom/dashboard');
+                    return;
+                }
+                
                 currentClassData = snapshot.val();
                 document.getElementById('room-class-name').innerText = currentClassData.className;
                 document.getElementById('room-class-teacher').innerText = `Guru: ${currentClassData.teacherName}`;
@@ -815,76 +951,134 @@
                 document.getElementById('member-count-display').innerText = totalMembers;
                 
                 if (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) {
-                    btnTambahPengumuman.classList.remove('hidden'); btnHapusKelas.classList.remove('hidden'); btnEditKelas.classList.remove('hidden'); btnUndangAnggota.classList.remove('hidden'); hintEdit.classList.remove('hidden');
+                    btnTambahPengumuman.classList.remove('hidden');
+                    btnHapusKelas.classList.remove('hidden');
+                    btnEditKelas.classList.remove('hidden');
+                    btnUndangAnggota.classList.remove('hidden');
+                    hintEdit.classList.remove('hidden');
                 } else {
-                    btnTambahPengumuman.classList.add('hidden'); btnHapusKelas.classList.add('hidden'); btnEditKelas.classList.add('hidden'); btnUndangAnggota.classList.add('hidden'); hintEdit.classList.add('hidden');
+                    btnTambahPengumuman.classList.add('hidden');
+                    btnHapusKelas.classList.add('hidden');
+                    btnEditKelas.classList.add('hidden');
+                    btnUndangAnggota.classList.add('hidden');
+                    hintEdit.classList.add('hidden');
                 }
             });
+            
             loadAnnouncements(classId);
         }
 
+        // ================= EDIT KELAS (GURU) =================
         document.getElementById('btn-edit-kelas').addEventListener('click', () => {
             document.getElementById('edit-class-modal-overlay').classList.remove('hidden');
             document.getElementById('input-edit-class-name').value = currentClassData.className || '';
         });
-        document.getElementById('btn-batal-edit-class').addEventListener('click', () => { document.getElementById('edit-class-modal-overlay').classList.add('hidden'); });
+
+        document.getElementById('btn-batal-edit-class').addEventListener('click', () => {
+            document.getElementById('edit-class-modal-overlay').classList.add('hidden');
+        });
+
         document.getElementById('btn-simpan-edit-class').addEventListener('click', async () => {
             const newName = document.getElementById('input-edit-class-name').value.trim();
             if(!newName) return await customAlert("Nama kelas tidak boleh kosong!");
-            const btn = document.getElementById('btn-simpan-edit-class'); btn.disabled = true; btn.innerText = "Menyimpan...";
+            
+            const btn = document.getElementById('btn-simpan-edit-class');
+            btn.disabled = true;
+            btn.innerText = "Menyimpan...";
+            
             await update(ref(db, `classes/${currentViewedClassId}`), { className: newName });
+            
             document.getElementById('edit-class-modal-overlay').classList.add('hidden');
-            btn.disabled = false; btn.innerText = "Simpan"; await customAlert("Nama kelas berhasil diubah!");
+            btn.disabled = false;
+            btn.innerText = "Simpan";
+            await customAlert("Nama kelas berhasil diubah!");
         });
 
+        // ================= GURU FUNCTIONS =================
         const btnGuruOptions = document.getElementById('btn-show-guru-options');
         const modalGuruOptions = document.getElementById('guru-fab-choice-modal');
-        if(btnGuruOptions) btnGuruOptions.addEventListener('click', () => { modalGuruOptions.classList.remove('hidden'); });
+        
+        btnGuruOptions.addEventListener('click', () => { modalGuruOptions.classList.remove('hidden'); });
         document.getElementById('btn-choice-batal').addEventListener('click', () => { modalGuruOptions.classList.add('hidden'); });
 
         document.getElementById('btn-choice-buat').addEventListener('click', () => {
-            modalGuruOptions.classList.add('hidden'); document.getElementById('class-modal-overlay').classList.remove('hidden');
-            document.getElementById('input-class-name').value = ''; document.getElementById('input-search-student').value = '';
-            document.getElementById('search-results').innerHTML = ''; document.getElementById('selected-students').innerHTML = '';
-            selectedStudentsCache = {}; loadAllUsersForSearch();
+            modalGuruOptions.classList.add('hidden');
+            document.getElementById('class-modal-overlay').classList.remove('hidden');
+            document.getElementById('input-class-name').value = '';
+            document.getElementById('input-search-student').value = '';
+            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('selected-students').innerHTML = '';
+            selectedStudentsCache = {};
+            loadAllUsersForSearch();
         });
 
         document.getElementById('btn-choice-gabung').addEventListener('click', () => {
-            modalGuruOptions.classList.add('hidden'); document.getElementById('join-class-modal-overlay').classList.remove('hidden');
+            modalGuruOptions.classList.add('hidden');
+            document.getElementById('join-class-modal-overlay').classList.remove('hidden');
             document.getElementById('input-class-code').value = '';
         });
-        document.getElementById('btn-batal-class').addEventListener('click', () => { document.getElementById('class-modal-overlay').classList.add('hidden'); });
-        document.getElementById('btn-batal-join').addEventListener('click', () => { document.getElementById('join-class-modal-overlay').classList.add('hidden'); });
+
+        document.getElementById('btn-batal-class').addEventListener('click', () => {
+            document.getElementById('class-modal-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('btn-batal-join').addEventListener('click', () => {
+            document.getElementById('join-class-modal-overlay').classList.add('hidden');
+        });
 
         let selectedStudentsCache = {};
+
         async function loadAllUsersForSearch() {
             const snap = await get(ref(db, 'users'));
-            if(snap.exists()) { const data = snap.val(); allUsersDB = Object.keys(data).map(key => ({ id: key, ...data[key] })); }
+            if(snap.exists()) {
+                const data = snap.val();
+                allUsersDB = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+            }
         }
 
         document.getElementById('input-search-student').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase(); const resultsBox = document.getElementById('search-results'); resultsBox.innerHTML = '';
-            if(query.length < 2) { resultsBox.classList.add('hidden'); return; }
+            const query = e.target.value.toLowerCase();
+            const resultsBox = document.getElementById('search-results');
+            resultsBox.innerHTML = '';
+            
+            if(query.length < 2) {
+                resultsBox.classList.add('hidden');
+                return;
+            }
+            
             const matches = allUsersDB.filter(u => u.username.toLowerCase().includes(query) && u.id !== currentUserId && !selectedStudentsCache[u.id]);
             if(matches.length > 0) {
                 resultsBox.classList.remove('hidden');
                 matches.slice(0, 5).forEach(match => {
-                    const div = document.createElement('div'); div.className = 'result-item';
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
                     div.innerHTML = `<span><strong>${match.username}</strong> <br><small style="color:var(--text-muted);">${match.role}</small></span> <span style="color:var(--primary); font-weight:bold;">+ Tambah</span>`;
-                    div.onclick = () => selectStudent(match.id, match.username, match.role); resultsBox.appendChild(div);
+                    div.onclick = () => selectStudent(match.id, match.username, match.role);
+                    resultsBox.appendChild(div);
                 });
-            } else { resultsBox.classList.remove('hidden'); resultsBox.innerHTML = '<div style="padding:12px; color:var(--text-muted); text-align:center;">User tidak ditemukan</div>'; }
+            } else {
+                resultsBox.classList.remove('hidden');
+                resultsBox.innerHTML = '<div style="padding:12px; color:var(--text-muted); text-align:center;">User tidak ditemukan</div>';
+            }
         });
 
         function selectStudent(id, username, role) {
             selectedStudentsCache[id] = { username, role };
-            document.getElementById('input-search-student').value = ''; document.getElementById('search-results').classList.add('hidden'); renderSelectedStudents();
+            document.getElementById('input-search-student').value = '';
+            document.getElementById('search-results').classList.add('hidden');
+            renderSelectedStudents();
         }
-        function removeSelectedStudent(id) { delete selectedStudentsCache[id]; renderSelectedStudents(); }
+
+        function removeSelectedStudent(id) {
+            delete selectedStudentsCache[id];
+            renderSelectedStudents();
+        }
+
         window.removeSelectedStudentGlobal = removeSelectedStudent;
 
         function renderSelectedStudents() {
-            const container = document.getElementById('selected-students'); container.innerHTML = '';
+            const container = document.getElementById('selected-students');
+            container.innerHTML = '';
             Object.keys(selectedStudentsCache).forEach(id => {
                 const u = selectedStudentsCache[id];
                 container.innerHTML += `<div class="student-badge">${u.username} <div class="remove-badge" onclick="removeSelectedStudentGlobal('${id}')">×</div></div>`;
@@ -894,78 +1088,137 @@
         document.getElementById('btn-buat-class').addEventListener('click', async () => {
             const className = document.getElementById('input-class-name').value.trim();
             if (!className) return await customAlert("Nama kelas tidak boleh kosong!");
-            const btn = document.getElementById('btn-buat-class'); btn.disabled = true; btn.innerText = "Membuat...";
+            
+            const btn = document.getElementById('btn-buat-class');
+            btn.disabled = true; btn.innerText = "Membuat...";
+
             const classRef = push(ref(db, 'classes'));
-            const classData = { className, teacherId: currentUserId, teacherName: currentUserData.username, createdAt: Date.now() };
+            const classData = {
+                className, teacherId: currentUserId, teacherName: currentUserData.username,
+                createdAt: Date.now()
+            };
+            
             await set(classRef, classData);
+            
             const promises = Object.keys(selectedStudentsCache).map(studentId => 
-                set(ref(db, `invitations/${studentId}/${classRef.key}`), { classId: classRef.key, className, teacherName: currentUserData.username, timestamp: Date.now() })
+                set(ref(db, `invitations/${studentId}/${classRef.key}`), {
+                    classId: classRef.key, className, teacherName: currentUserData.username, timestamp: Date.now()
+                })
             );
             await Promise.all(promises);
+
             document.getElementById('class-modal-overlay').classList.add('hidden');
-            btn.disabled = false; btn.innerText = "Buat Kelas"; await customAlert("Kelas berhasil dibuat dan undangan telah dikirim!");
+            btn.disabled = false; btn.innerText = "Buat Kelas";
+            await customAlert("Kelas berhasil dibuat dan undangan telah dikirim!");
         });
 
         function loadGuruClasses() {
             const classesRef = ref(db, 'classes');
             onValue(classesRef, (snapshot) => {
-                const container = document.getElementById('guru-class-list'); container.innerHTML = '';
-                let hasClass = false; window.cachedClasses = [];
+                const container = document.getElementById('guru-class-list');
+                container.innerHTML = '';
+                let hasClass = false;
+                
+                window.cachedClasses = [];
+                
                 snapshot.forEach(child => {
                     const data = child.val();
                     if (data.teacherId === currentUserId) {
-                        hasClass = true; window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
-                        container.innerHTML += `<div class="class-card" onclick="masukKelas('${child.key}')"><h3>${data.className}</h3><p>Dibuat: ${new Date(data.createdAt).toLocaleDateString('id-ID')}</p><div style="margin-top: 24px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--primary);">Kelola Kelas <span>→</span></div></div>`;
+                        hasClass = true;
+                        window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
+                        
+                        container.innerHTML += `
+                            <div class="class-card" onclick="masukKelas('${child.key}')">
+                                <h3>${data.className}</h3>
+                                <p>Dibuat: ${new Date(data.createdAt).toLocaleDateString('id-ID')}</p>
+                                <div style="margin-top: 24px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--primary);">
+                                    Kelola Kelas <span>→</span>
+                                </div>
+                            </div>
+                        `;
                     }
                 });
+                
                 if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); 
                 if(!hasClass) container.innerHTML = '<p style="color:var(--text-muted);">Anda belum memiliki kelas. Klik tombol + untuk membuat atau bergabung kelas.</p>';
             });
         }
 
+        // ================= BAGIKAN / HAPUS KELAS =================
         const shareModal = document.getElementById('share-modal-overlay');
-        document.getElementById('btn-bagikan-kelas').addEventListener('click', () => { document.getElementById('share-code-input').value = currentViewedClassId; shareModal.classList.remove('hidden'); });
+        document.getElementById('btn-bagikan-kelas').addEventListener('click', () => {
+            document.getElementById('share-code-input').value = currentViewedClassId;
+            shareModal.classList.remove('hidden');
+        });
         document.getElementById('btn-close-share').addEventListener('click', () => shareModal.classList.add('hidden'));
+        
         document.getElementById('btn-copy-code').addEventListener('click', () => {
-            const input = document.getElementById('share-code-input'); input.select(); input.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(input.value); document.getElementById('btn-copy-code').innerText = "Tersalin!";
+            const input = document.getElementById('share-code-input');
+            input.select(); input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value);
+            document.getElementById('btn-copy-code').innerText = "Tersalin!";
             setTimeout(() => document.getElementById('btn-copy-code').innerText = "Salin Kode", 2000);
         });
 
         document.getElementById('btn-hapus-kelas').addEventListener('click', async () => {
-            const confirm = await customConfirm("Anda yakin ingin menghapus kelas ini secara permanen?");
+            const confirm = await customConfirm("Anda yakin ingin menghapus kelas ini secara permanen? Semua data pengumuman dan anggota akan hilang.");
             if(confirm) {
-                await remove(ref(db, `classes/${currentViewedClassId}`)); await remove(ref(db, `announcements/${currentViewedClassId}`));
+                await remove(ref(db, `classes/${currentViewedClassId}`));
+                await remove(ref(db, `announcements/${currentViewedClassId}`));
+                
                 const snap = await get(ref(db, 'invitations'));
                 if(snap.exists()) {
                     const promises = [];
-                    snap.forEach(userNode => { if(userNode.hasChild(currentViewedClassId)) { promises.push(remove(ref(db, `invitations/${userNode.key}/${currentViewedClassId}`))); } });
+                    snap.forEach(userNode => {
+                        if(userNode.hasChild(currentViewedClassId)) {
+                            promises.push(remove(ref(db, `invitations/${userNode.key}/${currentViewedClassId}`)));
+                        }
+                    });
                     await Promise.all(promises);
                 }
-                navigateTo('/classroom/dashboard'); await customAlert("Kelas berhasil dihapus.");
+                navigateTo('/classroom/dashboard');
+                await customAlert("Kelas berhasil dihapus.");
             }
         });
 
+        // ================= GABUNG KELAS & UNDANGAN =================
         const btnShowJoinSiswa = document.getElementById('btn-show-join-modal-siswa');
         if(btnShowJoinSiswa) {
-            btnShowJoinSiswa.addEventListener('click', () => { document.getElementById('join-class-modal-overlay').classList.remove('hidden'); document.getElementById('input-class-code').value = ''; });
+            btnShowJoinSiswa.addEventListener('click', () => {
+                document.getElementById('join-class-modal-overlay').classList.remove('hidden');
+                document.getElementById('input-class-code').value = '';
+            });
         }
+
         document.getElementById('btn-join-class').addEventListener('click', async () => {
             const code = document.getElementById('input-class-code').value.trim();
             if(!code) return await customAlert("Kode tidak boleh kosong!");
-            const btn = document.getElementById('btn-join-class'); btn.disabled = true; btn.innerText = "Mengecek...";
+            
+            const btn = document.getElementById('btn-join-class');
+            btn.disabled = true; btn.innerText = "Mengecek...";
+            
             try {
                 const snap = await get(ref(db, `classes/${code}`));
                 if(snap.exists()) {
                     const cData = snap.val();
-                    if(cData.teacherId === currentUserId) { await customAlert("Anda adalah pembuat kelas ini!"); } 
-                    else if (cData.students && cData.students[currentUserId]) { await customAlert("Anda sudah tergabung di kelas ini!"); } 
-                    else {
-                        await set(ref(db, `classes/${code}/students/${currentUserId}`), { username: currentUserData.username, joinedAt: Date.now() });
-                        document.getElementById('join-class-modal-overlay').classList.add('hidden'); await customAlert("Berhasil bergabung ke kelas!");
+                    if(cData.teacherId === currentUserId) {
+                        await customAlert("Anda adalah pembuat kelas ini!");
+                    } else if (cData.students && cData.students[currentUserId]) {
+                        await customAlert("Anda sudah tergabung di kelas ini!");
+                    } else {
+                        await set(ref(db, `classes/${code}/students/${currentUserId}`), {
+                            username: currentUserData.username, joinedAt: Date.now()
+                        });
+                        document.getElementById('join-class-modal-overlay').classList.add('hidden');
+                        await customAlert("Berhasil bergabung ke kelas!");
                     }
-                } else { await customAlert("Kode kelas tidak valid atau kelas tidak ditemukan."); }
-            } catch (e) { console.error(e); await customAlert("Terjadi kesalahan."); }
+                } else {
+                    await customAlert("Kode kelas tidak valid atau kelas tidak ditemukan.");
+                }
+            } catch (e) {
+                console.error(e);
+                await customAlert("Terjadi kesalahan.");
+            }
             btn.disabled = false; btn.innerText = "Gabung";
         });
 
@@ -973,32 +1226,64 @@
             const inviteRef = ref(db, `invitations/${currentUserId}`);
             if(inviteListener) inviteListener();
             inviteListener = onValue(inviteRef, (snapshot) => {
-                const container = document.getElementById('invitation-container'); const list = document.getElementById('invitation-list'); list.innerHTML = '';
+                const container = document.getElementById('invitation-container');
+                const list = document.getElementById('invitation-list');
+                list.innerHTML = '';
                 if(snapshot.exists()) {
                     container.classList.remove('hidden');
                     snapshot.forEach(child => {
                         const data = child.val();
-                        list.innerHTML += `<div class="invitation-card"><h4 style="margin:0 0 10px 0; font-size:1.1rem; color:var(--text-main); position:relative; z-index:1;">Anda diundang ke kelas: <span style="color:var(--primary); font-weight:700;">${data.className}</span></h4><p style="margin:0 0 20px 0; font-size:14px; color:var(--text-muted); position:relative; z-index:1;">Oleh: ${data.teacherName}</p><div style="display:flex; gap:12px; position:relative; z-index:1;"><button class="btn-buat" onclick="terimaUndangan('${child.key}', '${data.classId}')">Terima Undangan</button><button class="btn-batal" onclick="tolakUndangan('${child.key}')">Tolak</button></div></div>`;
+                        list.innerHTML += `
+                            <div class="invitation-card">
+                                <h4 style="margin:0 0 10px 0; font-size:1.1rem; color:var(--text-main); position:relative; z-index:1;">Anda diundang ke kelas: <span style="color:var(--primary); font-weight:700;">${data.className}</span></h4>
+                                <p style="margin:0 0 20px 0; font-size:14px; color:var(--text-muted); position:relative; z-index:1;">Oleh: ${data.teacherName}</p>
+                                <div style="display:flex; gap:12px; position:relative; z-index:1;">
+                                    <button class="btn-buat" onclick="terimaUndangan('${child.key}', '${data.classId}')">Terima Undangan</button>
+                                    <button class="btn-batal" onclick="tolakUndangan('${child.key}')">Tolak</button>
+                                </div>
+                            </div>
+                        `;
                     });
-                } else { container.classList.add('hidden'); }
+                } else {
+                    container.classList.add('hidden');
+                }
             });
         }
+
         window.terimaUndangan = async function(inviteId, classId) {
             const snap = await get(ref(db, `classes/${classId}`));
             if(snap.exists()) {
-                await set(ref(db, `classes/${classId}/students/${currentUserId}`), { username: currentUserData.username, joinedAt: Date.now() });
-                await remove(ref(db, `invitations/${currentUserId}/${inviteId}`)); await customAlert("Berhasil masuk ke kelas!");
-            } else { await remove(ref(db, `invitations/${currentUserId}/${inviteId}`)); await customAlert("Kelas ini mungkin sudah dihapus."); }
+                await set(ref(db, `classes/${classId}/students/${currentUserId}`), {
+                    username: currentUserData.username, joinedAt: Date.now()
+                });
+                await remove(ref(db, `invitations/${currentUserId}/${inviteId}`));
+                await customAlert("Berhasil masuk ke kelas!");
+            } else {
+                await remove(ref(db, `invitations/${currentUserId}/${inviteId}`));
+                await customAlert("Kelas ini mungkin sudah dihapus.");
+            }
         }
-        window.tolakUndangan = async function(inviteId) { await remove(ref(db, `invitations/${currentUserId}/${inviteId}`)); }
 
+        window.tolakUndangan = async function(inviteId) {
+            await remove(ref(db, `invitations/${currentUserId}/${inviteId}`));
+        }
+
+        // ================= LIHAT & UNDANG ANGGOTA KELAS =================
         const membersModal = document.getElementById('members-modal-overlay');
-        document.getElementById('btn-lihat-anggota').addEventListener('click', () => { membersModal.classList.remove('hidden'); renderAnggotaList(); });
+        document.getElementById('btn-lihat-anggota').addEventListener('click', () => {
+            membersModal.classList.remove('hidden');
+            renderAnggotaList();
+        });
         document.getElementById('btn-close-members').addEventListener('click', () => membersModal.classList.add('hidden'));
 
         async function renderAnggotaList() {
-            const c = document.getElementById('members-list-container'); c.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Memuat anggota...</div>';
-            if(allUsersDB.length === 0) { await loadAllUsersForSearch(); }
+            const c = document.getElementById('members-list-container');
+            c.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Memuat anggota...</div>';
+            
+            if(allUsersDB.length === 0) {
+                await loadAllUsersForSearch();
+            }
+
             let invitedUsers = [];
             try {
                 const invSnap = await get(ref(db, 'invitations'));
@@ -1007,212 +1292,208 @@
                     for(let uid in allInvites) {
                         if(allInvites[uid][currentViewedClassId]) {
                             const userMatch = allUsersDB.find(u => u.id === uid);
-                            const uname = userMatch ? userMatch.username : "User Tidak Dikenal"; invitedUsers.push({ uid, uname });
+                            const uname = userMatch ? userMatch.username : "User Tidak Dikenal";
+                            invitedUsers.push({ uid, uname });
                         }
                     }
                 }
-            } catch (e) { console.error("Gagal memuat undangan", e); }
+            } catch (e) {
+                console.error("Gagal memuat undangan", e);
+            }
+            
             c.innerHTML = '';
+            
             c.innerHTML += `<div class="member-category">Pengajar</div>`;
-            c.innerHTML += `<div class="result-item" style="cursor:default; border-radius: var(--radius-md); border-bottom:none; margin-bottom:10px;"><span style="font-size:15px;"><strong>${currentClassData.teacherName}</strong></span></div>`;
+            c.innerHTML += `
+                <div class="result-item" style="cursor:default; border-radius: var(--radius-md); border-bottom:none; margin-bottom:10px;">
+                    <span style="font-size:15px;"><strong>${currentClassData.teacherName}</strong></span>
+                </div>
+            `;
+            
             c.innerHTML += `<div class="member-category" style="margin-top:30px;">Siswa</div>`;
             if(currentClassData.students && Object.keys(currentClassData.students).length > 0) {
                 Object.keys(currentClassData.students).forEach(sId => {
-                    const sName = currentClassData.students[sId].username; let removeBtn = '';
-                    if(currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) { removeBtn = `<button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="keluarkanSiswa('${sId}', '${sName}')">Keluarkan</button>`; }
-                    c.innerHTML += `<div class="result-item" style="cursor:default; border-radius: var(--radius-md); margin-bottom:5px;"><span style="font-size:15px; color:var(--text-main);">${sName}</span>${removeBtn}</div>`;
+                    const sName = currentClassData.students[sId].username;
+                    
+                    let removeBtn = '';
+                    if(currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) {
+                        removeBtn = `<button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="keluarkanSiswa('${sId}', '${sName}')">Keluarkan</button>`;
+                    }
+                    
+                    c.innerHTML += `
+                        <div class="result-item" style="cursor:default; border-radius: var(--radius-md); margin-bottom:5px;">
+                            <span style="font-size:15px; color:var(--text-main);">${sName}</span>
+                            ${removeBtn}
+                        </div>
+                    `;
                 });
-            } else { c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada siswa.</p>`; }
+            } else {
+                c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada siswa.</p>`;
+            }
+
             c.innerHTML += `<div class="member-category" style="margin-top:30px;">Diundang</div>`;
             if(invitedUsers.length > 0) {
                 invitedUsers.forEach(inv => {
                     let removeBtn = '';
-                    if(currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) { removeBtn = `<button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="batalUndang('${inv.uid}', '${inv.uname}')">Batal Undang</button>`; }
-                    c.innerHTML += `<div class="result-item" style="cursor:default; border-radius: var(--radius-md); margin-bottom:5px; background: var(--bg-color); opacity: 0.8;"><span style="font-size:15px; color:var(--text-muted); font-style: italic;">${inv.uname} (Menunggu)</span>${removeBtn}</div>`;
+                    if(currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) {
+                        removeBtn = `<button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="batalUndang('${inv.uid}', '${inv.uname}')">Batal Undang</button>`;
+                    }
+                    c.innerHTML += `
+                        <div class="result-item" style="cursor:default; border-radius: var(--radius-md); margin-bottom:5px; background: var(--bg-color); opacity: 0.8;">
+                            <span style="font-size:15px; color:var(--text-muted); font-style: italic;">${inv.uname} (Menunggu)</span>
+                            ${removeBtn}
+                        </div>
+                    `;
                 });
-            } else { c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada yang diundang.</p>`; }
+            } else {
+                 c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada yang diundang.</p>`;
+            }
         }
-        window.keluarkanSiswa = async function(id, name) { const c = await customConfirm(`Keluarkan ${name} dari kelas?`); if(c) { await remove(ref(db, `classes/${currentViewedClassId}/students/${id}`)); renderAnggotaList(); } }
-        window.batalUndang = async function(uid, uname) { const c = await customConfirm(`Batalkan undangan untuk ${uname}?`); if(c) { await remove(ref(db, `invitations/${uid}/${currentViewedClassId}`)); renderAnggotaList(); } }
+
+        window.keluarkanSiswa = async function(id, name) {
+            const c = await customConfirm(`Keluarkan ${name} dari kelas?`);
+            if(c) {
+                await remove(ref(db, `classes/${currentViewedClassId}/students/${id}`));
+                renderAnggotaList();
+            }
+        }
+
+        window.batalUndang = async function(uid, uname) {
+            const c = await customConfirm(`Batalkan undangan untuk ${uname}?`);
+            if(c) {
+                await remove(ref(db, `invitations/${uid}/${currentViewedClassId}`));
+                renderAnggotaList(); 
+            }
+        }
 
         const inviteModal = document.getElementById('invite-modal-overlay');
-        document.getElementById('btn-buka-undang-anggota').addEventListener('click', () => { membersModal.classList.add('hidden'); inviteModal.classList.remove('hidden'); document.getElementById('input-search-invite').value = ''; document.getElementById('invite-search-results').innerHTML = ''; loadAllUsersForSearch(); });
-        document.getElementById('btn-batal-invite').addEventListener('click', () => { inviteModal.classList.add('hidden'); membersModal.classList.remove('hidden'); });
+        document.getElementById('btn-buka-undang-anggota').addEventListener('click', () => {
+            membersModal.classList.add('hidden');
+            inviteModal.classList.remove('hidden');
+            document.getElementById('input-search-invite').value = '';
+            document.getElementById('invite-search-results').innerHTML = '';
+            loadAllUsersForSearch();
+        });
+        document.getElementById('btn-batal-invite').addEventListener('click', () => {
+            inviteModal.classList.add('hidden');
+            membersModal.classList.remove('hidden');
+        });
+
         document.getElementById('input-search-invite').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase(); const resultsBox = document.getElementById('invite-search-results'); resultsBox.innerHTML = '';
-            if(query.length < 2) { resultsBox.classList.add('hidden'); return; }
+            const query = e.target.value.toLowerCase();
+            const resultsBox = document.getElementById('invite-search-results');
+            resultsBox.innerHTML = '';
+            
+            if(query.length < 2) {
+                resultsBox.classList.add('hidden');
+                return;
+            }
+            
             const existingStudents = currentClassData.students || {};
             const matches = allUsersDB.filter(u => u.username.toLowerCase().includes(query) && u.id !== currentClassData.teacherId && !existingStudents[u.id]);
+            
             if(matches.length > 0) {
                 resultsBox.classList.remove('hidden');
                 matches.slice(0, 5).forEach(match => {
-                    const div = document.createElement('div'); div.className = 'result-item'; div.innerHTML = `<span><strong>${match.username}</strong> <br><small style="color:var(--text-muted);">${match.role}</small></span> <span style="color:var(--primary); font-weight:bold;">Undang</span>`; div.onclick = () => kirimUndanganSatuan(match.id, match.username); resultsBox.appendChild(div);
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+                    div.innerHTML = `<span><strong>${match.username}</strong> <br><small style="color:var(--text-muted);">${match.role}</small></span> <span style="color:var(--primary); font-weight:bold;">Undang</span>`;
+                    div.onclick = () => kirimUndanganSatuan(match.id, match.username);
+                    resultsBox.appendChild(div);
                 });
-            } else { resultsBox.classList.remove('hidden'); resultsBox.innerHTML = '<div style="padding:12px; color:var(--text-muted); text-align:center;">User tidak ditemukan / sudah di kelas.</div>'; }
+            } else {
+                resultsBox.classList.remove('hidden');
+                resultsBox.innerHTML = '<div style="padding:12px; color:var(--text-muted); text-align:center;">User tidak ditemukan / sudah di kelas.</div>';
+            }
         });
-        async function kirimUndanganSatuan(uid, uname) { await set(ref(db, `invitations/${uid}/${currentViewedClassId}`), { classId: currentViewedClassId, className: currentClassData.className, teacherName: currentClassData.teacherName, timestamp: Date.now() }); await customAlert(`Undangan terkirim ke ${uname}!`); document.getElementById('input-search-invite').value = ''; document.getElementById('invite-search-results').classList.add('hidden'); }
 
-        document.getElementById('btn-show-announcement-modal').addEventListener('click', () => { document.getElementById('announcement-modal-overlay').classList.remove('hidden'); document.getElementById('input-announcement').value = ''; });
-        document.getElementById('btn-batal-announcement').addEventListener('click', () => { document.getElementById('announcement-modal-overlay').classList.add('hidden'); });
+        async function kirimUndanganSatuan(uid, uname) {
+            await set(ref(db, `invitations/${uid}/${currentViewedClassId}`), {
+                classId: currentViewedClassId, className: currentClassData.className, teacherName: currentClassData.teacherName, timestamp: Date.now()
+            });
+            await customAlert(`Undangan terkirim ke ${uname}!`);
+            document.getElementById('input-search-invite').value = '';
+            document.getElementById('invite-search-results').classList.add('hidden');
+        }
+
+
+        // ================= PENGUMUMAN =================
+        document.getElementById('btn-show-announcement-modal').addEventListener('click', () => {
+            document.getElementById('announcement-modal-overlay').classList.remove('hidden');
+            document.getElementById('input-announcement').value = '';
+        });
+
+        document.getElementById('btn-batal-announcement').addEventListener('click', () => {
+            document.getElementById('announcement-modal-overlay').classList.add('hidden');
+        });
+
         document.getElementById('btn-post-announcement').addEventListener('click', async () => {
-            const text = document.getElementById('input-announcement').value.trim(); if (!text) return await customAlert("Pengumuman tidak boleh kosong!");
-            const btn = document.getElementById('btn-post-announcement'); btn.disabled = true; btn.innerText = "Posting...";
-            await push(ref(db, `announcements/${currentViewedClassId}`), { text, senderName: currentUserData.username, timestamp: Date.now() });
-            document.getElementById('announcement-modal-overlay').classList.add('hidden'); btn.disabled = false; btn.innerText = "Posting";
+            const text = document.getElementById('input-announcement').value.trim();
+            if (!text) return await customAlert("Pengumuman tidak boleh kosong!");
+            
+            const btn = document.getElementById('btn-post-announcement');
+            btn.disabled = true; btn.innerText = "Posting...";
+
+            await push(ref(db, `announcements/${currentViewedClassId}`), {
+                text, senderName: currentUserData.username, timestamp: Date.now()
+            });
+
+            document.getElementById('announcement-modal-overlay').classList.add('hidden');
+            btn.disabled = false; btn.innerText = "Posting";
         });
 
-        let editClickCount = 0; let editClickTimer = null;
+        // ================= EDIT PENGUMUMAN =================
+        let editClickCount = 0;
+        let editClickTimer = null;
+        
         window.handleAnnouncementClick = function(id, text) {
             if(currentUserData.role !== 'guru') return;
-            editClickCount++;
-            if(editClickCount === 1) { editClickTimer = setTimeout(() => { editClickCount = 0; }, 600); } 
-            else if(editClickCount === 3) { clearTimeout(editClickTimer); editClickCount = 0; bukaEditModal(id, text); }
-        };
-        function bukaEditModal(id, text) { editingAnnouncementId = id; document.getElementById('edit-announcement-modal-overlay').classList.remove('hidden'); document.getElementById('input-edit-announcement').value = text; }
-        document.getElementById('btn-batal-edit').addEventListener('click', () => { document.getElementById('edit-announcement-modal-overlay').classList.add('hidden'); editingAnnouncementId = null; });
-        document.getElementById('btn-simpan-edit').addEventListener('click', async () => {
-            const text = document.getElementById('input-edit-announcement').value.trim(); if(!text) return await customAlert("Pengumuman tidak boleh kosong!");
-            await update(ref(db, `announcements/${currentViewedClassId}/${editingAnnouncementId}`), { text }); document.getElementById('edit-announcement-modal-overlay').classList.add('hidden'); editingAnnouncementId = null;
-        });
-        window.hapusPengumuman = async function(id) { const confirm = await customConfirm("Hapus materi ini?"); if (confirm) { await remove(ref(db, `announcements/${currentViewedClassId}/${id}`)); } }
-
-        // FUNGSI KOMENTAR
-        window.bukaKomentar = function(announcementId) {
-            currentAnnouncementIdForComment = announcementId;
-            document.getElementById('comments-modal-overlay').classList.remove('hidden');
-            batalBalasKomentar(); 
             
-            const commentsRef = ref(db, `announcements/${currentViewedClassId}/${announcementId}/comments`);
-            onValue(commentsRef, (snapshot) => {
-                const container = document.getElementById('comments-list-container');
-                if (!snapshot.exists()) {
-                    container.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:40px;">Belum ada komentar.</p>';
-                    return;
-                }
-                const comments = snapshot.val();
-                container.innerHTML = renderKomentarTree(comments, null);
-            });
-        };
-
-        function renderKomentarTree(comments, parentId = null) {
-            let html = '';
-            const childrenIds = Object.keys(comments).filter(id => comments[id].replyTo === parentId);
-            childrenIds.sort((a, b) => comments[a].timestamp - comments[b].timestamp);
-            if (childrenIds.length === 0) return '';
-            html += `<div class="${parentId ? 'comment-replies' : ''}">`;
-            childrenIds.forEach(id => {
-                const c = comments[id];
-                const isGuru = c.senderRole === 'guru'; 
-                const canDelete = (currentUserData.role === 'guru') || (currentUserId === c.senderId);
-                const canEdit = (currentUserId === c.senderId);
-
-                html += `
-                <div class="comment-item" ondblclick="setBalasKomentar('${id}', '${c.senderName.replace(/'/g, "\\'")}')">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div>
-                            <strong style="font-size:14px; color: var(--text-main);">${c.senderName}</strong>
-                            ${isGuru ? '<span class="comment-role-guru">GURU</span>' : ''}
-                        </div>
-                        <div style="position:relative;">
-                            <button onclick="toggleMenuKomentar(event, '${id}')" style="background:none; border:none; color:var(--text-muted); font-size:18px; padding:0 5px; cursor:pointer; line-height:1;">⋮</button>
-                            <div id="menu-komentar-${id}" class="comment-menu hidden">
-                                ${canEdit ? `<button class="btn-edit" onclick="editKomentar('${id}', '${c.text.replace(/'/g, "\\'")}')">Edit Komentar</button>` : ''}
-                                ${canDelete ? `<button class="btn-hapus" onclick="hapusKomentar('${id}')">Hapus Komentar</button>` : ''}
-                                ${!canEdit && !canDelete ? `<div style="padding:10px; font-size:12px; color:gray; text-align:center;">Tidak ada aksi</div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    <p style="margin:6px 0 0 0; font-size:14px; line-height:1.5; color: var(--text-main);">${c.text}</p>
-                </div>
-                ${renderKomentarTree(comments, id)}
-                `;
-            });
-            html += `</div>`;
-            return html;
-        }
-
-        document.getElementById('btn-send-comment').addEventListener('click', () => {
-            const textInput = document.getElementById('input-comment');
-            const text = textInput.value.trim();
-            if (!text) return;
-            const newCommentRef = push(ref(db, `announcements/${currentViewedClassId}/${currentAnnouncementIdForComment}/comments`));
-            set(newCommentRef, {
-                text: text, senderId: currentUserId, senderName: currentUserData.username, senderRole: currentUserData.role,
-                timestamp: Date.now(), replyTo: currentReplyToId 
-            }).then(() => {
-                textInput.value = ''; batalBalasKomentar();
-                const container = document.getElementById('comments-list-container');
-                setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
-            });
-        });
-
-        window.setBalasKomentar = function(commentId, senderName) {
-            currentReplyToId = commentId;
-            document.getElementById('reply-indicator').classList.remove('hidden');
-            document.getElementById('reply-target-name').innerText = senderName;
-            document.getElementById('input-comment').focus();
-        };
-
-        document.getElementById('cancel-reply-btn').addEventListener('click', batalBalasKomentar);
-        function batalBalasKomentar() {
-            currentReplyToId = null;
-            document.getElementById('reply-indicator').classList.add('hidden'); document.getElementById('reply-target-name').innerText = '';
-        }
-
-        window.toggleMenuKomentar = function(event, commentId) {
-            event.stopPropagation(); const menu = document.getElementById(`menu-komentar-${commentId}`);
-            document.querySelectorAll('.comment-menu').forEach(el => { if (el.id !== `menu-komentar-${commentId}`) el.classList.add('hidden'); });
-            menu.classList.toggle('hidden');
-        };
-
-        document.addEventListener('click', () => { document.querySelectorAll('.comment-menu').forEach(el => el.classList.add('hidden')); });
-
-        window.hapusKomentar = async function(commentId) {
-            if(await customConfirm('Apakah Anda yakin ingin menghapus komentar ini? Balasan di bawahnya juga akan ikut terhapus.')) {
-                const commentsRef = ref(db, `announcements/${currentViewedClassId}/${currentAnnouncementIdForComment}/comments`);
-                get(commentsRef).then(snapshot => {
-                    if(snapshot.exists()) {
-                        const comments = snapshot.val(); let idsToDelete = [commentId];
-                        function findChildren(parentId) {
-                            Object.keys(comments).forEach(id => {
-                                if(comments[id].replyTo === parentId) { idsToDelete.push(id); findChildren(id); }
-                            });
-                        }
-                        findChildren(commentId);
-                        let updates = {}; idsToDelete.forEach(id => { updates[id] = null; });
-                        update(commentsRef, updates);
-                    }
-                });
+            editClickCount++;
+            if(editClickCount === 1) {
+                editClickTimer = setTimeout(() => { editClickCount = 0; }, 600);
+            } else if(editClickCount === 3) {
+                clearTimeout(editClickTimer);
+                editClickCount = 0;
+                bukaEditModal(id, text);
             }
         };
 
-        window.editKomentar = function(commentId, oldText) {
-            const newText = prompt('Edit komentar Anda:', oldText);
-            if (newText !== null && newText.trim() !== '') {
-                update(ref(db, `announcements/${currentViewedClassId}/${currentAnnouncementIdForComment}/comments/${commentId}`), { text: newText.trim() });
-            }
-        };
+        function bukaEditModal(id, text) {
+            editingAnnouncementId = id;
+            document.getElementById('edit-announcement-modal-overlay').classList.remove('hidden');
+            document.getElementById('input-edit-announcement').value = text;
+        }
 
-        document.getElementById('btn-close-comments').addEventListener('click', () => {
-            document.getElementById('comments-modal-overlay').classList.add('hidden');
-            currentAnnouncementIdForComment = null; batalBalasKomentar();
+        document.getElementById('btn-batal-edit').addEventListener('click', () => {
+            document.getElementById('edit-announcement-modal-overlay').classList.add('hidden');
+            editingAnnouncementId = null;
         });
 
-        window.hitungKomentar = function(announcementId) {
-            const commentsRef = ref(db, `announcements/${currentViewedClassId}/${announcementId}/comments`);
-            const unsubscribe = onValue(commentsRef, (snapshot) => {
-                const countSpan = document.getElementById(`count-comment-${announcementId}`);
-                if(countSpan) countSpan.innerText = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
-            });
-            commentListeners[announcementId] = unsubscribe;
-        };
+        document.getElementById('btn-simpan-edit').addEventListener('click', async () => {
+            const text = document.getElementById('input-edit-announcement').value.trim();
+            if(!text) return await customAlert("Pengumuman tidak boleh kosong!");
+            
+            await update(ref(db, `announcements/${currentViewedClassId}/${editingAnnouncementId}`), { text });
+            document.getElementById('edit-announcement-modal-overlay').classList.add('hidden');
+            editingAnnouncementId = null;
+        });
+
+        window.hapusPengumuman = async function(id) {
+            const confirm = await customConfirm("Hapus materi ini?");
+            if (confirm) {
+                await remove(ref(db, `announcements/${currentViewedClassId}/${id}`));
+            }
+        }
 
         function loadAnnouncements(classId) {
             const annRef = ref(db, `announcements/${classId}`);
             if (announcementListener) announcementListener();
             
             announcementListener = onValue(annRef, (snapshot) => {
-                const list = document.getElementById('announcement-list'); list.innerHTML = ''; const arr = [];
+                const list = document.getElementById('announcement-list');
+                list.innerHTML = '';
+                const arr = [];
                 snapshot.forEach(c => arr.push({ id: c.key, ...c.val() }));
                 
                 if(arr.length === 0) {
@@ -1236,15 +1517,8 @@
                                 ${btnHapus}
                             </div>
                             <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${data.text}</div>
-                            <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px;">
-                                <button onclick="bukaKomentar('${data.id}')" class="btn-batal" style="background: var(--bg-color); font-size: 13px; padding: 8px 16px; border-radius: 99px;">
-                                    💬 Komentar (<span id="count-comment-${data.id}">0</span>)
-                                </button>
-                            </div>
                         </div>
                     `;
-                    // Hitung jumlah komentar dinamis untuk tiap materi
-                    hitungKomentar(data.id);
                 });
             });
         }
@@ -1252,14 +1526,30 @@
         function loadSiswaClasses() {
             const classesRef = ref(db, 'classes');
             onValue(classesRef, (snapshot) => {
-                const container = document.getElementById('siswa-class-list'); container.innerHTML = ''; let hasClass = false; window.cachedClasses = [];
+                const container = document.getElementById('siswa-class-list');
+                container.innerHTML = '';
+                let hasClass = false;
+                
+                window.cachedClasses = [];
+                
                 snapshot.forEach(child => {
                     const data = child.val();
                     if(data.students && data.students[currentUserId]) {
-                        hasClass = true; window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
-                        container.innerHTML += `<div class="class-card" onclick="masukKelas('${child.key}')"><h3>${data.className}</h3><p>Guru: <strong style="color: var(--text-main);">${data.teacherName}</strong></p><div style="margin-top: 24px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--primary);">Masuk Kelas <span>→</span></div></div>`;
+                        hasClass = true;
+                        window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
+                        
+                        container.innerHTML += `
+                            <div class="class-card" onclick="masukKelas('${child.key}')">
+                                <h3>${data.className}</h3>
+                                <p>Guru: <strong style="color: var(--text-main);">${data.teacherName}</strong></p>
+                                <div style="margin-top: 24px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--primary);">
+                                    Masuk Kelas <span>→</span>
+                                </div>
+                            </div>
+                        `;
                     }
                 });
+                
                 if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); 
                 if(!hasClass) container.innerHTML = '<p style="color:var(--text-muted);">Anda belum tergabung dalam kelas manapun.</p>';
             });
