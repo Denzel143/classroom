@@ -2,13 +2,13 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Mencegah zoom di perangkat mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>EduClass - Dashboard</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         :root { 
-            /* Tema Warna: Biru, Kuning, Merah */
             --primary: #1A73E8; 
             --primary-light: #E8F0FE;
             --accent: #FFC107; 
@@ -17,27 +17,34 @@
             --danger-light: #FCE8E6;
             --success: #34A853;
             
-            /* Background & Permukaan One UI */
             --bg-color: #F2F4F8; 
             --surface: #FFFFFF;
             --text-main: #202124;
             --text-muted: #5F6368;
             --border: #E0E4E9;
             
-            /* Radius ala One UI */
             --radius-sm: 14px;
             --radius-md: 20px;
             --radius-lg: 28px;
             --radius-xl: 36px;
             
-            /* Shadows lembut */
             --shadow-sm: 0 2px 10px rgba(0,0,0,0.03);
             --shadow-md: 0 8px 24px rgba(26,115,232,0.08);
             --shadow-floating: 0 12px 32px rgba(0,0,0,0.12);
         }
         
         * { box-sizing: border-box; font-family: 'Inter', 'Segoe UI', sans-serif; }
-        body { margin: 0; background-color: var(--bg-color); color: var(--text-main); -webkit-font-smoothing: antialiased; }
+        
+        body { 
+            margin: 0; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            -webkit-font-smoothing: antialiased; 
+            /* Mencegah pull-to-refresh di mobile */
+            overscroll-behavior-y: none;
+            /* Mencegah pinch zoom tapi tetap izinkan scroll atas-bawah */
+            touch-action: pan-y;
+        }
         
         /* Utility */
         .hidden { display: none !important; }
@@ -113,7 +120,7 @@
         .welcome-text strong { color: var(--primary); font-weight: 700;}
         .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         
-        /* Kartu Kelas (Gabungan Classroom & One UI) */
+        /* Kartu Kelas */
         .class-card { 
             background: var(--surface); border: none; padding: 28px; 
             border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); 
@@ -130,7 +137,7 @@
         .class-card h3 { margin: 0 0 12px 0; color: var(--text-main); font-size: 1.3rem;}
         .class-card p { margin:0; font-size:14px; color: var(--text-muted); }
 
-        /* FAB Button (One UI Squircle) */
+        /* FAB Button */
         .fab-btn { 
             position: fixed; bottom: 40px; right: 40px; 
             background: var(--accent); color: #000; font-size: 28px; 
@@ -141,7 +148,7 @@
         }
         .fab-btn:hover { transform: translateY(-5px) scale(1.05); background: var(--accent-hover); box-shadow: 0 12px 25px rgba(255, 193, 7, 0.5);}
 
-        /* Overlay / Modal - Bottom Sheet / Dialog ala One UI */
+        /* Overlay / Modal */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
@@ -199,7 +206,7 @@
         .btn-outline { border: 2px solid var(--primary); color: var(--primary); background: transparent; }
         .btn-outline:hover { background: var(--primary-light); }
 
-        /* Tampilan Detail Kelas (Classroom Hero Banner) */
+        /* Tampilan Detail Kelas */
         #class-detail-section { 
             background: transparent; padding: 0; min-height: 400px; margin-top: 10px;
         }
@@ -264,7 +271,7 @@
             padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
         }
 
-        /* Bottom Sheet Quick Switch Class (Edge Panel Bawah) */
+        /* Bottom Sheet Quick Switch Class */
         #bottom-panel {
             position: fixed;
             bottom: 0;
@@ -328,7 +335,6 @@
             padding-bottom: 15px;
             max-width: 860px;
             margin: 0 auto;
-            /* Hide scrollbar for clean look */
             scrollbar-width: none; 
             -ms-overflow-style: none;
         }
@@ -338,7 +344,7 @@
             flex: 0 0 220px;
             background: var(--bg-color);
             padding: 16px 24px;
-            border-radius: 99px; /* Edge membulat seperti tombol search bar */
+            border-radius: 99px;
             cursor: pointer;
             border: 2px solid transparent;
             transition: all 0.2s;
@@ -347,7 +353,7 @@
             justify-content: center;
         }
         .mini-class-card:hover {
-            border-color: var(--primary); /* Hanya tampilkan outline saat hover */
+            border-color: var(--primary);
             background: var(--surface);
         }
         .mini-class-card h4 { margin:0 0 6px 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
@@ -601,7 +607,29 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // UI Elements Global
+        // ================= GLOBAL LISTENER UNTUK BLOKIR ZOOM & RELOAD =================
+        // Cegah Zoom dengan Ctrl + Scroll (Mouse Wheel)
+        document.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Cegah Pinch-to-Zoom dengan jari
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Cegah Reload Keyboard Shortcuts (F5, Ctrl+R, Ctrl+Shift+R)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F5' || (e.ctrlKey && (e.key === 'r' || e.key === 'R'))) {
+                e.preventDefault();
+            }
+        });
+
+        // ================= UI Elements Global =================
         const mainHeader = document.getElementById('main-header');
         const guruDashboard = document.getElementById('guru-dashboard');
         const siswaDashboard = document.getElementById('siswa-dashboard');
@@ -667,17 +695,38 @@
             });
         };
 
+        // Native Alert jika user tidak sengaja memencet tombol "Reload/Refresh" di address bar Browser
+        window.addEventListener('beforeunload', (e) => {
+            if (currentUserId) { // Hanya aktif jika sudah login
+                e.preventDefault();
+                e.returnValue = ''; 
+            }
+        });
 
-        // ================= SISTEM ROUTING SPA (HISTORY API) =================
+
+        // ================= SISTEM ROUTING SPA (HISTORY API) & EXIT TRAP =================
         window.navigateTo = function(path) {
             if (window.location.pathname !== path) {
-                history.pushState(null, '', path);
+                history.pushState({ path: path }, '', path);
             }
             resolveRoute();
         }
 
-        window.addEventListener('popstate', () => {
-            resolveRoute();
+        window.addEventListener('popstate', async (e) => {
+            // Mengecek apakah user terjebak di trap dashboard
+            if (e.state && e.state.trap) {
+                // Restore state dashboard agar tidak merusak history jika user Batal keluar
+                history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
+                
+                // Munculkan konfirmasi keluar
+                const confirmExit = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi EduClass?");
+                if (confirmExit) {
+                    // Paksa browser back 2 kali (melewati trap) agar benar-benar keluar web
+                    history.go(-2); 
+                }
+            } else {
+                resolveRoute();
+            }
         });
 
         // Klik logo EduClass untuk balik ke Beranda/Dashboard
@@ -705,14 +754,18 @@
             
             if (!currentUserId) {
                 if (path !== '/classroom/login') {
-                    history.replaceState(null, '', '/classroom/login');
+                    history.replaceState({ path: '/classroom/login' }, '', '/classroom/login');
                 }
                 showSection('login-section');
                 return;
             }
 
+            // Normalisasi URL root atau login yang sukses untuk mengarah ke dashboard
             if (path === '/classroom/login' || path === '/' || path === '/login' || path === '/dashboard' || path === '/classroom' || path === '/classroom/') {
-                history.replaceState(null, '', '/classroom/dashboard');
+                // Pasang "Trap" / Jebakan Back Button untuk dashboard
+                history.replaceState({ trap: true }, '', '/classroom/dashboard'); 
+                history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
+                
                 resolveRoute();
                 return;
             }
@@ -723,15 +776,18 @@
                     showSection('class-room-section');
                     setupClassRoom(classId);
                 } else {
-                    history.replaceState(null, '', '/classroom/dashboard');
-                    resolveRoute();
+                    navigateTo('/classroom/dashboard');
                 }
             } else if (path === '/classroom/dashboard') {
+                // Periksa apakah user langsung reload di halaman dashboard. Jika ya, inisialisasi Trap.
+                if (!history.state || (!history.state.path && !history.state.trap)) {
+                    history.replaceState({ trap: true }, '', '/classroom/dashboard');
+                    history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
+                }
                 showSection('dashboard-section');
                 cleanupClassRoom();
             } else {
-                history.replaceState(null, '', '/classroom/dashboard');
-                resolveRoute();
+                navigateTo('/classroom/dashboard');
             }
         }
 
@@ -787,8 +843,12 @@
             }
         });
 
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            signOut(auth);
+        // Penambahan konfirmasi pada tombol Logout
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            const isConfirmed = await customConfirm("Apakah Anda yakin ingin keluar dari akun?");
+            if (isConfirmed) {
+                signOut(auth);
+            }
         });
 
         // ================= PANEL QUICK SWITCH KELAS =================
@@ -828,7 +888,6 @@
 
         window.masukKelasPanel = function(id) {
             bottomPanel.classList.remove('open');
-            // Sedikit delay transisi agar mulus sebelum rute dipindah
             setTimeout(() => {
                 masukKelas(id);
             }, 200);
@@ -864,7 +923,6 @@
             document.getElementById('room-class-name').innerText = "Memuat data...";
             document.getElementById('room-class-teacher').innerText = "Guru: ...";
             
-            // Tampilkan kembali Bottom Panel
             bottomPanel.classList.remove('hidden');
             
             const btnTambahPengumuman = document.getElementById('btn-show-announcement-modal');
@@ -1058,15 +1116,12 @@
                 container.innerHTML = '';
                 let hasClass = false;
                 
-                // Clear cache dulu
                 window.cachedClasses = [];
                 
                 snapshot.forEach(child => {
                     const data = child.val();
                     if (data.teacherId === currentUserId) {
                         hasClass = true;
-                        
-                        // Push ke cache
                         window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
                         
                         container.innerHTML += `
@@ -1081,7 +1136,7 @@
                     }
                 });
                 
-                if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); // Render panel langsung jika sedang terbuka
+                if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); 
                 if(!hasClass) container.innerHTML = '<p style="color:var(--text-muted);">Anda belum memiliki kelas. Klik tombol + untuk membuat atau bergabung kelas.</p>';
             });
         }
@@ -1222,12 +1277,10 @@
             const c = document.getElementById('members-list-container');
             c.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Memuat anggota...</div>';
             
-            // Pastikan allUsersDB sudah terisi untuk mencocokkan ID dengan nama
             if(allUsersDB.length === 0) {
                 await loadAllUsersForSearch();
             }
 
-            // Fetch semua undangan untuk mencari siapa saja yang sedang diundang ke kelas ini
             let invitedUsers = [];
             try {
                 const invSnap = await get(ref(db, 'invitations'));
@@ -1275,7 +1328,6 @@
                 c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada siswa.</p>`;
             }
 
-            // Kategori Diundang
             c.innerHTML += `<div class="member-category" style="margin-top:30px;">Diundang</div>`;
             if(invitedUsers.length > 0) {
                 invitedUsers.forEach(inv => {
@@ -1475,15 +1527,12 @@
                 container.innerHTML = '';
                 let hasClass = false;
                 
-                // Clear cache dulu
                 window.cachedClasses = [];
                 
                 snapshot.forEach(child => {
                     const data = child.val();
                     if(data.students && data.students[currentUserId]) {
                         hasClass = true;
-                        
-                        // Push ke cache
                         window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
                         
                         container.innerHTML += `
@@ -1498,7 +1547,7 @@
                     }
                 });
                 
-                if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); // Render panel langsung jika sedang terbuka
+                if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); 
                 if(!hasClass) container.innerHTML = '<p style="color:var(--text-muted);">Anda belum tergabung dalam kelas manapun.</p>';
             });
         }
