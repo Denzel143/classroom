@@ -113,7 +113,7 @@
         .welcome-text strong { color: var(--primary); font-weight: 700;}
         .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         
-        /* Kartu Kelas (Gabungan Classroom & One UI) */
+        /* Kartu Kelas */
         .class-card { 
             background: var(--surface); border: none; padding: 28px; 
             border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); 
@@ -141,7 +141,7 @@
         }
         .fab-btn:hover { transform: translateY(-5px) scale(1.05); background: var(--accent-hover); box-shadow: 0 12px 25px rgba(255, 193, 7, 0.5);}
 
-        /* Overlay / Modal - Bottom Sheet / Dialog ala One UI */
+        /* Overlay / Modal */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
@@ -199,7 +199,7 @@
         .btn-outline { border: 2px solid var(--primary); color: var(--primary); background: transparent; }
         .btn-outline:hover { background: var(--primary-light); }
 
-        /* Tampilan Detail Kelas (Classroom Hero Banner) */
+        /* Tampilan Detail Kelas */
         #class-detail-section { 
             background: transparent; padding: 0; min-height: 400px; margin-top: 10px;
         }
@@ -262,10 +262,33 @@
             padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
         }
 
-        /* Bottom Sheet Quick Switch Class (Edge Panel Bawah) */
-        #bottom-panel-handle {
+        /* ----------------------------------------------------
+           Bottom Sheet Quick Switch Class (Tampilan Menyatu)
+           ---------------------------------------------------- */
+        #bottom-panel {
             position: fixed;
             bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 900;
+            padding: 24px;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            /* 100% turunkan agar panel tersembunyi sepenuhnya ke bawah */
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s;
+            box-shadow: none; /* Hilangkan shadow saat tertutup agar tidak bocor */
+        }
+        #bottom-panel.open {
+            transform: translateY(0);
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+        }
+        
+        /* Handle/Pegangan kini berada absolut di atas border panel */
+        #bottom-panel-handle {
+            position: absolute;
+            top: -28px; /* Tinggi handle adalah 28px, ditaruh persis nongkrong di atas panel */
             left: 50%;
             transform: translateX(-50%);
             width: 70px;
@@ -277,36 +300,27 @@
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            z-index: 850;
+            z-index: 901;
             transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         #bottom-panel-handle:hover {
-            transform: translateX(-50%) translateY(-3px);
             background: var(--primary-light);
+            top: -30px; /* Sedikit efek angkat saat dihover */
+            height: 30px;
         }
+        
+        /* Animasi rotasi SVG */
         #bottom-panel-handle svg {
             color: var(--text-muted);
             width: 20px;
             height: 20px;
-        }
-        
-        #bottom-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
-            z-index: 900;
-            padding: 24px;
-            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-            transform: translateY(110%);
             transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        #bottom-panel.open {
-            transform: translateY(0);
+        /* Putar 180 derajat (menjadi panah bawah) saat panel ditarik/terbuka */
+        #bottom-panel.open #bottom-panel-handle svg {
+            transform: rotate(180deg);
         }
+
         .bottom-panel-header {
             display: flex;
             justify-content: space-between;
@@ -315,30 +329,6 @@
             margin: 0 auto 16px auto;
         }
         .bottom-panel-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
-        
-        /* Tombol Tutup Panah Bawah Baru */
-        #close-bottom-panel {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            color: var(--text-muted);
-            padding: 6px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            width: 36px;
-            height: 36px;
-        }
-        #close-bottom-panel:hover {
-            background: var(--bg-color);
-            color: var(--text-main);
-        }
-        #close-bottom-panel svg {
-            width: 22px;
-            height: 22px;
-        }
 
         .horizontal-list {
             display: flex;
@@ -352,7 +342,7 @@
         }
         .horizontal-list::-webkit-scrollbar { display: none; }
         
-        /* Desain Kapsul Baru ala Google Search Bar */
+        /* Desain Kapsul ala Google Search Bar */
         .mini-class-card {
             flex: 0 0 auto;
             min-width: 160px;
@@ -505,20 +495,17 @@
     </div>
 
     <!-- PANEL SWITCH KELAS BAWAH (EDGE PANEL) -->
-    <div id="bottom-panel-handle" class="hidden" title="Lompat ke Kelas Lain">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="18 15 12 9 6 15"></polyline>
-        </svg>
-    </div>
-    <div id="bottom-panel">
+    <!-- Handle (Pegangan) digabung langsung ke dalam Container Panel -->
+    <div id="bottom-panel" class="hidden">
+        <!-- Handle akan nongkrong di ujung atas panel ini -->
+        <div id="bottom-panel-handle" title="Lompat ke Kelas Lain">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+        </div>
+        
         <div class="bottom-panel-header">
             <h4>Lompat ke Kelas Lain</h4>
-            <!-- Tombol Tutup Diganti dengan Ikon Panah Bawah -->
-            <button id="close-bottom-panel" title="Tutup Panel">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </button>
         </div>
         <div id="bottom-panel-list" class="horizontal-list">
             <!-- Data diisi otomatis -->
@@ -807,15 +794,14 @@
         const bottomPanelHandle = document.getElementById('bottom-panel-handle');
         const bottomPanel = document.getElementById('bottom-panel');
 
+        // Logic toggle buka-tutup handle terpadu
         bottomPanelHandle.addEventListener('click', () => {
-            updateQuickSwitchPanel();
-            bottomPanel.classList.add('open');
-            bottomPanelHandle.classList.add('hidden');
-        });
-
-        document.getElementById('close-bottom-panel').addEventListener('click', () => {
-            bottomPanel.classList.remove('open');
-            if(currentViewedClassId) bottomPanelHandle.classList.remove('hidden');
+            if (bottomPanel.classList.contains('open')) {
+                bottomPanel.classList.remove('open');
+            } else {
+                updateQuickSwitchPanel();
+                bottomPanel.classList.add('open');
+            }
         });
 
         function updateQuickSwitchPanel() {
@@ -851,8 +837,8 @@
             currentViewedClassId = null;
             currentClassData = null;
             
-            bottomPanelHandle.classList.add('hidden');
             bottomPanel.classList.remove('open');
+            bottomPanel.classList.add('hidden'); // Sembunyikan handle dari layar
         }
 
         window.masukKelas = function(classId) {
@@ -868,7 +854,7 @@
             document.getElementById('room-class-name').innerText = "Memuat data...";
             document.getElementById('room-class-teacher').innerText = "Guru: ...";
             
-            bottomPanelHandle.classList.remove('hidden');
+            bottomPanel.classList.remove('hidden'); // Tampilkan handle di bagian bawah
 
             const btnTambahPengumuman = document.getElementById('btn-show-announcement-modal');
             const btnHapusKelas = document.getElementById('btn-hapus-kelas');
