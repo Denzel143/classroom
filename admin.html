@@ -47,6 +47,7 @@
             <h2 style="margin: 0;">⚙️ Admin Panel - EduClass</h2>
         </header>
 
+        <!-- Form Pembuatan Akun -->
         <div class="form-box">
             <h3>Buat Akun Baru</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
@@ -74,6 +75,7 @@
             <p id="admin-msg" style="font-size: 13px; color: green; margin-bottom: 0; display: none;"></p>
         </div>
 
+        <!-- Daftar Pengguna dengan Tabs -->
         <h3>Daftar Pengguna Sistem</h3>
         
         <div class="tab-buttons">
@@ -81,6 +83,7 @@
             <button class="tab-btn" id="btn-tab-guru">Guru</button>
         </div>
 
+        <!-- Konten Tab Siswa -->
         <div id="tab-siswa" class="tab-content active">
             <input type="text" id="search-siswa" class="search-bar" placeholder="🔍 Ketik username siswa untuk mencari...">
             <table>
@@ -99,6 +102,7 @@
             </table>
         </div>
 
+        <!-- Konten Tab Guru -->
         <div id="tab-guru" class="tab-content">
             <input type="text" id="search-guru" class="search-bar" placeholder="🔍 Ketik username guru untuk mencari...">
             <table>
@@ -121,7 +125,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        // Tambahan import: signInWithEmailAndPassword & deleteUser (karena fungsi hapus lokal bernama deleteUser, kita beri alias deleteAuthUser)
+        import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword, deleteUser as deleteAuthUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getDatabase, ref as dbRef, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -143,7 +148,6 @@
         const btnCreate = document.getElementById('btn-create-user');
         const msgBox = document.getElementById('admin-msg');
 
-        // State Global untuk Data & Pencarian
         let allUsers = [];
         let searchSiswaQuery = '';
         let searchGuruQuery = '';
@@ -237,18 +241,16 @@
                     });
                 });
             }
-            renderTables(); // Panggil fungsi render setelah data terisi
+            renderTables();
         });
 
         function renderTables() {
             const tableSiswa = document.getElementById('table-siswa');
             const tableGuru = document.getElementById('table-guru');
 
-            // Filter data berdasarkan peran dan query pencarian
             const siswaFiltered = allUsers.filter(u => u.role === 'siswa' && (u.username || '').toLowerCase().includes(searchSiswaQuery));
             const guruFiltered = allUsers.filter(u => u.role === 'guru' && (u.username || '').toLowerCase().includes(searchGuruQuery));
 
-            // Render Siswa
             tableSiswa.innerHTML = '';
             if (siswaFiltered.length === 0) {
                 tableSiswa.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada data siswa ditemukan.</td></tr>';
@@ -256,7 +258,6 @@
                 siswaFiltered.forEach(data => tableSiswa.appendChild(createRowHTML(data)));
             }
 
-            // Render Guru
             tableGuru.innerHTML = '';
             if (guruFiltered.length === 0) {
                 tableGuru.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada data guru ditemukan.</td></tr>';
@@ -265,7 +266,6 @@
             }
         }
 
-        // Fungsi bantuan untuk membuat elemen baris tabel (TR)
         function createRowHTML(data) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -298,10 +298,26 @@
         };
 
         window.deleteUser = async function(uid, email) {
-            const confirmDelete = confirm(`Apakah Anda yakin ingin menghapus akun ${email}?`);
+            const confirmDelete = confirm(`Apakah Anda yakin ingin menghapus akun ${email} secara permanen dari Database DAN Authentication?`);
             if (confirmDelete) {
                 try {
+                    // 1. Cari data user di array allUsers untuk mendapatkan password-nya
+                    const userObj = allUsers.find(u => u.uid === uid);
+                    
+                    if (userObj && userObj.password) {
+                        // 2. Login sementara (signInWithEmailAndPassword) menggunakan secondaryAuth
+                        const userCredential = await signInWithEmailAndPassword(secondaryAuth, email, userObj.password);
+                        
+                        // 3. Hapus akun dari Authentication
+                        await deleteAuthUser(userCredential.user);
+                    } else {
+                        console.warn("Password tidak tersedia, mencoba menghapus hanya dari database.");
+                    }
+
+                    // 4. Hapus data dari Realtime Database
                     await remove(dbRef(db, `users/${uid}`));
+                    
+                    alert(`Akun ${email} berhasil dihapus sepenuhnya!`);
                 } catch (error) {
                     alert("Gagal menghapus: " + error.message);
                 }
