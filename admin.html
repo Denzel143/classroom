@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - EduClass</title>
+    <style>
+        :root { --primary: #1a73e8; --bg-color: #f8f9fa; --text-main: #202124; --card-bg: #ffffff; --border: #dadce0; --danger: #dc3545; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-main); }
+        .container { max-width: 1000px; margin: 40px auto; padding: 20px; }
+        
+        header { background: var(--card-bg); padding: 15px 20px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-radius: 8px;}
+        h1, h2, h3 { margin-top: 0; }
+        
+        .form-box { background: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 30px; }
+        input[type="text"], input[type="email"], input[type="password"], select { padding: 10px; margin: 5px 0 15px 0; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; width: 100%; }
+        
+        button { background-color: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; padding: 10px; border-radius: 4px; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        button.danger { background-color: var(--danger); }
+        button.icon-btn { padding: 6px 10px; font-size: 14px; margin-left: 5px; background-color: #f1f3f4; color: #333; border: 1px solid var(--border); border-radius: 4px; }
+        button.icon-btn:hover { background-color: #e8eaed; }
+        
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+        th { background-color: #f1f3f4; font-weight: bold; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge.guru { background: #e8f0fe; color: var(--primary); }
+        .badge.siswa { background: #e6f4ea; color: #34a853; }
+        
+        .password-text { font-family: monospace; letter-spacing: 2px; }
+
+        /* Style untuk Tab & Search */
+        .tab-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn { background-color: #f1f3f4; color: var(--text-main); padding: 10px 20px; font-size: 15px; border: 1px solid var(--border); border-radius: 6px; }
+        .tab-btn.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .search-bar { padding: 12px; margin-bottom: 15px; width: 100%; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h2 style="margin: 0;">⚙️ Admin Panel - EduClass</h2>
+        </header>
+
+        <div class="form-box">
+            <h3>Buat Akun Baru</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                <div>
+                    <label>Username / Nama</label>
+                    <input type="text" id="new-username" placeholder="Nama Lengkap">
+                </div>
+                <div>
+                    <label>Email Pengguna</label>
+                    <input type="email" id="new-email" placeholder="email@sekolah.com">
+                </div>
+                <div>
+                    <label>Password</label>
+                    <input type="text" id="new-password" placeholder="Minimal 6 karakter">
+                </div>
+                <div>
+                    <label>Peran (Role)</label>
+                    <select id="new-role">
+                        <option value="siswa">Siswa</option>
+                        <option value="guru">Guru</option>
+                    </select>
+                </div>
+            </div>
+            <button id="btn-create-user" style="width: 100%; margin-top: 10px;">+ Simpan Akun</button>
+            <p id="admin-msg" style="font-size: 13px; color: green; margin-bottom: 0; display: none;"></p>
+        </div>
+
+        <h3>Daftar Pengguna Sistem</h3>
+        
+        <div class="tab-buttons">
+            <button class="tab-btn active" id="btn-tab-siswa">Siswa</button>
+            <button class="tab-btn" id="btn-tab-guru">Guru</button>
+        </div>
+
+        <div id="tab-siswa" class="tab-content active">
+            <input type="text" id="search-siswa" class="search-bar" placeholder="🔍 Ketik username siswa untuk mencari...">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Password (Database)</th>
+                        <th style="text-align: right;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="table-siswa">
+                    <tr><td colspan="5" style="text-align: center;">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="tab-guru" class="tab-content">
+            <input type="text" id="search-guru" class="search-bar" placeholder="🔍 Ketik username guru untuk mencari...">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Password (Database)</th>
+                        <th style="text-align: right;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="table-guru">
+                    <tr><td colspan="5" style="text-align: center;">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref as dbRef, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDJr-6PSzrDEC7J9XfI38g3C_r65x9OlLA",
+          authDomain: "public-database-e58ab.firebaseapp.com",
+          databaseURL: "https://public-database-e58ab-default-rtdb.firebaseio.com",
+          projectId: "public-database-e58ab",
+          storageBucket: "public-database-e58ab.firebasestorage.app",
+          messagingSenderId: "595860953738",
+          appId: "1:595860953738:web:d0ad19f96351191137ab73",
+          measurementId: "G-QCYP5Y72J8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+        const secondaryAuth = getAuth(secondaryApp);
+
+        const btnCreate = document.getElementById('btn-create-user');
+        const msgBox = document.getElementById('admin-msg');
+
+        // State Global untuk Data & Pencarian
+        let allUsers = [];
+        let searchSiswaQuery = '';
+        let searchGuruQuery = '';
+
+        // ================= FITUR LOGIKA TAB =================
+        const btnTabSiswa = document.getElementById('btn-tab-siswa');
+        const btnTabGuru = document.getElementById('btn-tab-guru');
+        const contentSiswa = document.getElementById('tab-siswa');
+        const contentGuru = document.getElementById('tab-guru');
+
+        btnTabSiswa.addEventListener('click', () => {
+            btnTabSiswa.classList.add('active');
+            btnTabGuru.classList.remove('active');
+            contentSiswa.classList.add('active');
+            contentGuru.classList.remove('active');
+        });
+
+        btnTabGuru.addEventListener('click', () => {
+            btnTabGuru.classList.add('active');
+            btnTabSiswa.classList.remove('active');
+            contentGuru.classList.add('active');
+            contentSiswa.classList.remove('active');
+        });
+
+        // ================= FITUR PENCARIAN REAL-TIME =================
+        document.getElementById('search-siswa').addEventListener('input', (e) => {
+            searchSiswaQuery = e.target.value.toLowerCase();
+            renderTables();
+        });
+
+        document.getElementById('search-guru').addEventListener('input', (e) => {
+            searchGuruQuery = e.target.value.toLowerCase();
+            renderTables();
+        });
+
+        // ================= FITUR BUAT AKUN =================
+        btnCreate.addEventListener('click', async () => {
+            const username = document.getElementById('new-username').value;
+            const email = document.getElementById('new-email').value;
+            const password = document.getElementById('new-password').value;
+            const role = document.getElementById('new-role').value;
+
+            if(!username || !email || password.length < 6) {
+                alert("Semua kolom harus diisi & Password minimal 6 karakter!");
+                return;
+            }
+
+            btnCreate.innerText = "Memproses...";
+            btnCreate.disabled = true;
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+                const uid = userCredential.user.uid;
+
+                await set(dbRef(db, 'users/' + uid), {
+                    username: username,
+                    email: email,
+                    role: role,
+                    password: password 
+                });
+
+                await signOut(secondaryAuth);
+
+                document.getElementById('new-username').value = '';
+                document.getElementById('new-email').value = '';
+                document.getElementById('new-password').value = '';
+                
+                msgBox.style.color = "green";
+                msgBox.innerText = "Berhasil membuat akun!";
+                msgBox.style.display = "block";
+                setTimeout(() => msgBox.style.display = "none", 3000);
+
+            } catch (error) {
+                msgBox.style.color = "red";
+                msgBox.innerText = "Error: " + error.message;
+                msgBox.style.display = "block";
+            } finally {
+                btnCreate.innerText = "+ Simpan Akun";
+                btnCreate.disabled = false;
+            }
+        });
+
+        // ================= FITUR AMBIL DATA & RENDER =================
+        onValue(dbRef(db, 'users'), (snapshot) => {
+            allUsers = [];
+            if (snapshot.exists()) {
+                snapshot.forEach((child) => {
+                    allUsers.push({
+                        uid: child.key,
+                        ...child.val()
+                    });
+                });
+            }
+            renderTables(); // Panggil fungsi render setelah data terisi
+        });
+
+        function renderTables() {
+            const tableSiswa = document.getElementById('table-siswa');
+            const tableGuru = document.getElementById('table-guru');
+
+            // Filter data berdasarkan peran dan query pencarian
+            const siswaFiltered = allUsers.filter(u => u.role === 'siswa' && (u.username || '').toLowerCase().includes(searchSiswaQuery));
+            const guruFiltered = allUsers.filter(u => u.role === 'guru' && (u.username || '').toLowerCase().includes(searchGuruQuery));
+
+            // Render Siswa
+            tableSiswa.innerHTML = '';
+            if (siswaFiltered.length === 0) {
+                tableSiswa.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada data siswa ditemukan.</td></tr>';
+            } else {
+                siswaFiltered.forEach(data => tableSiswa.appendChild(createRowHTML(data)));
+            }
+
+            // Render Guru
+            tableGuru.innerHTML = '';
+            if (guruFiltered.length === 0) {
+                tableGuru.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada data guru ditemukan.</td></tr>';
+            } else {
+                guruFiltered.forEach(data => tableGuru.appendChild(createRowHTML(data)));
+            }
+        }
+
+        // Fungsi bantuan untuk membuat elemen baris tabel (TR)
+        function createRowHTML(data) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${data.username || '-'}</strong></td>
+                <td>${data.email}</td>
+                <td><span class="badge ${data.role}">${data.role.toUpperCase()}</span></td>
+                <td>
+                    <span id="pwd-${data.uid}" class="password-text" data-pw="${data.password || 'Tidak ada'}">••••••••</span>
+                </td>
+                <td style="text-align: right;">
+                    <button class="icon-btn" onclick="togglePassword('${data.uid}')" title="Lihat Password">👁️</button>
+                    <button class="icon-btn danger" style="color: white; border: none;" onclick="deleteUser('${data.uid}', '${data.email}')" title="Hapus Akun">🗑️</button>
+                </td>
+            `;
+            return tr;
+        }
+
+        // ================= FITUR LIHAT PASSWORD & HAPUS AKUN =================
+        window.togglePassword = function(uid) {
+            const pwdElement = document.getElementById(`pwd-${uid}`);
+            const realPassword = pwdElement.getAttribute('data-pw');
+            
+            if (pwdElement.innerText === "••••••••") {
+                pwdElement.innerText = realPassword; 
+                pwdElement.style.letterSpacing = "normal";
+            } else {
+                pwdElement.innerText = "••••••••"; 
+                pwdElement.style.letterSpacing = "2px";
+            }
+        };
+
+        window.deleteUser = async function(uid, email) {
+            const confirmDelete = confirm(`Apakah Anda yakin ingin menghapus akun ${email}?`);
+            if (confirmDelete) {
+                try {
+                    await remove(dbRef(db, `users/${uid}`));
+                } catch (error) {
+                    alert("Gagal menghapus: " + error.message);
+                }
+            }
+        };
+
+    </script>
+</body>
+</html>
