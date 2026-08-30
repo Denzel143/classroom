@@ -1636,27 +1636,33 @@
                     return;
                 }
                 
-                arr.sort((a,b) => b.timestamp - a.timestamp).forEach(data => {
-                    const date = new Date(data.timestamp).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
+                arr.sort((a,b) => (b.timestamp||0) - (a.timestamp||0)).forEach(data => {
+                  try {
+                    const safeText = (data.text != null) ? String(data.text) : '';
+                    const safeSender = data.senderName || 'Pengguna';
+                    const date = new Date(data.timestamp || Date.now()).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
                     const isOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
                     const btnHapus = isOwner ? `<button class="btn-hapus-announcement" onclick="hapusPengumuman('${data.id}')">Hapus</button>` : '';
                     
-                    const escText = data.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+                    const escText = safeText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
                     const clickAttr = isOwner ? `onclick="handleAnnouncementClick('${data.id}', \`${escText}\`)"` : '';
                     const cursorStyle = isOwner ? `cursor:pointer;` : '';
 
                     list.innerHTML += `
                         <div class="announcement-card">
                             <div class="announcement-header">
-                                <div class="announcement-time"><strong>${data.senderName}</strong> • ${date}</div>
+                                <div class="announcement-time"><strong>${safeSender}</strong> • ${date}</div>
                                 ${btnHapus}
                             </div>
-                            <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${data.text}</div>
+                            <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${safeText}</div>
                             <div class="announcement-actions">
                                 <button class="btn-comment" data-ann="${data.id}">💬 Komentar (<span id="comment-count-${data.id}">0</span>)</button>
                             </div>
                         </div>
                     `;
+                  } catch (err) {
+                    console.error('Gagal merender satu item forum, dilewati agar item lain tetap tampil:', data && data.id, err);
+                  }
                 });
 
                 // Kelola listener jumlah komentar realtime untuk tiap pengumuman
@@ -1668,11 +1674,15 @@
                     }
                 });
                 arr.forEach(data => {
-                    if (!commentCountListeners[data.id]) {
-                        commentCountListeners[data.id] = onValue(ref(db, `comments/${classId}/${data.id}`), (cSnap) => {
-                            const badge = document.getElementById(`comment-count-${data.id}`);
-                            if (badge) badge.innerText = cSnap.exists() ? Object.keys(cSnap.val()).length : 0;
-                        });
+                    try {
+                        if (!commentCountListeners[data.id]) {
+                            commentCountListeners[data.id] = onValue(ref(db, `comments/${classId}/${data.id}`), (cSnap) => {
+                                const badge = document.getElementById(`comment-count-${data.id}`);
+                                if (badge) badge.innerText = cSnap.exists() ? Object.keys(cSnap.val()).length : 0;
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Gagal memasang listener jumlah komentar:', data && data.id, err);
                     }
                 });
             });
