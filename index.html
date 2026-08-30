@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- Mencegah zoom di perangkat mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>K-Learn - Dashboard</title>
+    <title>EduClass - Dashboard</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -342,6 +342,70 @@
             -ms-overflow-style: none;
         }
         .horizontal-list::-webkit-scrollbar { display: none; }
+
+        /* Sidebar Kiri - Kalender (pola sama seperti bottom-panel, tapi geser horizontal) */
+        #calendar-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 300px;
+            max-width: 82vw;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 8px 0 30px rgba(0,0,0,0.15);
+            z-index: 900;
+            padding: 28px 22px;
+            border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+            transform: translateX(-100%);
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+            overflow-y: auto;
+        }
+        #calendar-sidebar.open {
+            transform: translateX(0);
+        }
+        #calendar-sidebar-handle {
+            position: absolute;
+            top: 50%;
+            right: -28px;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 70px;
+            background: var(--surface);
+            border-radius: 0 14px 14px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 850;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        #calendar-sidebar-handle:hover {
+            background: var(--primary-light);
+        }
+        #calendar-sidebar-handle svg {
+            color: var(--text-muted);
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s ease;
+        }
+        #calendar-sidebar.open #calendar-sidebar-handle svg {
+            transform: rotate(180deg);
+        }
+        .calendar-sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .calendar-sidebar-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
+        .calendar-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .calendar-nav button { background: var(--primary-light); color: var(--primary); padding: 6px 10px; border-radius: 10px; font-size: 13px; }
+        .calendar-nav button:hover { background: var(--primary); color: #fff; }
+        .calendar-month-label { font-weight: 700; font-size: 15px; color: var(--text-main); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+        .calendar-dow { font-size: 11px; font-weight: 700; color: var(--text-muted); padding: 4px 0 8px 0; }
+        .calendar-day { padding: 8px 0; border-radius: 10px; font-size: 13px; color: var(--text-main); }
+        .calendar-day.other-month { color: #C7CCD3; }
+        .calendar-day.today { background: var(--primary); color: #fff; font-weight: 700; }
+        .btn-cal-today { width: 100%; margin-top: 18px; background: var(--primary-light); color: var(--primary); padding: 10px; border-radius: var(--radius-md); font-size: 13px; }
+        .btn-cal-today:hover { background: var(--primary); color: #fff; }
         
         .mini-class-card {
             flex: 0 0 220px;
@@ -443,12 +507,12 @@
 
     <div id="global-loading">
         <div class="spinner"></div>
-        <h2 style="color: var(--primary); margin: 0;">K-Learn</h2>
+        <h2 style="color: var(--primary); margin: 0;">EduClass</h2>
         <p style="color: var(--text-muted); margin-top: 8px; font-weight: 500;">Menyiapkan ruang kelas...</p>
     </div>
 
     <header id="main-header" class="hidden">
-        <h2 id="logo-home" style="cursor:pointer;" title="Kembali ke Dashboard">K-Learn</h2>
+        <h2 id="logo-home" style="cursor:pointer;" title="Kembali ke Dashboard">EduClass</h2>
         <button id="btn-logout">Logout</button>
     </header>
 
@@ -474,7 +538,7 @@
     </div>
 
     <div id="login-section" class="hidden">
-        <h2>K-Learn</h2>
+        <h2>EduClass</h2>
         <p id="login-error" style="color: var(--danger); font-size: 14px; text-align: center; background: var(--danger-light); padding: 10px; border-radius: var(--radius-sm);" class="hidden"></p>
         <label>Email</label>
         <input type="email" id="login-email" placeholder="contoh@sekolah.com">
@@ -545,6 +609,24 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div id="calendar-sidebar" class="hidden">
+        <div id="calendar-sidebar-handle" title="Buka/Tutup Kalender">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </div>
+        <div class="calendar-sidebar-header">
+            <h4>📅 Kalender</h4>
+        </div>
+        <div class="calendar-nav">
+            <button id="btn-cal-prev">&lsaquo;</button>
+            <div class="calendar-month-label" id="calendar-month-label"></div>
+            <button id="btn-cal-next">&rsaquo;</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+        <button class="btn-cal-today" id="btn-cal-today">Hari Ini</button>
     </div>
 
     <div id="bottom-panel" class="hidden">
@@ -849,7 +931,7 @@
                 history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
                 
                 // Munculkan konfirmasi keluar
-                const confirmExit = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi K-Learn?");
+                const confirmExit = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi EduClass?");
                 if (confirmExit) {
                     // Paksa browser back 2 kali (melewati trap) agar benar-benar keluar web
                     history.go(-2); 
@@ -859,7 +941,7 @@
             }
         });
 
-        // Klik logo K-Learn untuk balik ke Beranda/Dashboard
+        // Klik logo EduClass untuk balik ke Beranda/Dashboard
         document.getElementById('logo-home').addEventListener('click', () => {
             navigateTo('/classroom/dashboard');
         });
@@ -872,10 +954,14 @@
             
             document.getElementById(sectionId).classList.remove('hidden');
             
+            const calendarSidebar = document.getElementById('calendar-sidebar');
             if (sectionId !== 'login-section' && currentUserId) {
                 mainHeader.classList.remove('hidden');
+                calendarSidebar.classList.remove('hidden');
             } else {
                 mainHeader.classList.add('hidden');
+                calendarSidebar.classList.add('hidden');
+                calendarSidebar.classList.remove('open');
             }
         }
 
@@ -980,6 +1066,75 @@
                 signOut(auth);
             }
         });
+
+        // ================= SIDEBAR KALENDER =================
+        const calendarSidebarHandle = document.getElementById('calendar-sidebar-handle');
+        const calendarSidebar = document.getElementById('calendar-sidebar');
+        let calendarViewDate = new Date(); // tanggal yang sedang dilihat (bulan/tahun berjalan)
+
+        calendarSidebarHandle.addEventListener('click', () => {
+            if (calendarSidebar.classList.contains('open')) {
+                calendarSidebar.classList.remove('open');
+            } else {
+                renderCalendar();
+                calendarSidebar.classList.add('open');
+            }
+        });
+
+        document.getElementById('btn-cal-prev').addEventListener('click', () => {
+            calendarViewDate.setMonth(calendarViewDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        document.getElementById('btn-cal-next').addEventListener('click', () => {
+            calendarViewDate.setMonth(calendarViewDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        document.getElementById('btn-cal-today').addEventListener('click', () => {
+            calendarViewDate = new Date();
+            renderCalendar();
+        });
+
+        function renderCalendar() {
+            const namaBulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            const namaHari = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
+            const today = new Date();
+            const year = calendarViewDate.getFullYear();
+            const month = calendarViewDate.getMonth();
+
+            document.getElementById('calendar-month-label').innerText = `${namaBulan[month]} ${year}`;
+
+            const firstDayOfMonth = new Date(year, month, 1);
+            const startOffset = firstDayOfMonth.getDay(); // 0 = Minggu
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+            let cellsHtml = namaHari.map(h => `<div class="calendar-dow">${h}</div>`).join('');
+
+            // Tanggal sisa dari bulan sebelumnya (pengisi grid)
+            for (let i = startOffset - 1; i >= 0; i--) {
+                cellsHtml += `<div class="calendar-day other-month">${daysInPrevMonth - i}</div>`;
+            }
+
+            // Tanggal bulan berjalan
+            for (let d = 1; d <= daysInMonth; d++) {
+                const isToday = (d === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+                cellsHtml += `<div class="calendar-day${isToday ? ' today' : ''}">${d}</div>`;
+            }
+
+            // Genapkan sisa baris terakhir dengan tanggal awal bulan berikutnya
+            const totalCells = startOffset + daysInMonth;
+            const trailing = (7 - (totalCells % 7)) % 7;
+            for (let d = 1; d <= trailing; d++) {
+                cellsHtml += `<div class="calendar-day other-month">${d}</div>`;
+            }
+
+            document.getElementById('calendar-grid').innerHTML = cellsHtml;
+        }
+
+        renderCalendar();
 
         // ================= PANEL QUICK SWITCH KELAS =================
         const bottomPanelHandle = document.getElementById('bottom-panel-handle');
