@@ -359,7 +359,8 @@
             border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
             transform: translateX(-100%);
             transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-            overflow-y: auto;
+            /* overflow-y dipindah ke .calendar-sidebar-inner supaya handle (yang menjorok
+               keluar via right:-28px) tidak ikut ter-clip oleh overflow container ini */
         }
         #calendar-sidebar.open {
             transform: translateX(0);
@@ -392,6 +393,10 @@
         }
         #calendar-sidebar.open #calendar-sidebar-handle svg {
             transform: rotate(180deg);
+        }
+        .calendar-sidebar-inner {
+            height: 100%;
+            overflow-y: auto;
         }
         .calendar-sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
         .calendar-sidebar-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
@@ -617,16 +622,18 @@
                 <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
         </div>
-        <div class="calendar-sidebar-header">
-            <h4>📅 Kalender</h4>
+        <div class="calendar-sidebar-inner">
+            <div class="calendar-sidebar-header">
+                <h4>📅 Kalender</h4>
+            </div>
+            <div class="calendar-nav">
+                <button id="btn-cal-prev">&lsaquo;</button>
+                <div class="calendar-month-label" id="calendar-month-label"></div>
+                <button id="btn-cal-next">&rsaquo;</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <button class="btn-cal-today" id="btn-cal-today">Hari Ini</button>
         </div>
-        <div class="calendar-nav">
-            <button id="btn-cal-prev">&lsaquo;</button>
-            <div class="calendar-month-label" id="calendar-month-label"></div>
-            <button id="btn-cal-next">&rsaquo;</button>
-        </div>
-        <div class="calendar-grid" id="calendar-grid"></div>
-        <button class="btn-cal-today" id="btn-cal-today">Hari Ini</button>
     </div>
 
     <div id="bottom-panel" class="hidden">
