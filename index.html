@@ -752,6 +752,7 @@
 
         // ================= STATE FITUR KOMENTAR =================
         let commentCountListeners = {}; // { announcementId: unsubscribeFn }
+        let commentCounts = {}; // { announcementId: number } cache jumlah komentar terakhir yang diketahui
         let commentsThreadListener = null;
         let currentCommentAnnouncementId = null;
         let currentCommentsCache = {};
@@ -764,6 +765,14 @@
             return String(str == null ? '' : str)
                 .replace(/&/g, "&amp;").replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Escape teks asli (tanpa entity HTML) agar aman disisipkan ke dalam template literal
+        // JS (di dalam atribut onclick). Dipakai supaya teks asli (bukan versi ter-escape HTML)
+        // bisa dikirim balik ke kotak edit materi/pengumuman.
+        function escapeForJsTemplate(str) {
+            return String(str == null ? '' : str)
+                .replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
         }
         
         // Cache array kelas untuk quick switcher
@@ -1615,7 +1624,24 @@
         window.hapusPengumuman = async function(id) {
             const confirm = await customConfirm("Hapus materi ini?");
             if (confirm) {
-                await remove(ref(db, `announcements/${currentViewedClassId}/${id}`));
+                // Hapus pengumuman/materi sekaligus seluruh root komentar yang mengarah ke sana
+                const updates = {};
+                updates[`announcements/${currentViewedClassId}/${id}`] = null;
+                updates[`comments/${currentViewedClassId}/${id}`] = null;
+                await update(ref(db), updates);
+
+                // Bersihkan listener jumlah komentar & cache yang terkait, dan tutup modal komentar jika sedang membuka materi ini
+                if (commentCountListeners[id]) {
+                    commentCountListeners[id]();
+                    delete commentCountListeners[id];
+                }
+                delete commentCounts[id];
+                if (currentCommentAnnouncementId === id) {
+                    document.getElementById('comment-modal-overlay').classList.add('hidden');
+                    if (commentsThreadListener) { commentsThreadListener(); commentsThreadListener = null; }
+                    currentCommentAnnouncementId = null;
+                    currentCommentsCache = {};
+                }
             }
         }
 
@@ -1624,31 +1650,44 @@
             if (announcementListener) announcementListener();
             
             announcementListener = onValue(annRef, (snapshot) => {
+              try {
                 const list = document.getElementById('announcement-list');
-                list.innerHTML = '';
                 const arr = [];
-                snapshot.forEach(c => arr.push({ id: c.key, ...c.val() }));
-                
+                snapshot.forEach(c => { arr.push({ id: c.key, ...c.val() }); });
+
                 if(arr.length === 0) {
                     list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 40px; background:var(--surface); border-radius:var(--radius-lg);">Belum ada forum / materi. Disini tempat guru memberikan tugas atau sapaan.</p>';
                     Object.keys(commentCountListeners).forEach(id => commentCountListeners[id]());
                     commentCountListeners = {};
+                    commentCounts = {};
                     return;
                 }
-                
-                arr.sort((a,b) => (b.timestamp||0) - (a.timestamp||0)).forEach(data => {
+
+                // Bangun semua kartu ke dalam array dulu, baru gabungkan & pasang SEKALI ke DOM.
+                // (Sebelumnya pakai list.innerHTML += di dalam loop, dan teks pengumuman ditampilkan
+                // TANPA di-escape. Kalau teksnya kebetulan mengandung karakter seperti "<...>",
+                // browser akan menganggapnya sebagai tag HTML yang belum ditutup, sehingga
+                // "menelan" kartu-kartu berikutnya dalam DOM dan membuatnya seperti hilang / tidak
+                // muncul. Makanya munculnya cuma satu, dan kalau yang bermasalah itu dihapus,
+                // materi berikutnya baru kelihatan.)
+                const cardsHtml = arr.sort((a,b) => (b.timestamp||0) - (a.timestamp||0)).map(data => {
                   try {
-                    const safeText = (data.text != null) ? String(data.text) : '';
-                    const safeSender = data.senderName || 'Pengguna';
+                    const safeText = escapeHtml((data.text != null) ? String(data.text) : '');
+                    const safeSender = escapeHtml(data.senderName || 'Pengguna');
                     const date = new Date(data.timestamp || Date.now()).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
                     const isOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
                     const btnHapus = isOwner ? `<button class="btn-hapus-announcement" onclick="hapusPengumuman('${data.id}')">Hapus</button>` : '';
-                    
-                    const escText = safeText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-                    const clickAttr = isOwner ? `onclick="handleAnnouncementClick('${data.id}', \`${escText}\`)"` : '';
+
+                    const rawTextForEdit = escapeForJsTemplate((data.text != null) ? String(data.text) : '');
+                    const clickAttr = isOwner ? `onclick="handleAnnouncementClick('${data.id}', \`${rawTextForEdit}\`)"` : '';
                     const cursorStyle = isOwner ? `cursor:pointer;` : '';
 
-                    list.innerHTML += `
+                    // Pakai jumlah komentar terakhir yang diketahui (cache) sebagai nilai awal,
+                    // bukan selalu 0. Jadi walau kartu ini di-render ulang (misal karena materi
+                    // lain diedit), badge jumlah komentar tidak "reset" ke 0 lagi.
+                    const knownCount = commentCounts[data.id] || 0;
+
+                    return `
                         <div class="announcement-card">
                             <div class="announcement-header">
                                 <div class="announcement-time"><strong>${safeSender}</strong> • ${date}</div>
@@ -1656,14 +1695,17 @@
                             </div>
                             <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${safeText}</div>
                             <div class="announcement-actions">
-                                <button class="btn-comment" data-ann="${data.id}">💬 Komentar (<span id="comment-count-${data.id}">0</span>)</button>
+                                <button class="btn-comment" data-ann="${data.id}">💬 Komentar (<span id="comment-count-${data.id}">${knownCount}</span>)</button>
                             </div>
                         </div>
                     `;
                   } catch (err) {
                     console.error('Gagal merender satu item forum, dilewati agar item lain tetap tampil:', data && data.id, err);
+                    return '';
                   }
                 });
+
+                list.innerHTML = cardsHtml.join('');
 
                 // Kelola listener jumlah komentar realtime untuk tiap pengumuman
                 const activeAnnIds = arr.map(a => a.id);
@@ -1671,20 +1713,26 @@
                     if (!activeAnnIds.includes(id)) {
                         commentCountListeners[id]();
                         delete commentCountListeners[id];
+                        delete commentCounts[id];
                     }
                 });
                 arr.forEach(data => {
                     try {
                         if (!commentCountListeners[data.id]) {
                             commentCountListeners[data.id] = onValue(ref(db, `comments/${classId}/${data.id}`), (cSnap) => {
+                                const count = cSnap.exists() ? Object.keys(cSnap.val()).length : 0;
+                                commentCounts[data.id] = count; // simpan ke cache supaya tidak reset saat re-render
                                 const badge = document.getElementById(`comment-count-${data.id}`);
-                                if (badge) badge.innerText = cSnap.exists() ? Object.keys(cSnap.val()).length : 0;
+                                if (badge) badge.innerText = count;
                             });
                         }
                     } catch (err) {
                         console.error('Gagal memasang listener jumlah komentar:', data && data.id, err);
                     }
                 });
+              } catch (err) {
+                console.error('Gagal merender daftar forum/materi:', err);
+              }
             });
         }
 
