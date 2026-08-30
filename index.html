@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- Mencegah zoom di perangkat mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>EduClass - Dashboard</title>
+    <title>K-Learn - Dashboard</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -443,12 +443,12 @@
 
     <div id="global-loading">
         <div class="spinner"></div>
-        <h2 style="color: var(--primary); margin: 0;">EduClass</h2>
+        <h2 style="color: var(--primary); margin: 0;">K-Learn</h2>
         <p style="color: var(--text-muted); margin-top: 8px; font-weight: 500;">Menyiapkan ruang kelas...</p>
     </div>
 
     <header id="main-header" class="hidden">
-        <h2 id="logo-home" style="cursor:pointer;" title="Kembali ke Dashboard">EduClass</h2>
+        <h2 id="logo-home" style="cursor:pointer;" title="Kembali ke Dashboard">K-Learn</h2>
         <button id="btn-logout">Logout</button>
     </header>
 
@@ -474,7 +474,7 @@
     </div>
 
     <div id="login-section" class="hidden">
-        <h2>EduClass</h2>
+        <h2>K-Learn</h2>
         <p id="login-error" style="color: var(--danger); font-size: 14px; text-align: center; background: var(--danger-light); padding: 10px; border-radius: var(--radius-sm);" class="hidden"></p>
         <label>Email</label>
         <input type="email" id="login-email" placeholder="contoh@sekolah.com">
@@ -849,7 +849,7 @@
                 history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
                 
                 // Munculkan konfirmasi keluar
-                const confirmExit = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi EduClass?");
+                const confirmExit = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi K-Learn?");
                 if (confirmExit) {
                     // Paksa browser back 2 kali (melewati trap) agar benar-benar keluar web
                     history.go(-2); 
@@ -859,7 +859,7 @@
             }
         });
 
-        // Klik logo EduClass untuk balik ke Beranda/Dashboard
+        // Klik logo K-Learn untuk balik ke Beranda/Dashboard
         document.getElementById('logo-home').addEventListener('click', () => {
             navigateTo('/classroom/dashboard');
         });
