@@ -963,6 +963,7 @@
                     <p id="room-class-teacher">Guru: ...</p>
                 </div>
                 <div class="header-actions">
+                    <button id="btn-buka-kuis" class="btn-header-action" style="background:#E6F4EA; color:var(--success);">📝 Kuis</button>
                     <button id="btn-bagikan-kelas" class="btn-header-action">🔗 Bagikan Kode</button>
                     <button id="btn-edit-kelas" class="btn-header-action hidden">✏️ Edit Nama</button>
                     <button id="btn-hapus-kelas" class="btn-header-action hidden">Hapus Kelas</button>
@@ -2515,6 +2516,17 @@
         window.tolakUndangan = async function(inviteId) {
             await remove(ref(db, `invitations/${currentUserId}/${inviteId}`));
         }
+
+        // ================= SISTEM KUIS / CBT (DIBUKA DI TAB BARU) =================
+        // Dibuka sebagai halaman terpisah (kuis.html) agar guru membuat/menilai soal dan siswa
+        // mengerjakan soal punya ruang kerja sendiri, sambil tetap memakai sesi login yang sama.
+        // Semua perubahan (soal baru, status kuis, jawaban siswa, nilai) langsung tersimpan ke
+        // Firebase Realtime Database dari tab tersebut, sehingga tab manapun yang membaca data
+        // yang sama (termasuk tab ini) akan langsung menerima update-nya secara real-time.
+        document.getElementById('btn-buka-kuis').addEventListener('click', () => {
+            if (!currentViewedClassId) return;
+            window.open(`kuis.html?classId=${currentViewedClassId}`, '_blank');
+        });
 
         // ================= LIHAT & UNDANG ANGGOTA KELAS =================
         const membersModal = document.getElementById('members-modal-overlay');
