@@ -2004,11 +2004,19 @@
         window.hapusPengumuman = async function(id) {
             const confirm = await customConfirm("Hapus materi ini?");
             if (confirm) {
+                // Ambil dulu data file (kalau ada) dari cache SEBELUM datanya dihapus dari Firebase,
+                // supaya kita masih tahu object key mana yang perlu dihapus di Storj.
+                const fileDataToDelete = currentAnnouncementsCache[id] ? currentAnnouncementsCache[id].file : null;
+
                 // Hapus pengumuman/materi sekaligus seluruh root komentar yang mengarah ke sana
                 const updates = {};
                 updates[`announcements/${currentViewedClassId}/${id}`] = null;
                 updates[`comments/${currentViewedClassId}/${id}`] = null;
                 await update(ref(db), updates);
+
+                // Hapus file lampiran (original + thumbnail) dari Storj. Ini dilakukan setelah data
+                // Firebase berhasil dihapus, dan kegagalannya tidak membatalkan penghapusan materi.
+                deleteAnnouncementFilesFromStorj(fileDataToDelete);
 
                 // Bersihkan listener jumlah komentar & cache yang terkait, dan tutup modal komentar jika sedang membuka materi ini
                 if (commentCountListeners[id]) {
@@ -2242,6 +2250,64 @@
             });
         }
 
+        // Hapus satu object dari bucket Storj (SigV4, method DELETE).
+        // objectKey = path relatif di dalam bucket, sama seperti yang dipakai saat upload.
+        // Kalau object memang sudah tidak ada (404), tetap dianggap sukses (idempotent).
+        function deleteFromStorj(objectKey) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const method = 'DELETE';
+                    const service = 's3';
+                    const now = new Date();
+                    const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+                    const dateStamp = amzDate.slice(0, 8);
+
+                    const endpointUrl = new URL(STORJ_ENDPOINT);
+                    const host = endpointUrl.host;
+                    const canonicalUri = '/' + STORJ_BUCKET + '/' + objectKey.split('/').map(encodeURIComponent).join('/');
+
+                    const payloadHash = await sha256Hex(new ArrayBuffer(0));
+
+                    const canonicalHeaders =
+                        `host:${host}\n` +
+                        `x-amz-content-sha256:${payloadHash}\n` +
+                        `x-amz-date:${amzDate}\n`;
+                    const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+
+                    const canonicalRequest = [method, canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+
+                    const algorithm = 'AWS4-HMAC-SHA256';
+                    const credentialScope = `${dateStamp}/${STORJ_REGION}/${service}/aws4_request`;
+                    const hashedCanonicalRequest = await sha256Hex(new TextEncoder().encode(canonicalRequest));
+                    const stringToSign = [algorithm, amzDate, credentialScope, hashedCanonicalRequest].join('\n');
+
+                    const kDate = await hmacSha256Raw(new TextEncoder().encode('AWS4' + STORJ_SECRET_KEY), dateStamp);
+                    const kRegion = await hmacSha256Raw(kDate, STORJ_REGION);
+                    const kService = await hmacSha256Raw(kRegion, service);
+                    const kSigning = await hmacSha256Raw(kService, 'aws4_request');
+                    const signatureBuf = await hmacSha256Raw(kSigning, stringToSign);
+                    const signature = bufToHex(signatureBuf);
+
+                    const authorizationHeader = `${algorithm} Credential=${STORJ_ACCESS_KEY}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+                    const deleteUrl = STORJ_ENDPOINT.replace(/\/$/, '') + canonicalUri;
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('DELETE', deleteUrl, true);
+                    xhr.setRequestHeader('x-amz-content-sha256', payloadHash);
+                    xhr.setRequestHeader('x-amz-date', amzDate);
+                    xhr.setRequestHeader('Authorization', authorizationHeader);
+                    xhr.onload = () => {
+                        // S3-compatible DELETE sukses = 204 (atau 200). 404 dianggap tidak masalah,
+                        // artinya object memang sudah tidak ada di bucket.
+                        if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 404) resolve();
+                        else reject(new Error(`Hapus file di Storj gagal (status ${xhr.status}): ${xhr.responseText || xhr.statusText}`));
+                    };
+                    xhr.onerror = () => reject(new Error('Hapus file di Storj gagal: kemungkinan masalah jaringan atau konfigurasi CORS pada bucket.'));
+                    xhr.send();
+                } catch (err) { reject(err); }
+            });
+        }
+
         // Bikin presigned GET URL (signature lewat query string) untuk satu object key di bucket.
         // Dipakai untuk menampilkan <img>/<video> atau membuka file, karena bucket Storj defaultnya
         // PRIVAT — tanpa tanda tangan, request GET akan ditolak (403) meski upload (PUT) berhasil.
@@ -2306,6 +2372,23 @@
             if (fileData[newField]) return fileData[newField];
             if (fileData[legacyField]) return extractKeyFromStorjUrl(fileData[legacyField]);
             return null;
+        }
+
+        // Hapus seluruh file (original + thumbnail, kalau ada) milik satu materi/pengumuman dari
+        // Storj berdasarkan data `file` yang tersimpan di Firebase. Mendukung materi lama yang
+        // masih menyimpan URL absolut (bukan object key) lewat getObjectKeyOf/extractKeyFromStorjUrl.
+        // Kegagalan hapus di Storj TIDAK menghalangi penghapusan data di Firebase — hanya dicatat
+        // ke console, supaya materi tetap bisa dihapus walau misalnya file di Storj sudah telanjur hilang.
+        async function deleteAnnouncementFilesFromStorj(fileData) {
+            if (!fileData) return;
+            const keysToDelete = [
+                getObjectKeyOf(fileData, 'key', 'url'),
+                getObjectKeyOf(fileData, 'thumbKey', 'thumbUrl')
+            ].filter(Boolean);
+
+            await Promise.all(keysToDelete.map(k =>
+                deleteFromStorj(k).catch(err => console.error(`Gagal menghapus file Storj (${k}):`, err))
+            ));
         }
 
         // Proses lengkap: buat thumbnail (jika perlu), unggah original + thumbnail (jika ada) ke Storj,
