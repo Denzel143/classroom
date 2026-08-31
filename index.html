@@ -297,12 +297,25 @@
             border-radius: 99px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
         }
         .btn-attach-file:hover { background: #E2E4E7; }
-        .attach-file-preview-row {
-            display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px;
+        .attach-file-list {
+            margin-top: 10px; display: flex; flex-direction: column; gap: 8px;
+        }
+        .attach-file-list-summary {
+            font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0 0 2px 4px;
+        }
+        .attach-file-item {
+            display: flex; align-items: center; gap: 8px; font-size: 13px;
             color: var(--text-muted); background: #F7F8FA; padding: 8px 12px; border-radius: var(--radius-md);
         }
-        .attach-file-preview-row button {
-            background: none; color: var(--danger); font-weight: 800; padding: 2px 6px; font-size: 14px; line-height: 1;
+        .attach-file-item.is-existing { border: 1px dashed var(--border); }
+        .attach-file-item-name {
+            flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            color: var(--text-main); font-weight: 600;
+        }
+        .attach-file-item-size { flex-shrink: 0; font-size: 12px; }
+        .attach-file-item-remove {
+            background: none; color: var(--danger); font-weight: 800; padding: 2px 6px; font-size: 14px;
+            line-height: 1; flex-shrink: 0;
         }
         .attach-upload-progress-wrap {
             margin-top: 8px; font-size: 12px; color: var(--text-muted);
@@ -312,8 +325,11 @@
         }
         .attach-upload-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.15s ease; }
 
+        .announcement-files-wrap {
+            display: flex; flex-direction: column; gap: 8px; margin-top: 12px;
+        }
         .announcement-file-card {
-            display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px;
+            display: flex; align-items: center; gap: 12px; padding: 10px;
             background: #F7F8FA; border-radius: var(--radius-md); border: 1px solid var(--border);
             cursor: pointer; position: relative; z-index: 10; max-width: 420px;
         }
@@ -799,12 +815,10 @@
                     <h3 style="margin-top: 0; color: var(--primary);">Buat Materi / Pengumuman</h3>
                     <textarea id="input-announcement" rows="6" placeholder="Ketik pengumuman, tugas, atau materi di sini..."></textarea>
 
-                    <input type="file" id="input-announcement-file" class="hidden">
+                    <input type="file" id="input-announcement-file" class="hidden" multiple>
                     <button type="button" id="btn-attach-file" class="btn-attach-file">📎 Lampirkan File</button>
-                    <div id="attach-file-preview" class="attach-file-preview-row hidden">
-                        <span id="attach-file-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-                        <button type="button" id="btn-remove-attach-file" title="Hapus lampiran">✕</button>
-                    </div>
+                    <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0 4px;">Maks 10 file, total 50 MB per materi.</p>
+                    <div id="attach-file-list" class="attach-file-list hidden"></div>
                     <div id="attach-upload-progress" class="attach-upload-progress-wrap hidden">
                         <span>Mengunggah file... <span id="attach-upload-percent">0%</span></span>
                         <div class="attach-upload-bar-bg"><div class="attach-upload-bar-fill" id="attach-upload-bar-fill"></div></div>
@@ -826,6 +840,16 @@
                     <h3 style="margin-top: 0; color: var(--primary);">Edit Pengumuman</h3>
                     <p style="font-size: 13px; color: var(--text-muted); margin-top: -10px; margin-bottom: 20px;">Simpan perubahan untuk memperbarui materi ini.</p>
                     <textarea id="input-edit-announcement" rows="6"></textarea>
+
+                    <input type="file" id="input-edit-announcement-file" class="hidden" multiple>
+                    <button type="button" id="btn-edit-attach-file" class="btn-attach-file">📎 Tambah File</button>
+                    <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0 4px;">Maks 10 file, total 50 MB per materi (file lama ikut dihitung).</p>
+                    <div id="edit-attach-file-list" class="attach-file-list hidden"></div>
+                    <div id="edit-attach-upload-progress" class="attach-upload-progress-wrap hidden">
+                        <span>Mengunggah file baru... <span id="edit-attach-upload-percent">0%</span></span>
+                        <div class="attach-upload-bar-bg"><div class="attach-upload-bar-fill" id="edit-attach-upload-bar-fill"></div></div>
+                    </div>
+
                     <div class="modal-actions">
                         <button id="btn-batal-edit" class="btn-batal">Batal</button>
                         <button id="btn-simpan-edit" class="btn-buat">Simpan</button>
@@ -971,7 +995,16 @@
         let allUsersDB = [];
 
         // ================= STATE FITUR LAMPIRAN FILE =================
-        let selectedAnnouncementFile = null; // objek File yang dipilih user sebelum posting
+        const MAX_ANNOUNCEMENT_FILES = 10; // maks jumlah file per materi
+        const MAX_ANNOUNCEMENT_TOTAL_SIZE = 50 * 1024 * 1024; // maks total ukuran gabungan semua file per materi (50 MB)
+
+        let selectedAnnouncementFiles = []; // array objek File yang dipilih user sebelum posting materi baru
+
+        // State untuk edit materi: file lama yang masih dipertahankan, file lama yang dilepas user
+        // (perlu dihapus dari Storj saat disimpan), dan file baru yang ditambahkan (belum diupload).
+        let editExistingFiles = [];
+        let editRemovedFiles = [];
+        let editNewFiles = [];
 
         // ================= STATE FITUR KOMENTAR =================
         let commentCountListeners = {}; // { announcementId: unsubscribeFn }
@@ -997,6 +1030,38 @@
         function escapeForJsTemplate(str) {
             return String(str == null ? '' : str)
                 .replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
+        }
+
+        // ---- Kuota lampiran file (maks 10 file, total gabungan maks 50 MB per materi) ----
+        function sumFileSizes(arr) {
+            return (arr || []).reduce((total, f) => total + (f.size || 0), 0);
+        }
+
+        // Saring file yang baru dipilih user berdasarkan SISA kuota (jumlah & total ukuran).
+        // existingCount/existingTotalSize = jumlah & total ukuran file yang sudah ada di daftar
+        // (baik yang sudah tersimpan/terupload maupun yang baru dipilih tapi belum diupload).
+        // Cek dilakukan satu per satu sesuai urutan pemilihan: begitu total sudah menyentuh 50 MB
+        // (atau jumlah sudah 10 file), file berikutnya langsung dibuang saja (tidak dimasukkan ke
+        // daftar yang akan diupload) — bukan menolak seluruh pemilihan.
+        function filterFilesByQuota(newFiles, existingCount, existingTotalSize) {
+            const accepted = [];
+            let count = existingCount;
+            let total = existingTotalSize;
+            let skippedCount = 0;
+            for (const file of newFiles) {
+                if (count >= MAX_ANNOUNCEMENT_FILES || total + file.size > MAX_ANNOUNCEMENT_TOTAL_SIZE) {
+                    skippedCount++;
+                    continue;
+                }
+                accepted.push(file);
+                count++;
+                total += file.size;
+            }
+            return { accepted, skippedCount };
+        }
+
+        function formatTotalSizeLabel(totalBytes) {
+            return `${(totalBytes / (1024 * 1024)).toFixed(1)} MB / ${(MAX_ANNOUNCEMENT_TOTAL_SIZE / (1024 * 1024)).toFixed(0)} MB`;
         }
         
         // Cache array kelas untuk quick switcher
@@ -1898,17 +1963,46 @@
         document.getElementById('btn-show-announcement-modal').addEventListener('click', () => {
             document.getElementById('announcement-modal-overlay').classList.remove('hidden');
             document.getElementById('input-announcement').value = '';
-            selectedAnnouncementFile = null;
+            selectedAnnouncementFiles = [];
             document.getElementById('input-announcement-file').value = '';
-            document.getElementById('attach-file-preview').classList.add('hidden');
+            renderAttachFileList();
             document.getElementById('attach-upload-progress').classList.add('hidden');
         });
 
         document.getElementById('btn-batal-announcement').addEventListener('click', () => {
             document.getElementById('announcement-modal-overlay').classList.add('hidden');
-            selectedAnnouncementFile = null;
+            selectedAnnouncementFiles = [];
             document.getElementById('input-announcement-file').value = '';
-            document.getElementById('attach-file-preview').classList.add('hidden');
+            renderAttachFileList();
+        });
+
+        // ---- Render & kelola daftar file yang akan diupload di modal buat materi ----
+        function renderAttachFileList() {
+            const container = document.getElementById('attach-file-list');
+            if (selectedAnnouncementFiles.length === 0) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            container.classList.remove('hidden');
+            const totalSize = sumFileSizes(selectedAnnouncementFiles);
+            const summary = `<div class="attach-file-list-summary">${selectedAnnouncementFiles.length}/${MAX_ANNOUNCEMENT_FILES} file • ${formatTotalSizeLabel(totalSize)}</div>`;
+            const items = selectedAnnouncementFiles.map((f, idx) => `
+                <div class="attach-file-item">
+                    <span class="attach-file-item-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
+                    <span class="attach-file-item-size">${formatFileSize(f.size)}</span>
+                    <button type="button" class="attach-file-item-remove" data-idx="${idx}" title="Hapus lampiran">✕</button>
+                </div>
+            `).join('');
+            container.innerHTML = summary + items;
+        }
+
+        document.getElementById('attach-file-list').addEventListener('click', (e) => {
+            const btn = e.target.closest('.attach-file-item-remove');
+            if (!btn) return;
+            const idx = parseInt(btn.dataset.idx, 10);
+            selectedAnnouncementFiles.splice(idx, 1);
+            renderAttachFileList();
         });
 
         document.getElementById('btn-post-announcement').addEventListener('click', async () => {
@@ -1928,20 +2022,28 @@
             const newAnnRef = push(ref(db, `announcements/${currentViewedClassId}`));
             const annId = newAnnRef.key;
 
-            let fileData = null;
-            if (selectedAnnouncementFile) {
+            const filesData = [];
+            if (selectedAnnouncementFiles.length > 0) {
                 const progressWrap = document.getElementById('attach-upload-progress');
                 const progressPercentEl = document.getElementById('attach-upload-percent');
                 const progressBarFill = document.getElementById('attach-upload-bar-fill');
                 progressWrap.classList.remove('hidden');
+                const totalBytes = sumFileSizes(selectedAnnouncementFiles) || 1;
+                let doneBytes = 0;
                 try {
-                    fileData = await processAndUploadAnnouncementFile(selectedAnnouncementFile, currentViewedClassId, annId, (p) => {
-                        const pct = Math.round(p * 100);
-                        progressPercentEl.innerText = pct + '%';
-                        progressBarFill.style.width = pct + '%';
-                    });
+                    for (const file of selectedAnnouncementFiles) {
+                        const fd = await processAndUploadAnnouncementFile(file, currentViewedClassId, annId, (p) => {
+                            const pct = Math.round(((doneBytes + p * file.size) / totalBytes) * 100);
+                            progressPercentEl.innerText = pct + '%';
+                            progressBarFill.style.width = pct + '%';
+                        });
+                        doneBytes += file.size;
+                        filesData.push(fd);
+                    }
                 } catch (err) {
                     console.error(err);
+                    // Bersihkan file yang sempat berhasil terupload sebelum kegagalan, supaya tidak "nyangkut" di Storj
+                    await Promise.all(filesData.map(fd => deleteAnnouncementFilesFromStorj(fd).catch(() => {})));
                     await customAlert("Gagal mengunggah file ke penyimpanan: " + (err.message || 'Terjadi kesalahan tak dikenal.') + "\n\nPengumuman tidak jadi diposting, silakan coba lagi.");
                     btn.disabled = false; btn.innerText = "Posting";
                     progressWrap.classList.add('hidden');
@@ -1953,14 +2055,14 @@
             const payload = {
                 text, senderName: currentUserData.username, senderId: currentUserId, senderRole: currentUserData.role, timestamp: Date.now()
             };
-            if (fileData) payload.file = fileData;
+            if (filesData.length > 0) payload.files = filesData;
 
             await set(newAnnRef, payload);
 
             document.getElementById('announcement-modal-overlay').classList.add('hidden');
-            selectedAnnouncementFile = null;
+            selectedAnnouncementFiles = [];
             document.getElementById('input-announcement-file').value = '';
-            document.getElementById('attach-file-preview').classList.add('hidden');
+            renderAttachFileList();
             btn.disabled = false; btn.innerText = "Posting";
         });
 
@@ -1983,30 +2085,153 @@
 
         function bukaEditModal(id, text) {
             editingAnnouncementId = id;
+            const data = currentAnnouncementsCache[id] || {};
+            // Kompatibel dengan materi lama (field tunggal `file`) maupun format baru (array `files`)
+            editExistingFiles = data.files ? data.files.slice() : (data.file ? [data.file] : []);
+            editRemovedFiles = [];
+            editNewFiles = [];
+
             document.getElementById('edit-announcement-modal-overlay').classList.remove('hidden');
             document.getElementById('input-edit-announcement').value = text;
+            document.getElementById('input-edit-announcement-file').value = '';
+            document.getElementById('edit-attach-upload-progress').classList.add('hidden');
+            renderEditAttachFileList();
         }
+
+        // ---- Render & kelola daftar file (lama + baru) di modal edit materi ----
+        function renderEditAttachFileList() {
+            const container = document.getElementById('edit-attach-file-list');
+            const totalCount = editExistingFiles.length + editNewFiles.length;
+            if (totalCount === 0) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            container.classList.remove('hidden');
+            const totalSize = sumFileSizes(editExistingFiles) + sumFileSizes(editNewFiles);
+            const summary = `<div class="attach-file-list-summary">${totalCount}/${MAX_ANNOUNCEMENT_FILES} file • ${formatTotalSizeLabel(totalSize)}</div>`;
+            const existingItems = editExistingFiles.map((f, idx) => `
+                <div class="attach-file-item is-existing">
+                    <span class="attach-file-item-name" title="${escapeHtml(f.name || 'File')}">${escapeHtml(f.name || 'File')}</span>
+                    <span class="attach-file-item-size">${formatFileSize(f.size)}</span>
+                    <button type="button" class="attach-file-item-remove" data-kind="existing" data-idx="${idx}" title="Hapus lampiran">✕</button>
+                </div>
+            `).join('');
+            const newItems = editNewFiles.map((f, idx) => `
+                <div class="attach-file-item">
+                    <span class="attach-file-item-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)} <span style="color:var(--success);">(baru)</span></span>
+                    <span class="attach-file-item-size">${formatFileSize(f.size)}</span>
+                    <button type="button" class="attach-file-item-remove" data-kind="new" data-idx="${idx}" title="Hapus lampiran">✕</button>
+                </div>
+            `).join('');
+            container.innerHTML = summary + existingItems + newItems;
+        }
+
+        document.getElementById('edit-attach-file-list').addEventListener('click', (e) => {
+            const btn = e.target.closest('.attach-file-item-remove');
+            if (!btn) return;
+            const idx = parseInt(btn.dataset.idx, 10);
+            if (btn.dataset.kind === 'existing') {
+                const removed = editExistingFiles.splice(idx, 1)[0];
+                if (removed) editRemovedFiles.push(removed);
+            } else {
+                editNewFiles.splice(idx, 1);
+            }
+            renderEditAttachFileList();
+        });
+
+        document.getElementById('btn-edit-attach-file').addEventListener('click', () => {
+            document.getElementById('input-edit-announcement-file').click();
+        });
+
+        document.getElementById('input-edit-announcement-file').addEventListener('change', (e) => {
+            const files = Array.from(e.target.files || []);
+            e.target.value = '';
+            if (files.length === 0) return;
+            const existingCount = editExistingFiles.length + editNewFiles.length;
+            const existingTotal = sumFileSizes(editExistingFiles) + sumFileSizes(editNewFiles);
+            const { accepted, skippedCount } = filterFilesByQuota(files, existingCount, existingTotal);
+            editNewFiles.push(...accepted);
+            renderEditAttachFileList();
+            if (skippedCount > 0) {
+                customAlert(`${skippedCount} file dilewati karena sudah mencapai batas maksimal ${MAX_ANNOUNCEMENT_FILES} file atau total ${MAX_ANNOUNCEMENT_TOTAL_SIZE / (1024 * 1024)} MB per materi.`);
+            }
+        });
 
         document.getElementById('btn-batal-edit').addEventListener('click', () => {
             document.getElementById('edit-announcement-modal-overlay').classList.add('hidden');
             editingAnnouncementId = null;
+            editExistingFiles = []; editRemovedFiles = []; editNewFiles = [];
         });
 
         document.getElementById('btn-simpan-edit').addEventListener('click', async () => {
             const text = document.getElementById('input-edit-announcement').value.trim();
             if(!text) return await customAlert("Pengumuman tidak boleh kosong!");
-            
-            await update(ref(db, `announcements/${currentViewedClassId}/${editingAnnouncementId}`), { text });
+
+            const btn = document.getElementById('btn-simpan-edit');
+            const btnAttach = document.getElementById('btn-edit-attach-file');
+            btn.disabled = true; btn.innerText = "Menyimpan...";
+            btnAttach.disabled = true;
+
+            // Upload dulu file-file BARU yang ditambahkan user selama sesi edit ini
+            const uploadedNewFiles = [];
+            if (editNewFiles.length > 0) {
+                const progressWrap = document.getElementById('edit-attach-upload-progress');
+                const progressPercentEl = document.getElementById('edit-attach-upload-percent');
+                const progressBarFill = document.getElementById('edit-attach-upload-bar-fill');
+                progressWrap.classList.remove('hidden');
+                const totalBytes = sumFileSizes(editNewFiles) || 1;
+                let doneBytes = 0;
+                try {
+                    for (const file of editNewFiles) {
+                        const fd = await processAndUploadAnnouncementFile(file, currentViewedClassId, editingAnnouncementId, (p) => {
+                            const pct = Math.round(((doneBytes + p * file.size) / totalBytes) * 100);
+                            progressPercentEl.innerText = pct + '%';
+                            progressBarFill.style.width = pct + '%';
+                        });
+                        doneBytes += file.size;
+                        uploadedNewFiles.push(fd);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    // Bersihkan file baru yang sempat berhasil terupload sebelum kegagalan
+                    await Promise.all(uploadedNewFiles.map(fd => deleteAnnouncementFilesFromStorj(fd).catch(() => {})));
+                    await customAlert("Gagal mengunggah file baru: " + (err.message || 'Terjadi kesalahan tak dikenal.') + "\n\nPerubahan belum disimpan, silakan coba lagi.");
+                    btn.disabled = false; btn.innerText = "Simpan";
+                    btnAttach.disabled = false;
+                    progressWrap.classList.add('hidden');
+                    return;
+                }
+                progressWrap.classList.add('hidden');
+            }
+
+            // Gabungkan file lama yang dipertahankan dengan file baru yang baru diupload
+            const finalFiles = [...editExistingFiles, ...uploadedNewFiles];
+            await update(ref(db, `announcements/${currentViewedClassId}/${editingAnnouncementId}`), {
+                text,
+                files: finalFiles.length > 0 ? finalFiles : null,
+                file: null // migrasi penuh ke field `files` (array); field lama `file` (tunggal) dikosongkan
+            });
+
+            // Hapus dari Storj file-file lama yang dilepas user selama sesi edit ini. Dilakukan
+            // setelah Firebase berhasil diperbarui; kegagalannya tidak membatalkan penyimpanan.
+            deleteAnnouncementFilesFromStorj(editRemovedFiles.slice());
+
             document.getElementById('edit-announcement-modal-overlay').classList.add('hidden');
             editingAnnouncementId = null;
+            editExistingFiles = []; editRemovedFiles = []; editNewFiles = [];
+            btn.disabled = false; btn.innerText = "Simpan";
+            btnAttach.disabled = false;
         });
 
         window.hapusPengumuman = async function(id) {
             const confirm = await customConfirm("Hapus materi ini?");
             if (confirm) {
                 // Ambil dulu data file (kalau ada) dari cache SEBELUM datanya dihapus dari Firebase,
-                // supaya kita masih tahu object key mana yang perlu dihapus di Storj.
-                const fileDataToDelete = currentAnnouncementsCache[id] ? currentAnnouncementsCache[id].file : null;
+                // supaya kita masih tahu object key mana yang perlu dihapus di Storj. Kompatibel
+                // dengan materi lama (field tunggal `file`) maupun format baru (array `files`).
+                const cached = currentAnnouncementsCache[id];
+                const filesToDelete = cached ? (cached.files || cached.file) : null;
 
                 // Hapus pengumuman/materi sekaligus seluruh root komentar yang mengarah ke sana
                 const updates = {};
@@ -2016,7 +2241,7 @@
 
                 // Hapus file lampiran (original + thumbnail) dari Storj. Ini dilakukan setelah data
                 // Firebase berhasil dihapus, dan kegagalannya tidak membatalkan penghapusan materi.
-                deleteAnnouncementFilesFromStorj(fileDataToDelete);
+                deleteAnnouncementFilesFromStorj(filesToDelete);
 
                 // Bersihkan listener jumlah komentar & cache yang terkait, dan tutup modal komentar jika sedang membuka materi ini
                 if (commentCountListeners[id]) {
@@ -2374,12 +2599,11 @@
             return null;
         }
 
-        // Hapus seluruh file (original + thumbnail, kalau ada) milik satu materi/pengumuman dari
-        // Storj berdasarkan data `file` yang tersimpan di Firebase. Mendukung materi lama yang
-        // masih menyimpan URL absolut (bukan object key) lewat getObjectKeyOf/extractKeyFromStorjUrl.
-        // Kegagalan hapus di Storj TIDAK menghalangi penghapusan data di Firebase — hanya dicatat
-        // ke console, supaya materi tetap bisa dihapus walau misalnya file di Storj sudah telanjur hilang.
-        async function deleteAnnouncementFilesFromStorj(fileData) {
+        // Hapus SATU file (original + thumbnail, kalau ada) dari Storj berdasarkan satu objek
+        // metadata file. Mendukung materi lama yang masih menyimpan URL absolut (bukan object key)
+        // lewat getObjectKeyOf/extractKeyFromStorjUrl. Kegagalan hapus di Storj TIDAK menghalangi
+        // penghapusan data di Firebase — hanya dicatat ke console.
+        async function deleteSingleAnnouncementFileFromStorj(fileData) {
             if (!fileData) return;
             const keysToDelete = [
                 getObjectKeyOf(fileData, 'key', 'url'),
@@ -2391,12 +2615,24 @@
             ));
         }
 
+        // Hapus SEMUA file milik satu materi/pengumuman dari Storj. Menerima array file (format
+        // baru `files`, hasil upload multi-file) ATAU satu objek file tunggal (format lama `file`,
+        // demi kompatibilitas mundur dengan materi yang belum pernah diedit ulang).
+        async function deleteAnnouncementFilesFromStorj(filesData) {
+            if (!filesData) return;
+            const arr = Array.isArray(filesData) ? filesData : [filesData];
+            await Promise.all(arr.map(fd => deleteSingleAnnouncementFileFromStorj(fd)));
+        }
+
         // Proses lengkap: buat thumbnail (jika perlu), unggah original + thumbnail (jika ada) ke Storj,
         // lalu kembalikan objek metadata file (berisi object KEY, bukan URL) untuk disimpan ke Firebase.
         async function processAndUploadAnnouncementFile(file, classId, annId, onProgress) {
             const ext = getFileExt(file.name);
             const safeName = sanitizeFileNameForKey(file.name);
-            const basePath = `${classId}/${annId}`;
+            // Subfolder unik per file supaya tidak tabrakan saat beberapa file dengan nama yang
+            // sama diupload ke materi yang sama (baik saat posting awal maupun saat edit belakangan).
+            const fileUid = (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2)));
+            const basePath = `${classId}/${annId}/${fileUid}`;
 
             let thumbBlob = null;
             if (file.type.startsWith('image/')) {
@@ -2434,29 +2670,37 @@
             };
         }
 
-        // ---- UI: pilih & lepas lampiran file pada modal buat pengumuman ----
+        // ---- UI: pilih lampiran file pada modal buat pengumuman (mendukung multi-file) ----
         document.getElementById('btn-attach-file').addEventListener('click', () => {
             document.getElementById('input-announcement-file').click();
         });
         document.getElementById('input-announcement-file').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            selectedAnnouncementFile = file;
-            document.getElementById('attach-file-name').innerText = `📎 ${file.name} (${formatFileSize(file.size)})`;
-            document.getElementById('attach-file-preview').classList.remove('hidden');
-        });
-        document.getElementById('btn-remove-attach-file').addEventListener('click', () => {
-            selectedAnnouncementFile = null;
-            document.getElementById('input-announcement-file').value = '';
-            document.getElementById('attach-file-preview').classList.add('hidden');
+            const files = Array.from(e.target.files || []);
+            e.target.value = ''; // reset supaya bisa memilih file yang sama lagi / trigger 'change' lagi nanti
+            if (files.length === 0) return;
+            const { accepted, skippedCount } = filterFilesByQuota(files, selectedAnnouncementFiles.length, sumFileSizes(selectedAnnouncementFiles));
+            selectedAnnouncementFiles.push(...accepted);
+            renderAttachFileList();
+            if (skippedCount > 0) {
+                customAlert(`${skippedCount} file dilewati karena sudah mencapai batas maksimal ${MAX_ANNOUNCEMENT_FILES} file atau total ${MAX_ANNOUNCEMENT_TOTAL_SIZE / (1024 * 1024)} MB per materi.`);
+            }
         });
 
-        // ---- Render kartu lampiran file di dalam kartu pengumuman/materi ----
+        // ---- Render seluruh kartu lampiran file (bisa lebih dari satu) di dalam kartu materi ----
+        // Menerima array metadata file (format baru `files`); render tiap kartu secara paralel
+        // lalu bungkus dalam satu wrapper.
+        async function renderFileAttachmentsHtml(filesArray) {
+            if (!filesArray || filesArray.length === 0) return '';
+            const cards = await Promise.all(filesArray.map(fd => renderSingleFileAttachmentHtml(fd)));
+            return `<div class="announcement-files-wrap">${cards.join('')}</div>`;
+        }
+
+        // ---- Render SATU kartu lampiran file ----
         // CATATAN PENTING: kita TIDAK menyimpan URL statis/tanpa-tanda-tangan ke Firebase,
         // karena bucket Storj defaultnya privat (GET tanpa tanda tangan akan ditolak/403).
         // Sebagai gantinya kita simpan object key (path relatif di bucket) saja, lalu setiap kali
         // kartu dirender, kita bikinkan presigned GET URL yang baru & berlaku sementara.
-        async function renderFileAttachmentHtml(fileData) {
+        async function renderSingleFileAttachmentHtml(fileData) {
             if (!fileData) return '';
             const isImage = (fileData.type || '').startsWith('image/');
             const isVideo = (fileData.type || '').startsWith('video/');
@@ -2628,7 +2872,8 @@
                     // lain diedit), badge jumlah komentar tidak "reset" ke 0 lagi.
                     const knownCount = commentCounts[data.id] || 0;
 
-                    const fileHtml = await renderFileAttachmentHtml(data.file);
+                    const filesArr = data.files || (data.file ? [data.file] : []);
+                    const fileHtml = await renderFileAttachmentsHtml(filesArr);
 
                     return `
                         <div class="announcement-card ${isPinned ? 'pinned' : ''}">
