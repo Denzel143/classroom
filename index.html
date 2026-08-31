@@ -3058,7 +3058,8 @@
                         const ap = a.pinned ? 1 : 0, bp = b.pinned ? 1 : 0;
                         if (ap !== bp) return bp - ap;
                         if (ap && bp) return (b.pinnedAt||0) - (a.pinnedAt||0);
-                        return a.timestamp - b.timestamp;
+                        // Komentar terbaru tampil paling atas (seperti media sosial), bukan seperti obrolan
+                        return b.timestamp - a.timestamp;
                     });
                 } else {
                     arr.sort((a, b) => a.timestamp - b.timestamp);
