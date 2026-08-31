@@ -10,6 +10,9 @@
         body { margin: 0; background-color: var(--bg-color); color: var(--text-main); }
         .container { max-width: 1000px; margin: 40px auto; padding: 20px; }
         
+        /* Tambahan style untuk halaman login center */
+        .login-container { max-width: 400px; margin: 100px auto; }
+        
         header { background: var(--card-bg); padding: 15px 20px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-radius: 8px;}
         h1, h2, h3 { margin-top: 0; }
         
@@ -31,23 +34,38 @@
         
         .password-text { font-family: monospace; letter-spacing: 2px; }
 
-        /* Style untuk Tab & Search */
         .tab-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
         .tab-btn { background-color: #f1f3f4; color: var(--text-main); padding: 10px 20px; font-size: 15px; border: 1px solid var(--border); border-radius: 6px; }
         .tab-btn.active { background-color: var(--primary); color: white; border-color: var(--primary); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .search-bar { padding: 12px; margin-bottom: 15px; width: 100%; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+        
+        /* Utility untuk menyembunyikan elemen */
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div id="login-section" class="container login-container">
+        <div class="form-box">
+            <h2 style="text-align: center; margin-bottom: 20px;">🔒 Login Admin (Guru)</h2>
+            <label>Email Pengguna</label>
+            <input type="email" id="login-email" placeholder="email@sekolah.com">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="Masukkan password">
+            
+            <button id="btn-login" style="width: 100%; margin-top: 10px;">Masuk ke Panel</button>
+            <p id="login-msg" style="font-size: 13px; color: var(--danger); margin-bottom: 0; display: none; text-align: center; margin-top: 15px;"></p>
+        </div>
+    </div>
+
+    <div id="admin-section" class="container hidden">
         <header>
             <h2 style="margin: 0;">⚙️ Admin Panel - EduClass</h2>
+            <button id="btn-logout" class="danger">Logout</button>
         </header>
 
-        <!-- Form Pembuatan Akun -->
         <div class="form-box">
             <h3>Buat Akun Baru</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
@@ -75,7 +93,6 @@
             <p id="admin-msg" style="font-size: 13px; color: green; margin-bottom: 0; display: none;"></p>
         </div>
 
-        <!-- Daftar Pengguna dengan Tabs -->
         <h3>Daftar Pengguna Sistem</h3>
         
         <div class="tab-buttons">
@@ -83,7 +100,6 @@
             <button class="tab-btn" id="btn-tab-guru">Guru</button>
         </div>
 
-        <!-- Konten Tab Siswa -->
         <div id="tab-siswa" class="tab-content active">
             <input type="text" id="search-siswa" class="search-bar" placeholder="🔍 Ketik username siswa untuk mencari...">
             <table>
@@ -102,7 +118,6 @@
             </table>
         </div>
 
-        <!-- Konten Tab Guru -->
         <div id="tab-guru" class="tab-content">
             <input type="text" id="search-guru" class="search-bar" placeholder="🔍 Ketik username guru untuk mencari...">
             <table>
@@ -125,9 +140,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // Tambahan import: signInWithEmailAndPassword & deleteUser (karena fungsi hapus lokal bernama deleteUser, kita beri alias deleteAuthUser)
-        import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword, deleteUser as deleteAuthUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getDatabase, ref as dbRef, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        // Tambahan import: onAuthStateChanged
+        import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword, deleteUser as deleteAuthUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        // Tambahan import: get (untuk membaca role sekali saat login)
+        import { getDatabase, ref as dbRef, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyDJr-6PSzrDEC7J9XfI38g3C_r65x9OlLA",
@@ -142,15 +158,95 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        
+        // Main Auth untuk sesi Admin (Guru)
+        const mainAuth = getAuth(app); 
+        
+        // Secondary App untuk membuat/menghapus user tanpa menendang admin keluar
         const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
         const secondaryAuth = getAuth(secondaryApp);
 
-        const btnCreate = document.getElementById('btn-create-user');
-        const msgBox = document.getElementById('admin-msg');
-
+        // Referensi UI
+        const loginSection = document.getElementById('login-section');
+        const adminSection = document.getElementById('admin-section');
+        const loginMsg = document.getElementById('login-msg');
+        
         let allUsers = [];
         let searchSiswaQuery = '';
         let searchGuruQuery = '';
+        let dbListenerUnsubscribe = null;
+
+        // ================= FITUR AUTENTIKASI & PROTEKSI GURU =================
+        
+        // Listener status login
+        onAuthStateChanged(mainAuth, async (user) => {
+            if (user) {
+                // User sudah login, sekarang cek apakah dia GURU
+                const userRef = dbRef(db, 'users/' + user.uid);
+                const snapshot = await get(userRef);
+                
+                if (snapshot.exists() && snapshot.val().role === 'guru') {
+                    // Akses Diberikan
+                    loginSection.classList.add('hidden');
+                    adminSection.classList.remove('hidden');
+                    loadAdminData(); // Mulai tarik data user ke tabel
+                } else {
+                    // Akses Ditolak (Bukan guru)
+                    await signOut(mainAuth);
+                    alert("Akses Ditolak! Hanya akun dengan role Guru yang dapat mengakses Panel Admin.");
+                    showLogin();
+                }
+            } else {
+                // Belum login
+                showLogin();
+            }
+        });
+
+        function showLogin() {
+            loginSection.classList.remove('hidden');
+            adminSection.classList.add('hidden');
+            if(dbListenerUnsubscribe) dbListenerUnsubscribe(); // Hentikan penarikan data jika logout
+        }
+
+        // Fungsi Tombol Login
+        document.getElementById('btn-login').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btnLogin = document.getElementById('btn-login');
+
+            if(!email || !password) {
+                loginMsg.innerText = "Email dan password harus diisi!";
+                loginMsg.style.display = "block";
+                return;
+            }
+
+            btnLogin.innerText = "Memeriksa...";
+            btnLogin.disabled = true;
+            loginMsg.style.display = "none";
+
+            try {
+                await signInWithEmailAndPassword(mainAuth, email, password);
+                // onAuthStateChanged akan otomatis menangani sisanya
+            } catch (error) {
+                loginMsg.innerText = "Gagal login: Periksa kembali email dan password.";
+                loginMsg.style.display = "block";
+                btnLogin.innerText = "Masuk ke Panel";
+                btnLogin.disabled = false;
+            }
+        });
+
+        // Fungsi Tombol Logout
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            const confirmLogout = confirm("Apakah Anda yakin ingin keluar dari Panel Admin?");
+            if (confirmLogout) {
+                await signOut(mainAuth);
+                document.getElementById('login-email').value = '';
+                document.getElementById('login-password').value = '';
+                document.getElementById('btn-login').innerText = "Masuk ke Panel";
+                document.getElementById('btn-login').disabled = false;
+            }
+        });
+
 
         // ================= FITUR LOGIKA TAB =================
         const btnTabSiswa = document.getElementById('btn-tab-siswa');
@@ -184,6 +280,9 @@
         });
 
         // ================= FITUR BUAT AKUN =================
+        const btnCreate = document.getElementById('btn-create-user');
+        const msgBox = document.getElementById('admin-msg');
+
         btnCreate.addEventListener('click', async () => {
             const username = document.getElementById('new-username').value;
             const email = document.getElementById('new-email').value;
@@ -199,6 +298,7 @@
             btnCreate.disabled = true;
 
             try {
+                // Menggunakan secondaryAuth agar admin utama tidak ter-logout
                 const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
                 const uid = userCredential.user.uid;
 
@@ -231,18 +331,21 @@
         });
 
         // ================= FITUR AMBIL DATA & RENDER =================
-        onValue(dbRef(db, 'users'), (snapshot) => {
-            allUsers = [];
-            if (snapshot.exists()) {
-                snapshot.forEach((child) => {
-                    allUsers.push({
-                        uid: child.key,
-                        ...child.val()
+        function loadAdminData() {
+            // Pasang listener hanya saat admin sudah terverifikasi masuk
+            dbListenerUnsubscribe = onValue(dbRef(db, 'users'), (snapshot) => {
+                allUsers = [];
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        allUsers.push({
+                            uid: child.key,
+                            ...child.val()
+                        });
                     });
-                });
-            }
-            renderTables();
-        });
+                }
+                renderTables();
+            });
+        }
 
         function renderTables() {
             const tableSiswa = document.getElementById('table-siswa');
@@ -301,20 +404,15 @@
             const confirmDelete = confirm(`Apakah Anda yakin ingin menghapus akun ${email} secara permanen dari Database DAN Authentication?`);
             if (confirmDelete) {
                 try {
-                    // 1. Cari data user di array allUsers untuk mendapatkan password-nya
                     const userObj = allUsers.find(u => u.uid === uid);
                     
                     if (userObj && userObj.password) {
-                        // 2. Login sementara (signInWithEmailAndPassword) menggunakan secondaryAuth
                         const userCredential = await signInWithEmailAndPassword(secondaryAuth, email, userObj.password);
-                        
-                        // 3. Hapus akun dari Authentication
                         await deleteAuthUser(userCredential.user);
                     } else {
                         console.warn("Password tidak tersedia, mencoba menghapus hanya dari database.");
                     }
 
-                    // 4. Hapus data dari Realtime Database
                     await remove(dbRef(db, `users/${uid}`));
                     
                     alert(`Akun ${email} berhasil dihapus sepenuhnya!`);
