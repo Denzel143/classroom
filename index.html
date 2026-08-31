@@ -621,6 +621,68 @@
         }
         .comment-reply-indicator button:hover { background: rgba(26,115,232,0.15); border-radius: 50%; }
 
+        /* ================= Sidebar Kanan - Obrolan Kelas ================= */
+        #chat-sidebar {
+            position: fixed; top: 0; right: 0; height: 100%; width: 360px; max-width: 88vw;
+            background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(10px);
+            box-shadow: -8px 0 30px rgba(0,0,0,0.15); z-index: 900;
+            border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+            transform: translateX(100%);
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex; flex-direction: column;
+        }
+        #chat-sidebar.open { transform: translateX(0); }
+        #chat-sidebar-handle {
+            position: absolute; top: 50%; left: -28px; transform: translateY(-50%);
+            width: 28px; height: 70px; background: var(--surface); border-radius: 14px 0 0 14px;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.08); display: flex; justify-content: center; align-items: center;
+            cursor: pointer; z-index: 850; transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        #chat-sidebar-handle:hover { background: var(--primary-light); }
+        #chat-sidebar-handle svg { color: var(--text-muted); width: 20px; height: 20px; transition: transform 0.3s ease; }
+        #chat-sidebar.open #chat-sidebar-handle svg { transform: rotate(180deg); }
+        #chat-sidebar-badge {
+            position: absolute; top: -6px; left: -6px; background: var(--danger); color: #fff;
+            font-size: 10px; font-weight: 800; min-width: 19px; height: 19px; padding: 0 4px;
+            border-radius: 99px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .chat-sidebar-header { padding: 26px 22px 14px 22px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .chat-sidebar-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
+        #chat-messages-container {
+            flex-grow: 1; overflow-y: auto; padding: 16px 16px 4px 16px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        #chat-messages-container::-webkit-scrollbar { width: 6px; }
+        #chat-messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .chat-input-area { padding: 12px 16px 20px 16px; border-top: 1px solid var(--border); flex-shrink: 0; }
+
+        .chat-msg-row { display: flex; }
+        .chat-msg-row.chat-msg-self { justify-content: flex-end; }
+        .chat-msg-row.chat-msg-other { justify-content: flex-start; }
+        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: var(--radius-sm); word-break: break-word; transition: box-shadow 0.2s ease; }
+        .chat-bubble-self { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+        .chat-bubble-other { background: #F8F9FA; color: var(--text-main); border-bottom-left-radius: 4px; }
+        .chat-header-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; }
+        .chat-name { font-weight: 700; font-size: 12.5px; }
+        .chat-bubble-other .chat-name { color: var(--primary); }
+        .chat-bubble-self .chat-name { color: rgba(255,255,255,0.88); }
+        .chat-text { font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+        .chat-text-deleted { font-style: italic; opacity: 0.75; }
+        .chat-meta { font-size: 10.5px; margin-top: 4px; }
+        .chat-bubble-self .chat-meta { color: rgba(255,255,255,0.85); }
+        .chat-bubble-other .chat-meta { color: var(--text-muted); }
+        .chat-menu-btn { background: transparent; padding: 0 4px; font-size: 15px; line-height: 1; border-radius: 8px; flex-shrink: 0; }
+        .chat-bubble-self .chat-menu-btn { color: rgba(255,255,255,0.85); }
+        .chat-bubble-other .chat-menu-btn { color: var(--text-muted); }
+        .chat-bubble-self .chat-menu-btn:hover { background: rgba(255,255,255,0.2); }
+        .chat-bubble-other .chat-menu-btn:hover { background: var(--border); color: var(--text-main); }
+        .chat-reply-quote { font-size: 12px; padding: 6px 8px; border-radius: 8px; margin-bottom: 6px; cursor: pointer; border-left: 3px solid; }
+        .chat-reply-quote:hover { filter: brightness(0.97); }
+        .chat-bubble-self .chat-reply-quote { background: rgba(255,255,255,0.15); border-left-color: rgba(255,255,255,0.7); color: rgba(255,255,255,0.92); }
+        .chat-bubble-other .chat-reply-quote { background: rgba(26,115,232,0.07); border-left-color: var(--primary); color: var(--text-muted); }
+        .chat-bubble.chat-highlight { box-shadow: 0 0 0 3px var(--accent); }
+
     </style>
     <!-- pdf.js: dipakai untuk membuat thumbnail halaman pertama dari file PDF yang diunggah -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -764,6 +826,35 @@
         </div>
         <div id="bottom-panel-list" class="horizontal-list">
         </div>
+    </div>
+
+    <div id="chat-sidebar" class="hidden">
+        <div id="chat-sidebar-handle" title="Buka/Tutup Obrolan Kelas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span id="chat-sidebar-badge" class="hidden">0</span>
+        </div>
+        <div class="chat-sidebar-header">
+            <h4>💬 Obrolan Kelas</h4>
+        </div>
+        <div id="chat-messages-container"></div>
+        <div class="chat-input-area">
+            <div id="chat-reply-indicator" class="comment-reply-indicator hidden">
+                <span>Membalas <strong id="chat-reply-name"></strong></span>
+                <button id="btn-cancel-chat-reply" type="button" title="Batal membalas">✕</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+                <textarea id="input-chat" rows="1" placeholder="Tulis pesan..." style="margin:0; flex-grow:1;"></textarea>
+                <button id="btn-kirim-chat" class="btn-buat" style="margin:0; white-space:nowrap;">Kirim</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="chat-menu-popup" class="comment-menu-popup hidden">
+        <div class="comment-menu-item" id="chat-menu-reply">↩️ Balas</div>
+        <div class="comment-menu-item" id="chat-menu-edit">✏️ Edit</div>
+        <div class="comment-menu-item danger" id="chat-menu-delete">🗑️ Hapus</div>
     </div>
 
     <div id="share-modal-overlay" class="modal-overlay hidden">
@@ -1018,6 +1109,17 @@
         let currentReplyToName = null;
         let editingCommentId = null;
         let currentMenuCommentId = null;
+
+        // ================= STATE FITUR OBROLAN KELAS (CHAT) =================
+        let chatSidebarListenerMessages = null;
+        let chatSidebarListenerRead = null;
+        let chatMessagesCache = {};
+        let chatLastReadTimestamp = 0;
+        let chatJustOpened = false;
+        let chatReplyToId = null;
+        let chatReplyToName = null;
+        let editingChatMessageId = null;
+        let currentChatMenuMessageId = null;
         let currentAnnouncementsCache = {}; // { annId: data } cache pengumuman aktif (untuk cek pin & status nonaktif-komentar)
 
         function escapeHtml(str) {
@@ -1444,6 +1546,23 @@
             currentReplyToId = null;
             currentReplyToName = null;
             editingCommentId = null;
+
+            // ---- Bersihkan state & listener obrolan kelas ----
+            if (chatSidebarListenerMessages) { chatSidebarListenerMessages(); chatSidebarListenerMessages = null; }
+            if (chatSidebarListenerRead) { chatSidebarListenerRead(); chatSidebarListenerRead = null; }
+            chatMessagesCache = {};
+            chatLastReadTimestamp = 0;
+            chatJustOpened = false;
+            chatReplyToId = null;
+            chatReplyToName = null;
+            editingChatMessageId = null;
+            const chatSidebarEl = document.getElementById('chat-sidebar');
+            chatSidebarEl.classList.add('hidden');
+            chatSidebarEl.classList.remove('open');
+            document.getElementById('chat-menu-popup').classList.add('hidden');
+            document.getElementById('chat-reply-indicator').classList.add('hidden');
+            document.getElementById('input-chat').value = '';
+            document.getElementById('btn-kirim-chat').innerText = 'Kirim';
             
             currentViewedClassId = null;
             currentClassData = null;
@@ -1466,6 +1585,8 @@
             document.getElementById('room-class-teacher').innerText = "Guru: ...";
             
             bottomPanel.classList.remove('hidden');
+            document.getElementById('chat-sidebar').classList.remove('hidden');
+            setupChatListeners(classId);
             
             const btnTambahPengumuman = document.getElementById('btn-show-announcement-modal');
             const btnHapusKelas = document.getElementById('btn-hapus-kelas');
@@ -1518,6 +1639,311 @@
             
             loadAnnouncements(classId);
         }
+
+        // ================= OBROLAN KELAS (CHAT SEPERTI GRUP WHATSAPP) =================
+        const chatSidebarEl = document.getElementById('chat-sidebar');
+        const chatSidebarHandle = document.getElementById('chat-sidebar-handle');
+
+        chatSidebarHandle.addEventListener('click', () => {
+            if (chatSidebarEl.classList.contains('open')) {
+                chatSidebarEl.classList.remove('open');
+            } else {
+                chatSidebarEl.classList.add('open');
+                openChatSidebarNow();
+            }
+        });
+
+        function openChatSidebarNow() {
+            chatJustOpened = true;
+            renderChatMessages();
+            markChatAsRead();
+        }
+
+        function setupChatListeners(classId) {
+            const chatsRef = ref(db, `chats/${classId}`);
+            chatSidebarListenerMessages = onValue(chatsRef, (snap) => {
+                const newCache = snap.exists() ? snap.val() : {};
+                const prevIds = new Set(Object.keys(chatMessagesCache));
+                const hasNewMessage = Object.keys(newCache).some(id => !prevIds.has(id));
+                chatMessagesCache = newCache;
+                updateChatUnreadBadge();
+                if (chatSidebarEl.classList.contains('open')) {
+                    renderChatMessages({ forceScrollBottom: hasNewMessage });
+                    markChatAsRead();
+                }
+            });
+
+            const readRef = ref(db, `chatReads/${classId}/${currentUserId}`);
+            chatSidebarListenerRead = onValue(readRef, (snap) => {
+                chatLastReadTimestamp = snap.exists() ? (snap.val().lastRead || 0) : 0;
+                updateChatUnreadBadge();
+            });
+        }
+
+        function updateChatUnreadBadge() {
+            const badge = document.getElementById('chat-sidebar-badge');
+            if (!badge) return;
+            if (chatSidebarEl.classList.contains('open')) {
+                badge.classList.add('hidden');
+                return;
+            }
+            let count = 0;
+            Object.values(chatMessagesCache).forEach(m => {
+                if (!m.deleted && m.senderId !== currentUserId && (m.timestamp || 0) > chatLastReadTimestamp) count++;
+            });
+            if (count > 0) {
+                badge.innerText = count > 99 ? '99+' : String(count);
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        async function markChatAsRead() {
+            if (!currentViewedClassId || !currentUserId) return;
+            let latestTs = 0;
+            Object.values(chatMessagesCache).forEach(m => { if ((m.timestamp || 0) > latestTs) latestTs = m.timestamp; });
+            const readTs = Math.max(latestTs, Date.now());
+            await update(ref(db, `chatReads/${currentViewedClassId}/${currentUserId}`), { lastRead: readTs });
+        }
+
+        function renderChatMessages(opts) {
+            opts = opts || {};
+            const container = document.getElementById('chat-messages-container');
+            if (!container) return;
+            const ids = Object.keys(chatMessagesCache).sort((a, b) => (chatMessagesCache[a].timestamp || 0) - (chatMessagesCache[b].timestamp || 0));
+
+            if (ids.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding: 30px 0;">Belum ada obrolan. Mulai percakapan pertama di kelas ini!</p>';
+                chatJustOpened = false;
+                return;
+            }
+
+            let firstUnreadId = null;
+            if (chatJustOpened) {
+                for (const id of ids) {
+                    const m = chatMessagesCache[id];
+                    if (!m.deleted && m.senderId !== currentUserId && (m.timestamp || 0) > chatLastReadTimestamp) {
+                        firstUnreadId = id;
+                        break;
+                    }
+                }
+            }
+
+            container.innerHTML = ids.map(id => renderChatBubble(id, chatMessagesCache[id])).join('');
+
+            requestAnimationFrame(() => {
+                if (chatJustOpened) {
+                    chatJustOpened = false;
+                    if (firstUnreadId) {
+                        const el = container.querySelector(`[data-id="${firstUnreadId}"]`);
+                        if (el) {
+                            const offsetTop = el.offsetTop;
+                            container.scrollTop = Math.max(0, offsetTop - 10);
+                            return;
+                        }
+                    }
+                    container.scrollTop = container.scrollHeight;
+                } else if (opts.forceScrollBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            });
+        }
+
+        function renderChatBubble(id, m) {
+            const isSelf = m.senderId === currentUserId;
+            const isGuruSender = m.senderRole === 'guru';
+            const guruBadge = isGuruSender ? `<span class="badge-guru">GURU</span>` : '';
+            const safeName = escapeHtml(m.senderName || 'Pengguna');
+            const time = new Date(m.timestamp).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            const isDeleted = !!m.deleted;
+
+            let bodyHtml;
+            if (isDeleted) {
+                const delNote = m.deletedBy === 'teacher'
+                    ? `Pesan ini telah dihapus oleh guru ${escapeHtml(m.deletedByName || '')}`
+                    : 'Pesan ini telah dihapus';
+                bodyHtml = `<div class="chat-text chat-text-deleted">🚫 ${delNote}</div>`;
+            } else {
+                const editedTag = m.edited ? ' <span class="comment-edited-tag">(diedit)</span>' : '';
+                bodyHtml = `<div class="chat-text">${linkifyText(m.text || '')}</div><div class="chat-meta">${time}${editedTag}</div>`;
+            }
+
+            let replyHtml = '';
+            if (m.replyTo && chatMessagesCache[m.replyTo]) {
+                const rm = chatMessagesCache[m.replyTo];
+                const rName = escapeHtml(rm.senderName || 'Pengguna');
+                let rPreview;
+                if (rm.deleted) {
+                    rPreview = 'Pesan telah dihapus';
+                } else {
+                    const rawText = rm.text || '';
+                    rPreview = escapeHtml(rawText.length > 80 ? rawText.slice(0, 80) + '…' : rawText);
+                }
+                replyHtml = `<div class="chat-reply-quote" data-jump-to="${m.replyTo}">↩ <strong>${rName}</strong>: ${rPreview}</div>`;
+            }
+
+            const canEdit = isSelf && !isDeleted;
+            const canDeleteSelf = isSelf && !isDeleted;
+            const canDeleteAsTeacher = !isSelf && !isDeleted && currentUserData.role === 'guru';
+            const canReply = !isSelf && !isDeleted;
+            const showMenu = canEdit || canDeleteSelf || canDeleteAsTeacher || canReply;
+            const menuBtn = showMenu
+                ? `<button class="chat-menu-btn" data-id="${id}" data-owner="${canEdit}" data-delete="${canDeleteSelf || canDeleteAsTeacher}" data-reply="${canReply}">⋮</button>`
+                : '';
+
+            return `
+                <div class="chat-msg-row ${isSelf ? 'chat-msg-self' : 'chat-msg-other'}" data-id="${id}">
+                    <div class="chat-bubble ${isSelf ? 'chat-bubble-self' : 'chat-bubble-other'}">
+                        <div class="chat-header-row">
+                            <span class="chat-name">${safeName}${guruBadge}</span>
+                            ${menuBtn}
+                        </div>
+                        ${replyHtml}
+                        ${bodyHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        document.getElementById('chat-messages-container').addEventListener('click', (e) => {
+            const menuBtn = e.target.closest('.chat-menu-btn');
+            if (menuBtn) {
+                e.stopPropagation();
+                openChatMenu(menuBtn);
+                return;
+            }
+            const jumpEl = e.target.closest('.chat-reply-quote');
+            if (jumpEl) {
+                scrollToChatMessage(jumpEl.dataset.jumpTo);
+            }
+        });
+
+        function scrollToChatMessage(id) {
+            const container = document.getElementById('chat-messages-container');
+            const row = container.querySelector(`[data-id="${id}"]`);
+            if (!row) return;
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const bubble = row.querySelector('.chat-bubble');
+            if (bubble) {
+                bubble.classList.add('chat-highlight');
+                setTimeout(() => bubble.classList.remove('chat-highlight'), 1400);
+            }
+        }
+
+        function openChatMenu(btnEl) {
+            currentChatMenuMessageId = btnEl.dataset.id;
+            const canEdit = btnEl.dataset.owner === 'true';
+            const canDelete = btnEl.dataset.delete === 'true';
+            const canReply = btnEl.dataset.reply === 'true';
+            document.getElementById('chat-menu-edit').style.display = canEdit ? 'flex' : 'none';
+            document.getElementById('chat-menu-delete').style.display = canDelete ? 'flex' : 'none';
+            document.getElementById('chat-menu-reply').style.display = canReply ? 'flex' : 'none';
+
+            const popup = document.getElementById('chat-menu-popup');
+            const rect = btnEl.getBoundingClientRect();
+            popup.classList.remove('hidden');
+            let leftPos = rect.right + window.scrollX - popup.offsetWidth;
+            if (leftPos < 8) leftPos = 8;
+            popup.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+            popup.style.left = leftPos + 'px';
+        }
+
+        document.getElementById('chat-menu-reply').addEventListener('click', () => {
+            document.getElementById('chat-menu-popup').classList.add('hidden');
+            const targetId = currentChatMenuMessageId;
+            const m = chatMessagesCache[targetId];
+            if (!m) return;
+            editingChatMessageId = null;
+            document.getElementById('btn-kirim-chat').innerText = 'Kirim';
+            chatReplyToId = targetId;
+            chatReplyToName = m.senderName;
+            showChatReplyIndicator();
+            document.getElementById('input-chat').focus();
+        });
+
+        document.getElementById('chat-menu-edit').addEventListener('click', () => {
+            const m = chatMessagesCache[currentChatMenuMessageId];
+            if (!m) return;
+            editingChatMessageId = currentChatMenuMessageId;
+            cancelChatReply();
+            document.getElementById('input-chat').value = m.text || '';
+            document.getElementById('btn-kirim-chat').innerText = 'Simpan';
+            document.getElementById('chat-menu-popup').classList.add('hidden');
+            document.getElementById('input-chat').focus();
+        });
+
+        document.getElementById('chat-menu-delete').addEventListener('click', async () => {
+            document.getElementById('chat-menu-popup').classList.add('hidden');
+            const targetId = currentChatMenuMessageId;
+            const m = chatMessagesCache[targetId];
+            if (!m) return;
+            const ok = await customConfirm("Hapus pesan ini?");
+            if (!ok) return;
+            const isSelf = m.senderId === currentUserId;
+            const payload = isSelf
+                ? { deleted: true, deletedBy: 'self', deletedByName: null }
+                : { deleted: true, deletedBy: 'teacher', deletedByName: currentUserData.username };
+            await update(ref(db, `chats/${currentViewedClassId}/${targetId}`), payload);
+
+            if (editingChatMessageId === targetId) {
+                editingChatMessageId = null;
+                document.getElementById('input-chat').value = '';
+                document.getElementById('btn-kirim-chat').innerText = 'Kirim';
+            }
+            if (chatReplyToId === targetId) cancelChatReply();
+        });
+
+        function showChatReplyIndicator() {
+            document.getElementById('chat-reply-name').innerText = chatReplyToName;
+            document.getElementById('chat-reply-indicator').classList.remove('hidden');
+        }
+
+        function cancelChatReply() {
+            chatReplyToId = null;
+            chatReplyToName = null;
+            const indicator = document.getElementById('chat-reply-indicator');
+            if (indicator) indicator.classList.add('hidden');
+        }
+
+        document.getElementById('btn-cancel-chat-reply').addEventListener('click', cancelChatReply);
+
+        document.getElementById('btn-kirim-chat').addEventListener('click', async () => {
+            const input = document.getElementById('input-chat');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const btn = document.getElementById('btn-kirim-chat');
+            btn.disabled = true;
+            try {
+                if (editingChatMessageId) {
+                    await update(ref(db, `chats/${currentViewedClassId}/${editingChatMessageId}`), { text, edited: true });
+                    editingChatMessageId = null;
+                    btn.innerText = 'Kirim';
+                } else {
+                    const payload = {
+                        text,
+                        senderId: currentUserId,
+                        senderName: currentUserData.username,
+                        senderRole: currentUserData.role,
+                        timestamp: Date.now()
+                    };
+                    if (chatReplyToId) payload.replyTo = chatReplyToId;
+                    await push(ref(db, `chats/${currentViewedClassId}`), payload);
+                    cancelChatReply();
+                }
+                input.value = '';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('input-chat').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('btn-kirim-chat').click();
+            }
+        });
 
         // ================= EDIT KELAS (GURU) =================
         document.getElementById('btn-edit-kelas').addEventListener('click', () => {
@@ -3181,6 +3607,10 @@
             const popup = document.getElementById('comment-menu-popup');
             if (!popup.classList.contains('hidden') && !popup.contains(e.target) && !e.target.closest('.comment-menu-btn')) {
                 popup.classList.add('hidden');
+            }
+            const chatPopup = document.getElementById('chat-menu-popup');
+            if (!chatPopup.classList.contains('hidden') && !chatPopup.contains(e.target) && !e.target.closest('.chat-menu-btn')) {
+                chatPopup.classList.add('hidden');
             }
         });
 
