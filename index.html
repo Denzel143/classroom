@@ -249,6 +249,8 @@
         .announcement-time { font-size: 13px; color: var(--text-muted); }
         .announcement-time strong { color: var(--text-main); font-size: 15px;}
         .announcement-text { white-space: pre-wrap; margin: 0; line-height: 1.6; font-size: 15px; user-select: text;}
+        .msg-link { color: var(--primary); text-decoration: none; font-weight: 600; word-break: break-all; }
+        .msg-link:hover { text-decoration: underline; }
         
         .btn-hapus-announcement { 
             background: var(--danger-light); color: var(--danger); 
@@ -1022,6 +1024,39 @@
             return String(str == null ? '' : str)
                 .replace(/&/g, "&amp;").replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // ---- Deteksi URL (http/https) di dalam teks materi & komentar, ubah jadi link biru yang
+        // bisa diklik dan terbuka di tab baru. Escape HTML tetap dilakukan (baik untuk teks biasa
+        // maupun URL-nya) supaya tidak ada celah XSS dari teks yang diketik user. ----
+        const URL_DETECT_REGEX = /https?:\/\/[^\s<>"']+/gi;
+        function linkifyText(str) {
+            const text = String(str == null ? '' : str);
+            let result = '';
+            let lastIndex = 0;
+            let match;
+            URL_DETECT_REGEX.lastIndex = 0;
+            while ((match = URL_DETECT_REGEX.exec(text)) !== null) {
+                result += escapeHtml(text.slice(lastIndex, match.index));
+
+                // Tanda baca umum di akhir kalimat (titik, koma, dll) biasanya bukan bagian dari
+                // URL-nya, jadi dikeluarkan dari link supaya link tidak "menelan" tanda baca kalimat.
+                let url = match[0];
+                let trailing = '';
+                const trailingMatch = url.match(/[.,!?;:'"]+$/);
+                if (trailingMatch) {
+                    trailing = trailingMatch[0];
+                    url = url.slice(0, url.length - trailing.length);
+                }
+
+                const safeUrl = escapeHtml(url);
+                result += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="msg-link" onclick="event.stopPropagation()">${safeUrl}</a>`;
+                result += escapeHtml(trailing);
+
+                lastIndex = match.index + match[0].length;
+            }
+            result += escapeHtml(text.slice(lastIndex));
+            return result;
         }
 
         // Escape teks asli (tanpa entity HTML) agar aman disisipkan ke dalam template literal
@@ -2849,7 +2884,7 @@
                     return (b.timestamp||0) - (a.timestamp||0);
                 }).map(async data => {
                   try {
-                    const safeText = escapeHtml((data.text != null) ? String(data.text) : '');
+                    const safeText = linkifyText((data.text != null) ? String(data.text) : '');
                     const safeSender = escapeHtml(data.senderName || 'Pengguna');
                     const date = new Date(data.timestamp || Date.now()).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
                     const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
@@ -3049,7 +3084,7 @@
             const editedTag = c.edited ? ' <span class="comment-edited-tag">(diedit)</span>' : '';
             const pinnedTag = isPinned ? `<span class="pin-badge-comment">📌 Disematkan</span>` : '';
             const safeName = escapeHtml(c.senderName || 'Pengguna');
-            const safeText = escapeHtml(c.text || '');
+            const safeText = linkifyText(c.text || '');
 
             let childrenHtml = '';
             if (c.children && c.children.length > 0) {
