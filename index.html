@@ -683,6 +683,54 @@
         .chat-bubble-other .chat-reply-quote { background: rgba(26,115,232,0.07); border-left-color: var(--primary); color: var(--text-muted); }
         .chat-bubble.chat-highlight { box-shadow: 0 0 0 3px var(--accent); }
 
+        /* ================= LAMPIRAN MATERI DI OBROLAN KELAS ================= */
+        .btn-chat-attach-icon {
+            background: #F1F3F4; color: var(--text-main); padding: 12px 14px; margin: 0;
+            border-radius: var(--radius-md); flex-shrink: 0; font-size: 16px; line-height: 1;
+        }
+        .btn-chat-attach-icon:hover { background: #E2E4E7; }
+        .chat-attach-preview {
+            display: flex; align-items: center; gap: 8px; justify-content: space-between;
+            background: var(--primary-light); border-radius: var(--radius-sm); padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        .chat-attach-preview-body { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; flex-grow: 1; min-width: 0; }
+        .chat-attach-preview > button { background: transparent; color: var(--primary); padding: 2px 8px; font-size: 15px; font-weight: 800; flex-shrink: 0; }
+        .chat-attach-preview > button:hover { background: rgba(26,115,232,0.15); border-radius: 50%; }
+        .chat-attach-icon { font-size: 16px; flex-shrink: 0; }
+        .chat-attach-preview-text, .chat-attach-chip-text { min-width: 0; }
+        .chat-attach-preview-label, .chat-attach-chip-label { font-size: 11.5px; font-weight: 800; color: var(--primary); }
+        .chat-attach-preview-snippet, .chat-attach-chip-snippet {
+            font-size: 12.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        }
+        .chat-attachment-chip {
+            display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 10px;
+            margin-top: 6px; cursor: pointer; border: 1px solid;
+        }
+        .chat-bubble-self .chat-attachment-chip { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35); }
+        .chat-bubble-self .chat-attach-chip-label { color: rgba(255,255,255,0.95); }
+        .chat-bubble-self .chat-attach-chip-snippet { color: rgba(255,255,255,0.85); }
+        .chat-bubble-other .chat-attachment-chip { background: rgba(26,115,232,0.06); border-color: rgba(26,115,232,0.2); }
+        .chat-attachment-chip:hover { filter: brightness(0.97); }
+        .chat-attachment-chip.chat-attachment-missing { color: var(--text-muted); font-size: 12.5px; font-style: italic; cursor: default; }
+
+        .chat-attach-picker-item {
+            background: #F8F9FA; border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer;
+            border: 2px solid transparent; transition: all 0.15s ease;
+        }
+        .chat-attach-picker-item:hover { background: var(--primary-light); border-color: var(--primary); }
+        .chat-attach-picker-item-header { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px; }
+        .chat-attach-picker-item-header strong { color: var(--text-main); font-size: 13.5px; }
+        .chat-attach-picker-item-snippet { font-size: 13.5px; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+        .ann-share-menu-btn {
+            background: transparent; color: var(--text-muted); padding: 6px 10px; font-size: 15px;
+            line-height: 1; border-radius: 8px; z-index: 10; position: relative;
+        }
+        .ann-share-menu-btn:hover { background: var(--border); color: var(--text-main); }
+        .announcement-card.jump-highlight { box-shadow: 0 0 0 3px var(--accent); }
+
     </style>
     <!-- pdf.js: dipakai untuk membuat thumbnail halaman pertama dari file PDF yang diunggah -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -840,12 +888,18 @@
         </div>
         <div id="chat-messages-container"></div>
         <div class="chat-input-area">
+            <div id="chat-edit-indicator" class="comment-reply-indicator hidden">
+                <span>✏️ Sedang mengedit pesan</span>
+                <button id="btn-cancel-chat-edit" type="button" title="Batal mengedit">✕</button>
+            </div>
             <div id="chat-reply-indicator" class="comment-reply-indicator hidden">
                 <span>Membalas <strong id="chat-reply-name"></strong></span>
                 <button id="btn-cancel-chat-reply" type="button" title="Batal membalas">✕</button>
             </div>
+            <div id="chat-attach-preview" class="chat-attach-preview hidden"></div>
             <div style="display:flex; gap:8px; align-items:flex-end;">
                 <textarea id="input-chat" rows="1" placeholder="Tulis pesan..." style="margin:0; flex-grow:1;"></textarea>
+                <button id="btn-attach-chat" type="button" class="btn-chat-attach-icon" title="Lampirkan materi/pengumuman">📎</button>
                 <button id="btn-kirim-chat" class="btn-buat" style="margin:0; white-space:nowrap;">Kirim</button>
             </div>
         </div>
@@ -855,6 +909,20 @@
         <div class="comment-menu-item" id="chat-menu-reply">↩️ Balas</div>
         <div class="comment-menu-item" id="chat-menu-edit">✏️ Edit</div>
         <div class="comment-menu-item danger" id="chat-menu-delete">🗑️ Hapus</div>
+    </div>
+
+    <div id="chat-attach-picker-overlay" class="modal-overlay hidden">
+        <div class="modal-card" style="height: 70vh;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0; color:var(--primary);">Lampirkan Materi</h3>
+                <button id="btn-close-chat-attach-picker" class="btn-batal" style="padding: 8px 16px; border-radius: 99px;">Tutup</button>
+            </div>
+            <div id="chat-attach-picker-list" style="flex-grow:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+    </div>
+
+    <div id="ann-share-menu-popup" class="comment-menu-popup hidden">
+        <div class="comment-menu-item" id="ann-share-menu-item">↗️ Bagikan ke Obrolan</div>
     </div>
 
     <div id="share-modal-overlay" class="modal-overlay hidden">
@@ -994,6 +1062,10 @@
                     <div id="comment-thread-container"></div>
 
                     <div style="margin-top: 14px;">
+                        <div id="comment-edit-indicator" class="comment-reply-indicator hidden">
+                            <span>✏️ Sedang mengedit komentar</span>
+                            <button id="btn-cancel-comment-edit" type="button" title="Batal mengedit">✕</button>
+                        </div>
                         <div id="comment-reply-indicator" class="comment-reply-indicator hidden">
                             <span>Membalas <strong id="comment-reply-name"></strong></span>
                             <button id="btn-cancel-reply" type="button" title="Batal membalas">✕</button>
@@ -1109,6 +1181,11 @@
         let currentReplyToName = null;
         let editingCommentId = null;
         let currentMenuCommentId = null;
+        // Menyimpan draft komentar/balasan yang sempat ditulis sebelum tombol "Edit" dipencet,
+        // supaya bisa dikembalikan lagi setelah edit disimpan/dibatalkan.
+        let commentDraftBeforeEdit = null;
+        let commentPausedReplyId = null;
+        let commentPausedReplyName = null;
 
         // ================= STATE FITUR OBROLAN KELAS (CHAT) =================
         let chatSidebarListenerMessages = null;
@@ -1121,6 +1198,14 @@
         let editingChatMessageId = null;
         let currentChatMenuMessageId = null;
         let currentAnnouncementsCache = {}; // { annId: data } cache pengumuman aktif (untuk cek pin & status nonaktif-komentar)
+        let chatAttachAnnouncementId = null; // id materi/pengumuman yang sedang dilampirkan di kolom obrolan
+        // Menyimpan draft pesan/balasan/lampiran yang sempat disiapkan sebelum tombol "Edit" dipencet,
+        // supaya bisa dikembalikan lagi setelah edit disimpan/dibatalkan.
+        let chatDraftBeforeEdit = null;
+        let chatPausedReplyId = null;
+        let chatPausedReplyName = null;
+        let chatPausedAttachId = null;
+        let currentAnnShareMenuId = null; // id materi yang sedang dibuka menu titik-tiga "Bagikan ke Obrolan"-nya
 
         function escapeHtml(str) {
             return String(str == null ? '' : str)
@@ -1556,11 +1641,22 @@
             chatReplyToId = null;
             chatReplyToName = null;
             editingChatMessageId = null;
+            chatAttachAnnouncementId = null;
+            chatDraftBeforeEdit = null;
+            chatPausedReplyId = null;
+            chatPausedReplyName = null;
+            chatPausedAttachId = null;
+            currentAnnShareMenuId = null;
             const chatSidebarEl = document.getElementById('chat-sidebar');
             chatSidebarEl.classList.add('hidden');
             chatSidebarEl.classList.remove('open');
             document.getElementById('chat-menu-popup').classList.add('hidden');
+            document.getElementById('chat-attach-picker-overlay').classList.add('hidden');
+            document.getElementById('ann-share-menu-popup').classList.add('hidden');
             document.getElementById('chat-reply-indicator').classList.add('hidden');
+            document.getElementById('chat-edit-indicator').classList.add('hidden');
+            document.getElementById('chat-attach-preview').classList.add('hidden');
+            document.getElementById('chat-attach-preview').innerHTML = '';
             document.getElementById('input-chat').value = '';
             document.getElementById('btn-kirim-chat').innerText = 'Kirim';
             
@@ -1766,7 +1862,9 @@
                 bodyHtml = `<div class="chat-text chat-text-deleted">🚫 ${delNote}</div>`;
             } else {
                 const editedTag = m.edited ? ' <span class="comment-edited-tag">(diedit)</span>' : '';
-                bodyHtml = `<div class="chat-text">${linkifyText(m.text || '')}</div><div class="chat-meta">${time}${editedTag}</div>`;
+                const hasText = !!(m.text && String(m.text).trim());
+                const textHtml = hasText ? `<div class="chat-text">${linkifyText(m.text)}</div>` : '';
+                bodyHtml = `${textHtml}<div class="chat-meta">${time}${editedTag}</div>`;
             }
 
             let replyHtml = '';
@@ -1783,10 +1881,29 @@
                 replyHtml = `<div class="chat-reply-quote" data-jump-to="${m.replyTo}">↩ <strong>${rName}</strong>: ${rPreview}</div>`;
             }
 
+            let attachHtml = '';
+            if (!isDeleted && m.attachedAnnouncementId) {
+                const ann = currentAnnouncementsCache[m.attachedAnnouncementId];
+                if (ann) {
+                    const rawText = (ann.text != null) ? String(ann.text) : '';
+                    const preview = rawText.length > 100 ? rawText.slice(0, 100) + '…' : rawText;
+                    attachHtml = `
+                        <div class="chat-attachment-chip" data-jump-ann="${m.attachedAnnouncementId}">
+                            <span class="chat-attach-icon">📎</span>
+                            <div class="chat-attach-chip-text">
+                                <div class="chat-attach-chip-label">Materi dari ${escapeHtml(ann.senderName || 'Pengguna')}</div>
+                                <div class="chat-attach-chip-snippet">${escapeHtml(preview || '(Tanpa teks, ada lampiran file)')}</div>
+                            </div>
+                        </div>`;
+                } else {
+                    attachHtml = `<div class="chat-attachment-chip chat-attachment-missing">📎 Materi tidak tersedia (mungkin telah dihapus)</div>`;
+                }
+            }
+
             const canEdit = isSelf && !isDeleted;
             const canDeleteSelf = isSelf && !isDeleted;
             const canDeleteAsTeacher = !isSelf && !isDeleted && currentUserData.role === 'guru';
-            const canReply = !isSelf && !isDeleted;
+            const canReply = !isDeleted;
             const showMenu = canEdit || canDeleteSelf || canDeleteAsTeacher || canReply;
             const menuBtn = showMenu
                 ? `<button class="chat-menu-btn" data-id="${id}" data-owner="${canEdit}" data-delete="${canDeleteSelf || canDeleteAsTeacher}" data-reply="${canReply}">⋮</button>`
@@ -1801,6 +1918,7 @@
                         </div>
                         ${replyHtml}
                         ${bodyHtml}
+                        ${attachHtml}
                     </div>
                 </div>
             `;
@@ -1816,8 +1934,27 @@
             const jumpEl = e.target.closest('.chat-reply-quote');
             if (jumpEl) {
                 scrollToChatMessage(jumpEl.dataset.jumpTo);
+                return;
+            }
+            const attachChip = e.target.closest('.chat-attachment-chip[data-jump-ann]');
+            if (attachChip) {
+                jumpToAnnouncementFromChat(attachChip.dataset.jumpAnn);
             }
         });
+
+        // Menutup sidebar obrolan lalu men-scroll & menyorot kartu materi terkait di Forum Kelas
+        function jumpToAnnouncementFromChat(annId) {
+            chatSidebarEl.classList.remove('open');
+            scrollToAnnouncementCard(annId);
+        }
+
+        function scrollToAnnouncementCard(annId) {
+            const card = document.querySelector(`.announcement-card[data-ann-id="${annId}"]`);
+            if (!card) return;
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('jump-highlight');
+            setTimeout(() => card.classList.remove('jump-highlight'), 1600);
+        }
 
         function scrollToChatMessage(id) {
             const container = document.getElementById('chat-messages-container');
@@ -1854,8 +1991,7 @@
             const targetId = currentChatMenuMessageId;
             const m = chatMessagesCache[targetId];
             if (!m) return;
-            editingChatMessageId = null;
-            document.getElementById('btn-kirim-chat').innerText = 'Kirim';
+            if (editingChatMessageId) exitChatEditMode(); // keluar dari mode edit dulu (kembalikan draft lama), baru pasang balasan baru
             chatReplyToId = targetId;
             chatReplyToName = m.senderName;
             showChatReplyIndicator();
@@ -1865,12 +2001,8 @@
         document.getElementById('chat-menu-edit').addEventListener('click', () => {
             const m = chatMessagesCache[currentChatMenuMessageId];
             if (!m) return;
-            editingChatMessageId = currentChatMenuMessageId;
-            cancelChatReply();
-            document.getElementById('input-chat').value = m.text || '';
-            document.getElementById('btn-kirim-chat').innerText = 'Simpan';
             document.getElementById('chat-menu-popup').classList.add('hidden');
-            document.getElementById('input-chat').focus();
+            enterChatEditMode(currentChatMenuMessageId, m.text || '');
         });
 
         document.getElementById('chat-menu-delete').addEventListener('click', async () => {
@@ -1886,11 +2018,7 @@
                 : { deleted: true, deletedBy: 'teacher', deletedByName: currentUserData.username };
             await update(ref(db, `chats/${currentViewedClassId}/${targetId}`), payload);
 
-            if (editingChatMessageId === targetId) {
-                editingChatMessageId = null;
-                document.getElementById('input-chat').value = '';
-                document.getElementById('btn-kirim-chat').innerText = 'Kirim';
-            }
+            if (editingChatMessageId === targetId) exitChatEditMode();
             if (chatReplyToId === targetId) cancelChatReply();
         });
 
@@ -1908,30 +2036,173 @@
 
         document.getElementById('btn-cancel-chat-reply').addEventListener('click', cancelChatReply);
 
+        // ========= LAMPIRKAN MATERI/PENGUMUMAN DI OBROLAN =========
+        function showChatAttachPreview() {
+            const ann = currentAnnouncementsCache[chatAttachAnnouncementId];
+            const box = document.getElementById('chat-attach-preview');
+            if (!ann || !box) { cancelChatAttach(); return; }
+            const rawText = (ann.text != null) ? String(ann.text) : '';
+            const preview = rawText.length > 100 ? rawText.slice(0, 100) + '…' : rawText;
+            box.innerHTML = `
+                <div class="chat-attach-preview-body" data-jump-ann="${chatAttachAnnouncementId}">
+                    <span class="chat-attach-icon">📎</span>
+                    <div class="chat-attach-preview-text">
+                        <div class="chat-attach-preview-label">Materi dari ${escapeHtml(ann.senderName || 'Pengguna')}</div>
+                        <div class="chat-attach-preview-snippet">${escapeHtml(preview || '(Tanpa teks, ada lampiran file)')}</div>
+                    </div>
+                </div>
+                <button id="btn-cancel-chat-attach" type="button" title="Batalkan lampiran">✕</button>
+            `;
+            box.classList.remove('hidden');
+        }
+
+        function cancelChatAttach() {
+            chatAttachAnnouncementId = null;
+            const box = document.getElementById('chat-attach-preview');
+            if (box) { box.classList.add('hidden'); box.innerHTML = ''; }
+        }
+
+        document.getElementById('chat-attach-preview').addEventListener('click', (e) => {
+            if (e.target.closest('#btn-cancel-chat-attach')) {
+                cancelChatAttach();
+                return;
+            }
+            const body = e.target.closest('.chat-attach-preview-body');
+            if (body) jumpToAnnouncementFromChat(body.dataset.jumpAnn);
+        });
+
+        function buildChatAttachPickerItemHtml(annId, ann) {
+            const rawText = (ann.text != null) ? String(ann.text) : '';
+            const preview = rawText.length > 90 ? rawText.slice(0, 90) + '…' : rawText;
+            const date = new Date(ann.timestamp || Date.now()).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            return `
+                <div class="chat-attach-picker-item" data-ann="${annId}">
+                    <div class="chat-attach-picker-item-header"><strong>${escapeHtml(ann.senderName || 'Pengguna')}</strong><span>${date}</span></div>
+                    <div class="chat-attach-picker-item-snippet">${escapeHtml(preview || '(Tanpa teks, ada lampiran file)')}</div>
+                </div>
+            `;
+        }
+
+        function openChatAttachPicker() {
+            if (editingChatMessageId) exitChatEditMode(); // mengedit tetap prioritas; keluar dulu sebelum melampirkan materi baru
+            const ids = Object.keys(currentAnnouncementsCache).sort((a, b) => (currentAnnouncementsCache[b].timestamp || 0) - (currentAnnouncementsCache[a].timestamp || 0));
+            const list = document.getElementById('chat-attach-picker-list');
+            if (ids.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding: 30px 0;">Belum ada materi/pengumuman di kelas ini.</p>';
+            } else {
+                list.innerHTML = ids.map(id => buildChatAttachPickerItemHtml(id, currentAnnouncementsCache[id])).join('');
+            }
+            document.getElementById('chat-attach-picker-overlay').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-attach-chat').addEventListener('click', openChatAttachPicker);
+
+        document.getElementById('btn-close-chat-attach-picker').addEventListener('click', () => {
+            document.getElementById('chat-attach-picker-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('chat-attach-picker-list').addEventListener('click', (e) => {
+            const item = e.target.closest('.chat-attach-picker-item');
+            if (!item) return;
+            chatAttachAnnouncementId = item.dataset.ann;
+            showChatAttachPreview();
+            document.getElementById('chat-attach-picker-overlay').classList.add('hidden');
+            document.getElementById('input-chat').focus();
+        });
+
+        // Dipanggil dari menu titik-tiga tiap kartu materi ("Bagikan ke Obrolan"): langsung
+        // memasang lampiran materi tersebut ke kolom obrolan (belum dikirim, menunggu tombol Kirim).
+        function shareAnnouncementToChat(annId) {
+            if (editingChatMessageId) exitChatEditMode();
+            chatAttachAnnouncementId = annId;
+            chatSidebarEl.classList.add('open');
+            openChatSidebarNow();
+            showChatAttachPreview();
+            document.getElementById('input-chat').focus();
+        }
+
+        // ========= MODE EDIT PESAN OBROLAN (menunda dulu balasan/lampiran yang sedang disiapkan) =========
+        function showChatEditIndicator() { document.getElementById('chat-edit-indicator').classList.remove('hidden'); }
+        function hideChatEditIndicator() { document.getElementById('chat-edit-indicator').classList.add('hidden'); }
+
+        function stashChatComposerState() {
+            chatDraftBeforeEdit = document.getElementById('input-chat').value;
+            chatPausedReplyId = chatReplyToId;
+            chatPausedReplyName = chatReplyToName;
+            chatPausedAttachId = chatAttachAnnouncementId;
+            cancelChatReply();
+            cancelChatAttach();
+        }
+
+        function restoreChatComposerState() {
+            document.getElementById('input-chat').value = chatDraftBeforeEdit || '';
+            if (chatPausedReplyId) {
+                chatReplyToId = chatPausedReplyId;
+                chatReplyToName = chatPausedReplyName;
+                showChatReplyIndicator();
+            }
+            if (chatPausedAttachId) {
+                chatAttachAnnouncementId = chatPausedAttachId;
+                showChatAttachPreview();
+            }
+            chatDraftBeforeEdit = null;
+            chatPausedReplyId = null;
+            chatPausedReplyName = null;
+            chatPausedAttachId = null;
+        }
+
+        function enterChatEditMode(id, text) {
+            if (!editingChatMessageId) stashChatComposerState(); // simpan draft/balasan/lampiran lama sekali saja
+            editingChatMessageId = id;
+            document.getElementById('input-chat').value = text || '';
+            document.getElementById('btn-kirim-chat').innerText = 'Simpan';
+            showChatEditIndicator();
+            document.getElementById('input-chat').focus();
+        }
+
+        function exitChatEditMode() {
+            editingChatMessageId = null;
+            document.getElementById('btn-kirim-chat').innerText = 'Kirim';
+            hideChatEditIndicator();
+            restoreChatComposerState();
+        }
+
+        document.getElementById('btn-cancel-chat-edit').addEventListener('click', exitChatEditMode);
+
         document.getElementById('btn-kirim-chat').addEventListener('click', async () => {
             const input = document.getElementById('input-chat');
             const text = input.value.trim();
-            if (!text) return;
+
+            if (editingChatMessageId) {
+                if (!text) return;
+                const btn = document.getElementById('btn-kirim-chat');
+                btn.disabled = true;
+                try {
+                    await update(ref(db, `chats/${currentViewedClassId}/${editingChatMessageId}`), { text, edited: true });
+                    exitChatEditMode();
+                } finally {
+                    btn.disabled = false;
+                }
+                return;
+            }
+
+            if (!text && !chatAttachAnnouncementId) return; // materi bisa dikirim tanpa teks, tapi pesan kosong tanpa lampiran tidak boleh
 
             const btn = document.getElementById('btn-kirim-chat');
             btn.disabled = true;
             try {
-                if (editingChatMessageId) {
-                    await update(ref(db, `chats/${currentViewedClassId}/${editingChatMessageId}`), { text, edited: true });
-                    editingChatMessageId = null;
-                    btn.innerText = 'Kirim';
-                } else {
-                    const payload = {
-                        text,
-                        senderId: currentUserId,
-                        senderName: currentUserData.username,
-                        senderRole: currentUserData.role,
-                        timestamp: Date.now()
-                    };
-                    if (chatReplyToId) payload.replyTo = chatReplyToId;
-                    await push(ref(db, `chats/${currentViewedClassId}`), payload);
-                    cancelChatReply();
-                }
+                const payload = {
+                    text,
+                    senderId: currentUserId,
+                    senderName: currentUserData.username,
+                    senderRole: currentUserData.role,
+                    timestamp: Date.now()
+                };
+                if (chatReplyToId) payload.replyTo = chatReplyToId;
+                if (chatAttachAnnouncementId) payload.attachedAnnouncementId = chatAttachAnnouncementId;
+                await push(ref(db, `chats/${currentViewedClassId}`), payload);
+                cancelChatReply();
+                cancelChatAttach();
                 input.value = '';
             } finally {
                 btn.disabled = false;
@@ -3337,10 +3608,10 @@
                     const fileHtml = await renderFileAttachmentsHtml(filesArr);
 
                     return `
-                        <div class="announcement-card ${isPinned ? 'pinned' : ''}">
+                        <div class="announcement-card ${isPinned ? 'pinned' : ''}" data-ann-id="${data.id}">
                             <div class="announcement-header">
                                 <div class="announcement-time">${pinBadge}<strong>${safeSender}</strong> • ${date}</div>
-                                <div class="announcement-header-actions">${btnPin}${btnToggleComments}${btnHapus}</div>
+                                <div class="announcement-header-actions">${btnPin}${btnToggleComments}${btnHapus}<button class="ann-share-menu-btn" data-ann="${data.id}" title="Opsi lainnya">⋮</button></div>
                             </div>
                             <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${safeText}</div>
                             ${fileHtml}
@@ -3395,6 +3666,12 @@
                 openComments(btn.dataset.ann);
                 return;
             }
+            const shareBtn = e.target.closest('.ann-share-menu-btn');
+            if (shareBtn) {
+                e.stopPropagation();
+                openAnnShareMenu(shareBtn);
+                return;
+            }
             const fileCard = e.target.closest('.announcement-file-card');
             if (fileCard) {
                 e.stopPropagation();
@@ -3403,6 +3680,23 @@
                 const name = fileCard.dataset.fileName;
                 await openFileAttachmentByKey(key, type, name);
             }
+        });
+
+        // ================= MENU TITIK-TIGA KARTU MATERI: BAGIKAN KE OBROLAN =================
+        function openAnnShareMenu(btnEl) {
+            currentAnnShareMenuId = btnEl.dataset.ann;
+            const popup = document.getElementById('ann-share-menu-popup');
+            const rect = btnEl.getBoundingClientRect();
+            popup.classList.remove('hidden');
+            let leftPos = rect.right + window.scrollX - popup.offsetWidth;
+            if (leftPos < 8) leftPos = 8;
+            popup.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+            popup.style.left = leftPos + 'px';
+        }
+
+        document.getElementById('ann-share-menu-item').addEventListener('click', () => {
+            document.getElementById('ann-share-menu-popup').classList.add('hidden');
+            if (currentAnnShareMenuId) shareAnnouncementToChat(currentAnnShareMenuId);
         });
 
         // ================= AKSES KOMENTAR (BLOKIR SISWA / NONAKTIF PER MATERI) =================
@@ -3433,13 +3727,62 @@
                 lockMsg.classList.remove('hidden');
                 cancelReply();
                 editingCommentId = null;
+                commentDraftBeforeEdit = null;
+                commentPausedReplyId = null;
+                commentPausedReplyName = null;
+                hideCommentEditIndicator();
             }
         }
+
+        // ========= MODE EDIT KOMENTAR (menunda dulu balasan yang sedang disiapkan) =========
+        function showCommentEditIndicator() { document.getElementById('comment-edit-indicator').classList.remove('hidden'); }
+        function hideCommentEditIndicator() { document.getElementById('comment-edit-indicator').classList.add('hidden'); }
+
+        function stashCommentComposerState() {
+            commentDraftBeforeEdit = document.getElementById('input-comment').value;
+            commentPausedReplyId = currentReplyToId;
+            commentPausedReplyName = currentReplyToName;
+            cancelReply();
+        }
+
+        function restoreCommentComposerState() {
+            document.getElementById('input-comment').value = commentDraftBeforeEdit || '';
+            if (commentPausedReplyId) {
+                currentReplyToId = commentPausedReplyId;
+                currentReplyToName = commentPausedReplyName;
+                showReplyIndicator();
+            }
+            commentDraftBeforeEdit = null;
+            commentPausedReplyId = null;
+            commentPausedReplyName = null;
+        }
+
+        function enterCommentEditMode(id, text) {
+            if (!editingCommentId) stashCommentComposerState(); // simpan draft/balasan lama sekali saja
+            editingCommentId = id;
+            document.getElementById('input-comment').value = text || '';
+            document.getElementById('btn-kirim-komentar').innerText = 'Simpan';
+            showCommentEditIndicator();
+            document.getElementById('input-comment').focus();
+        }
+
+        function exitCommentEditMode() {
+            editingCommentId = null;
+            document.getElementById('btn-kirim-komentar').innerText = 'Kirim';
+            hideCommentEditIndicator();
+            restoreCommentComposerState();
+        }
+
+        document.getElementById('btn-cancel-comment-edit').addEventListener('click', exitCommentEditMode);
 
         window.openComments = function(annId) {
             currentCommentAnnouncementId = annId;
             cancelReply();
             editingCommentId = null;
+            commentDraftBeforeEdit = null;
+            commentPausedReplyId = null;
+            commentPausedReplyName = null;
+            hideCommentEditIndicator();
             document.getElementById('btn-kirim-komentar').innerText = 'Kirim';
             document.getElementById('input-comment').value = '';
             document.getElementById('comment-modal-overlay').classList.remove('hidden');
@@ -3461,6 +3804,10 @@
             currentCommentsCache = {};
             cancelReply();
             editingCommentId = null;
+            commentDraftBeforeEdit = null;
+            commentPausedReplyId = null;
+            commentPausedReplyName = null;
+            hideCommentEditIndicator();
         });
 
         function buildCommentTree(commentsObj) {
@@ -3549,8 +3896,7 @@
             if (!canCurrentUserComment()) return;
             const bubble = e.target.closest('.comment-bubble');
             if (!bubble) return;
-            editingCommentId = null;
-            document.getElementById('btn-kirim-komentar').innerText = 'Kirim';
+            if (editingCommentId) exitCommentEditMode(); // keluar dari mode edit dulu (kembalikan draft lama), baru pasang balasan baru
             currentReplyToId = bubble.dataset.id;
             currentReplyToName = bubble.dataset.name;
             showReplyIndicator();
@@ -3612,6 +3958,10 @@
             if (!chatPopup.classList.contains('hidden') && !chatPopup.contains(e.target) && !e.target.closest('.chat-menu-btn')) {
                 chatPopup.classList.add('hidden');
             }
+            const shareMenuPopup = document.getElementById('ann-share-menu-popup');
+            if (!shareMenuPopup.classList.contains('hidden') && !shareMenuPopup.contains(e.target) && !e.target.closest('.ann-share-menu-btn')) {
+                shareMenuPopup.classList.add('hidden');
+            }
         });
 
         // ================= SEMATKAN KOMENTAR (MAKS 3 PER MATERI) =================
@@ -3641,12 +3991,8 @@
             if (!canCurrentUserComment()) return;
             const c = currentCommentsCache[currentMenuCommentId];
             if (!c) return;
-            editingCommentId = currentMenuCommentId;
-            cancelReply();
-            document.getElementById('input-comment').value = c.text || '';
-            document.getElementById('btn-kirim-komentar').innerText = 'Simpan';
             document.getElementById('comment-menu-popup').classList.add('hidden');
-            document.getElementById('input-comment').focus();
+            enterCommentEditMode(currentMenuCommentId, c.text || '');
         });
 
         function collectDescendantIds(parentId, commentsObj) {
@@ -3677,9 +4023,7 @@
             await update(ref(db), updates);
 
             if (editingCommentId === targetId || idsToDelete.includes(editingCommentId)) {
-                editingCommentId = null;
-                document.getElementById('input-comment').value = '';
-                document.getElementById('btn-kirim-komentar').innerText = 'Kirim';
+                exitCommentEditMode();
             }
             if (currentReplyToId === targetId || idsToDelete.includes(currentReplyToId)) {
                 cancelReply();
@@ -3697,8 +4041,7 @@
             try {
                 if (editingCommentId) {
                     await update(ref(db, `comments/${currentViewedClassId}/${currentCommentAnnouncementId}/${editingCommentId}`), { text, edited: true });
-                    editingCommentId = null;
-                    btn.innerText = 'Kirim';
+                    exitCommentEditMode(); // otomatis mengembalikan draft/balasan yang tertunda ke kolom input
                 } else {
                     const payload = {
                         text,
@@ -3710,8 +4053,8 @@
                     if (currentReplyToId) payload.replyTo = currentReplyToId;
                     await push(ref(db, `comments/${currentViewedClassId}/${currentCommentAnnouncementId}`), payload);
                     cancelReply();
+                    input.value = '';
                 }
-                input.value = '';
             } finally {
                 btn.disabled = false;
             }
