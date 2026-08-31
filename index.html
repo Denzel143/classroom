@@ -290,6 +290,68 @@
         .btn-toggle-mini.active { background: var(--primary-light); color: var(--primary); }
         .btn-toggle-mini.danger-active { background: var(--danger-light); color: var(--danger); }
         .member-row-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+
+        /* ================= LAMPIRAN FILE PADA PENGUMUMAN/MATERI ================= */
+        .btn-attach-file {
+            background: #F1F3F4; color: var(--text-main); padding: 8px 16px; font-size: 13px;
+            border-radius: 99px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-attach-file:hover { background: #E2E4E7; }
+        .attach-file-preview-row {
+            display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px;
+            color: var(--text-muted); background: #F7F8FA; padding: 8px 12px; border-radius: var(--radius-md);
+        }
+        .attach-file-preview-row button {
+            background: none; color: var(--danger); font-weight: 800; padding: 2px 6px; font-size: 14px; line-height: 1;
+        }
+        .attach-upload-progress-wrap {
+            margin-top: 8px; font-size: 12px; color: var(--text-muted);
+        }
+        .attach-upload-bar-bg {
+            width: 100%; height: 6px; border-radius: 99px; background: #E9EBEE; margin-top: 4px; overflow: hidden;
+        }
+        .attach-upload-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.15s ease; }
+
+        .announcement-file-card {
+            display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px;
+            background: #F7F8FA; border-radius: var(--radius-md); border: 1px solid var(--border);
+            cursor: pointer; position: relative; z-index: 10; max-width: 420px;
+        }
+        .announcement-file-card:hover { background: #EFF1F4; }
+        .file-thumb-wrap {
+            width: 56px; height: 56px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; background: #E2E4E7;
+        }
+        .file-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .file-thumb-icon {
+            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; color: #fff; font-weight: 800; font-size: 11px; letter-spacing: 0.3px;
+        }
+        .file-thumb-icon .ext-icon-glyph { font-size: 20px; line-height: 1; margin-bottom: 2px; }
+        .file-info-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .file-info-name {
+            font-size: 13.5px; font-weight: 600; color: var(--text-main);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;
+        }
+        .file-info-meta { font-size: 11.5px; color: var(--text-muted); }
+        .video-play-badge {
+            position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.55); color: #fff;
+            border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 9px;
+        }
+
+        /* Lightbox untuk pemutaran video / lihat gambar penuh */
+        .media-lightbox-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .media-lightbox-overlay.hidden { display: none; }
+        .media-lightbox-content { max-width: 90vw; max-height: 85vh; position: relative; }
+        .media-lightbox-content img, .media-lightbox-content video { max-width: 90vw; max-height: 85vh; border-radius: 8px; display: block; }
+        .media-lightbox-close {
+            position: absolute; top: -18px; right: -18px; background: #fff; color: #111; border-radius: 50%;
+            width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: 800;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3); cursor: pointer; font-size: 16px;
+        }
         
         /* Undangan Alert */
         .invitation-card { 
@@ -542,6 +604,8 @@
         .comment-reply-indicator button:hover { background: rgba(26,115,232,0.15); border-radius: 50%; }
 
     </style>
+    <!-- pdf.js: dipakai untuk membuat thumbnail halaman pertama dari file PDF yang diunggah -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -734,11 +798,27 @@
                 <div class="modal-card">
                     <h3 style="margin-top: 0; color: var(--primary);">Buat Materi / Pengumuman</h3>
                     <textarea id="input-announcement" rows="6" placeholder="Ketik pengumuman, tugas, atau materi di sini..."></textarea>
+
+                    <input type="file" id="input-announcement-file" class="hidden">
+                    <button type="button" id="btn-attach-file" class="btn-attach-file">📎 Lampirkan File</button>
+                    <div id="attach-file-preview" class="attach-file-preview-row hidden">
+                        <span id="attach-file-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                        <button type="button" id="btn-remove-attach-file" title="Hapus lampiran">✕</button>
+                    </div>
+                    <div id="attach-upload-progress" class="attach-upload-progress-wrap hidden">
+                        <span>Mengunggah file... <span id="attach-upload-percent">0%</span></span>
+                        <div class="attach-upload-bar-bg"><div class="attach-upload-bar-fill" id="attach-upload-bar-fill"></div></div>
+                    </div>
+
                     <div class="modal-actions">
                         <button id="btn-batal-announcement" class="btn-batal">Batal</button>
                         <button id="btn-post-announcement" class="btn-buat">Posting</button>
                     </div>
                 </div>
+            </div>
+
+            <div id="media-lightbox-overlay" class="media-lightbox-overlay hidden">
+                <div class="media-lightbox-content" id="media-lightbox-content"></div>
             </div>
 
             <div id="edit-announcement-modal-overlay" class="modal-overlay hidden">
@@ -838,6 +918,17 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
+        // ==================== KONFIGURASI STORJ (S3-COMPATIBLE) — ISI SENDIRI ====================
+        // PERHATIAN: aplikasi ini murni client-side (tanpa backend), jadi nilai di bawah ini akan
+        // terlihat oleh siapa saja yang membuka DevTools/View Source browser. Sebaiknya gunakan
+        // Access Grant/Key Storj yang izinnya DIBATASI (mis. hanya boleh upload/PutObject) pada
+        // bucket ini saja — jangan pakai key dengan akses penuh ke seluruh akun Storj Anda.
+        const STORJ_ACCESS_KEY = "ISI_ACCESS_KEY_ANDA";
+        const STORJ_SECRET_KEY = "ISI_SECRET_KEY_ANDA";
+        const STORJ_ENDPOINT   = "https://gateway.storjshare.io"; // sesuaikan dengan endpoint gateway Storj Anda
+        const STORJ_BUCKET     = "my-educlass-bucket";
+        const STORJ_REGION     = "us-east-1"; // Storj tidak memakai region AWS asli, biarkan default ini kecuali diarahkan lain oleh dokumentasi akun Storj Anda
+
         // ================= GLOBAL LISTENER UNTUK BLOKIR ZOOM & RELOAD =================
         // Cegah Zoom dengan Ctrl + Scroll (Mouse Wheel)
         document.addEventListener('wheel', (e) => {
@@ -875,6 +966,9 @@
         let inviteListener = null;
         let editingAnnouncementId = null;
         let allUsersDB = [];
+
+        // ================= STATE FITUR LAMPIRAN FILE =================
+        let selectedAnnouncementFile = null; // objek File yang dipilih user sebelum posting
 
         // ================= STATE FITUR KOMENTAR =================
         let commentCountListeners = {}; // { announcementId: unsubscribeFn }
@@ -1801,10 +1895,17 @@
         document.getElementById('btn-show-announcement-modal').addEventListener('click', () => {
             document.getElementById('announcement-modal-overlay').classList.remove('hidden');
             document.getElementById('input-announcement').value = '';
+            selectedAnnouncementFile = null;
+            document.getElementById('input-announcement-file').value = '';
+            document.getElementById('attach-file-preview').classList.add('hidden');
+            document.getElementById('attach-upload-progress').classList.add('hidden');
         });
 
         document.getElementById('btn-batal-announcement').addEventListener('click', () => {
             document.getElementById('announcement-modal-overlay').classList.add('hidden');
+            selectedAnnouncementFile = null;
+            document.getElementById('input-announcement-file').value = '';
+            document.getElementById('attach-file-preview').classList.add('hidden');
         });
 
         document.getElementById('btn-post-announcement').addEventListener('click', async () => {
@@ -1819,11 +1920,44 @@
             const btn = document.getElementById('btn-post-announcement');
             btn.disabled = true; btn.innerText = "Posting...";
 
-            await push(ref(db, `announcements/${currentViewedClassId}`), {
+            // Buat referensi/ID materi dulu (sebelum menulis data) supaya file bisa diunggah
+            // ke folder unik `{classId}/{annId}/...` dan tidak pernah tertukar dengan materi lain.
+            const newAnnRef = push(ref(db, `announcements/${currentViewedClassId}`));
+            const annId = newAnnRef.key;
+
+            let fileData = null;
+            if (selectedAnnouncementFile) {
+                const progressWrap = document.getElementById('attach-upload-progress');
+                const progressPercentEl = document.getElementById('attach-upload-percent');
+                const progressBarFill = document.getElementById('attach-upload-bar-fill');
+                progressWrap.classList.remove('hidden');
+                try {
+                    fileData = await processAndUploadAnnouncementFile(selectedAnnouncementFile, currentViewedClassId, annId, (p) => {
+                        const pct = Math.round(p * 100);
+                        progressPercentEl.innerText = pct + '%';
+                        progressBarFill.style.width = pct + '%';
+                    });
+                } catch (err) {
+                    console.error(err);
+                    await customAlert("Gagal mengunggah file ke penyimpanan: " + (err.message || 'Terjadi kesalahan tak dikenal.') + "\n\nPengumuman tidak jadi diposting, silakan coba lagi.");
+                    btn.disabled = false; btn.innerText = "Posting";
+                    progressWrap.classList.add('hidden');
+                    return;
+                }
+                progressWrap.classList.add('hidden');
+            }
+
+            const payload = {
                 text, senderName: currentUserData.username, senderId: currentUserId, senderRole: currentUserData.role, timestamp: Date.now()
-            });
+            };
+            if (fileData) payload.file = fileData;
+
+            await set(newAnnRef, payload);
 
             document.getElementById('announcement-modal-overlay').classList.add('hidden');
+            selectedAnnouncementFile = null;
+            document.getElementById('input-announcement-file').value = '';
+            document.getElementById('attach-file-preview').classList.add('hidden');
             btn.disabled = false; btn.innerText = "Posting";
         });
 
@@ -1887,6 +2021,343 @@
                 }
             }
         }
+
+        // ======================================================================
+        // ================= FITUR LAMPIRAN FILE (UPLOAD KE STORJ) =============
+        // ======================================================================
+
+        function sanitizeFileNameForKey(name) {
+            // Buang karakter yang bermasalah untuk S3 object key, ganti spasi dengan underscore
+            return name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_');
+        }
+
+        function getFileExt(name) {
+            const parts = (name || '').split('.');
+            if (parts.length < 2) return '';
+            return parts.pop().toLowerCase();
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes && bytes !== 0) return '';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Peta ikon berdasarkan ekstensi file untuk kasus yang tak bisa dibuatkan thumbnail asli
+        // (dokumen office, arsip, audio, kode program, dan format tak dikenal).
+        const EXT_ICON_MAP = {
+            pdf:  { glyph: '📕', color: '#E5484D', label: 'PDF' },
+            doc:  { glyph: '📘', color: '#2B6CB0', label: 'DOC' },
+            docx: { glyph: '📘', color: '#2B6CB0', label: 'DOCX' },
+            xls:  { glyph: '📗', color: '#2F855A', label: 'XLS' },
+            xlsx: { glyph: '📗', color: '#2F855A', label: 'XLSX' },
+            ppt:  { glyph: '📙', color: '#DD6B20', label: 'PPT' },
+            pptx: { glyph: '📙', color: '#DD6B20', label: 'PPTX' },
+            txt:  { glyph: '📄', color: '#718096', label: 'TXT' },
+            csv:  { glyph: '📄', color: '#2F855A', label: 'CSV' },
+            zip:  { glyph: '🗜️', color: '#6B4EE6', label: 'ZIP' },
+            rar:  { glyph: '🗜️', color: '#6B4EE6', label: 'RAR' },
+            '7z': { glyph: '🗜️', color: '#6B4EE6', label: '7Z' },
+            mp3:  { glyph: '🎵', color: '#D53F8C', label: 'MP3' },
+            wav:  { glyph: '🎵', color: '#D53F8C', label: 'WAV' },
+            // Ekstensi kode program
+            js:   { glyph: '</>', color: '#D69E2E', label: 'JS' },
+            ts:   { glyph: '</>', color: '#3182CE', label: 'TS' },
+            jsx:  { glyph: '</>', color: '#4299E1', label: 'JSX' },
+            tsx:  { glyph: '</>', color: '#3182CE', label: 'TSX' },
+            py:   { glyph: '</>', color: '#3776AB', label: 'PY' },
+            java: { glyph: '</>', color: '#B85C00', label: 'JAVA' },
+            c:    { glyph: '</>', color: '#4A5568', label: 'C' },
+            cpp:  { glyph: '</>', color: '#4A5568', label: 'C++' },
+            cs:   { glyph: '</>', color: '#684CC7', label: 'C#' },
+            php:  { glyph: '</>', color: '#6262AA', label: 'PHP' },
+            rb:   { glyph: '</>', color: '#CC342D', label: 'RB' },
+            go:   { glyph: '</>', color: '#00ADD8', label: 'GO' },
+            rs:   { glyph: '</>', color: '#DD6B20', label: 'RS' },
+            html: { glyph: '</>', color: '#DD4B25', label: 'HTML' },
+            css:  { glyph: '</>', color: '#2965F1', label: 'CSS' },
+            json: { glyph: '</>', color: '#718096', label: 'JSON' },
+            xml:  { glyph: '</>', color: '#718096', label: 'XML' },
+            yml:  { glyph: '</>', color: '#718096', label: 'YML' },
+            yaml: { glyph: '</>', color: '#718096', label: 'YAML' },
+            sh:   { glyph: '</>', color: '#2D3748', label: 'SH' },
+            sql:  { glyph: '</>', color: '#4A5568', label: 'SQL' },
+            kt:   { glyph: '</>', color: '#7F52FF', label: 'KT' },
+            swift:{ glyph: '</>', color: '#F05138', label: 'SWIFT' },
+        };
+        function getExtIconMeta(ext) {
+            return EXT_ICON_MAP[ext] || { glyph: '📄', color: '#8A94A6', label: (ext || 'FILE').toUpperCase().slice(0, 5) };
+        }
+
+        // ---- Pembuat thumbnail dari file asli (dijalankan di browser, sebelum diunggah) ----
+        function generateImageThumbnail(file) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const objUrl = URL.createObjectURL(file);
+                img.onload = () => {
+                    try {
+                        const SIZE = 300;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = SIZE; canvas.height = SIZE;
+                        const ctx = canvas.getContext('2d');
+                        const scale = Math.max(SIZE / img.width, SIZE / img.height);
+                        const w = img.width * scale, h = img.height * scale;
+                        ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+                        canvas.toBlob((blob) => { URL.revokeObjectURL(objUrl); resolve(blob); }, 'image/jpeg', 0.82);
+                    } catch (e) { URL.revokeObjectURL(objUrl); resolve(null); }
+                };
+                img.onerror = () => { URL.revokeObjectURL(objUrl); resolve(null); };
+                img.src = objUrl;
+            });
+        }
+
+        function generateVideoThumbnail(file) {
+            return new Promise((resolve) => {
+                try {
+                    const video = document.createElement('video');
+                    video.preload = 'metadata';
+                    video.muted = true;
+                    video.playsInline = true;
+                    const objUrl = URL.createObjectURL(file);
+                    video.src = objUrl;
+
+                    const cleanup = () => URL.revokeObjectURL(objUrl);
+                    video.onloadedmetadata = () => {
+                        video.currentTime = Math.min(1, (video.duration || 1) / 2);
+                    };
+                    video.onseeked = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = 300; canvas.height = 300;
+                            const ctx = canvas.getContext('2d');
+                            const scale = Math.max(300 / video.videoWidth, 300 / video.videoHeight);
+                            const w = video.videoWidth * scale, h = video.videoHeight * scale;
+                            ctx.drawImage(video, (300 - w) / 2, (300 - h) / 2, w, h);
+                            canvas.toBlob((blob) => { cleanup(); resolve(blob); }, 'image/jpeg', 0.8);
+                        } catch (e) { cleanup(); resolve(null); }
+                    };
+                    video.onerror = () => { cleanup(); resolve(null); };
+                } catch (e) { resolve(null); }
+            });
+        }
+
+        async function generatePdfThumbnail(file) {
+            try {
+                if (!window.pdfjsLib) return null;
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                const buf = await file.arrayBuffer();
+                const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 1 });
+                const scale = 300 / Math.max(viewport.width, viewport.height);
+                const scaledViewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                canvas.width = scaledViewport.width; canvas.height = scaledViewport.height;
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+                return await new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.85));
+            } catch (e) {
+                console.error('Gagal membuat thumbnail PDF, akan pakai ikon default:', e);
+                return null;
+            }
+        }
+
+        // ---- AWS Signature V4 (untuk upload langsung ke endpoint S3-compatible Storj) ----
+        async function sha256Hex(dataBuffer) {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        async function hmacSha256Raw(keyBuffer, msg) {
+            const key = await crypto.subtle.importKey('raw', keyBuffer, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+            const sig = await crypto.subtle.sign('HMAC', key, (typeof msg === 'string') ? new TextEncoder().encode(msg) : msg);
+            return new Uint8Array(sig);
+        }
+        function bufToHex(buf) { return Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join(''); }
+
+        // Upload satu blob/file ke Storj dengan tanda tangan SigV4, mengembalikan URL objeknya.
+        // objectKey = path lengkap di dalam bucket, misal "{classId}/{annId}/original_nama.pdf"
+        function uploadToStorj(blob, objectKey, contentType, onProgress) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const method = 'PUT';
+                    const service = 's3';
+                    const now = new Date();
+                    const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+                    const dateStamp = amzDate.slice(0, 8);
+
+                    const endpointUrl = new URL(STORJ_ENDPOINT);
+                    const host = endpointUrl.host;
+                    const canonicalUri = '/' + STORJ_BUCKET + '/' + objectKey.split('/').map(encodeURIComponent).join('/');
+
+                    const fileBuffer = await blob.arrayBuffer();
+                    const payloadHash = await sha256Hex(fileBuffer);
+                    const finalContentType = contentType || 'application/octet-stream';
+
+                    const canonicalHeaders =
+                        `content-type:${finalContentType}\n` +
+                        `host:${host}\n` +
+                        `x-amz-content-sha256:${payloadHash}\n` +
+                        `x-amz-date:${amzDate}\n`;
+                    const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+
+                    const canonicalRequest = [method, canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+
+                    const algorithm = 'AWS4-HMAC-SHA256';
+                    const credentialScope = `${dateStamp}/${STORJ_REGION}/${service}/aws4_request`;
+                    const hashedCanonicalRequest = await sha256Hex(new TextEncoder().encode(canonicalRequest));
+                    const stringToSign = [algorithm, amzDate, credentialScope, hashedCanonicalRequest].join('\n');
+
+                    const kDate = await hmacSha256Raw(new TextEncoder().encode('AWS4' + STORJ_SECRET_KEY), dateStamp);
+                    const kRegion = await hmacSha256Raw(kDate, STORJ_REGION);
+                    const kService = await hmacSha256Raw(kRegion, service);
+                    const kSigning = await hmacSha256Raw(kService, 'aws4_request');
+                    const signatureBuf = await hmacSha256Raw(kSigning, stringToSign);
+                    const signature = bufToHex(signatureBuf);
+
+                    const authorizationHeader = `${algorithm} Credential=${STORJ_ACCESS_KEY}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+                    const uploadUrl = STORJ_ENDPOINT.replace(/\/$/, '') + canonicalUri;
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('PUT', uploadUrl, true);
+                    xhr.setRequestHeader('Content-Type', finalContentType);
+                    xhr.setRequestHeader('x-amz-content-sha256', payloadHash);
+                    xhr.setRequestHeader('x-amz-date', amzDate);
+                    xhr.setRequestHeader('Authorization', authorizationHeader);
+                    if (xhr.upload && onProgress) {
+                        xhr.upload.onprogress = (e) => {
+                            if (e.lengthComputable) onProgress(e.loaded / e.total);
+                        };
+                    }
+                    xhr.onload = () => {
+                        if (xhr.status >= 200 && xhr.status < 300) resolve(uploadUrl);
+                        else reject(new Error(`Upload ke Storj gagal (status ${xhr.status}): ${xhr.responseText || xhr.statusText}`));
+                    };
+                    xhr.onerror = () => reject(new Error('Upload ke Storj gagal: kemungkinan masalah jaringan atau konfigurasi CORS pada bucket.'));
+                    xhr.send(fileBuffer);
+                } catch (err) { reject(err); }
+            });
+        }
+
+        // Proses lengkap: buat thumbnail (jika perlu), unggah original + thumbnail (jika ada) ke Storj,
+        // lalu kembalikan objek metadata file untuk disimpan ke Firebase.
+        async function processAndUploadAnnouncementFile(file, classId, annId, onProgress) {
+            const ext = getFileExt(file.name);
+            const safeName = sanitizeFileNameForKey(file.name);
+            const basePath = `${classId}/${annId}`;
+
+            let thumbBlob = null;
+            if (file.type.startsWith('image/')) {
+                thumbBlob = await generateImageThumbnail(file);
+            } else if (file.type.startsWith('video/')) {
+                thumbBlob = await generateVideoThumbnail(file);
+            } else if (ext === 'pdf') {
+                thumbBlob = await generatePdfThumbnail(file);
+            }
+
+            let uploadedThumbUrl = null;
+            let progressOriginal = 0, progressThumb = 0;
+            const reportCombined = () => {
+                if (!onProgress) return;
+                // Thumbnail (kalau ada) dianggap porsi kecil (10%), file asli porsi besar (90%)
+                const combined = thumbBlob ? (progressThumb * 0.1 + progressOriginal * 0.9) : progressOriginal;
+                onProgress(combined);
+            };
+
+            if (thumbBlob) {
+                uploadedThumbUrl = await uploadToStorj(thumbBlob, `${basePath}/thumb_${safeName}.jpg`, 'image/jpeg', (p) => { progressThumb = p; reportCombined(); });
+            }
+
+            const originalUrl = await uploadToStorj(file, `${basePath}/original_${safeName}`, file.type || 'application/octet-stream', (p) => { progressOriginal = p; reportCombined(); });
+
+            return {
+                name: file.name,
+                url: originalUrl,
+                thumbUrl: uploadedThumbUrl,
+                type: file.type || '',
+                ext: ext,
+                size: file.size
+            };
+        }
+
+        // ---- UI: pilih & lepas lampiran file pada modal buat pengumuman ----
+        document.getElementById('btn-attach-file').addEventListener('click', () => {
+            document.getElementById('input-announcement-file').click();
+        });
+        document.getElementById('input-announcement-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            selectedAnnouncementFile = file;
+            document.getElementById('attach-file-name').innerText = `📎 ${file.name} (${formatFileSize(file.size)})`;
+            document.getElementById('attach-file-preview').classList.remove('hidden');
+        });
+        document.getElementById('btn-remove-attach-file').addEventListener('click', () => {
+            selectedAnnouncementFile = null;
+            document.getElementById('input-announcement-file').value = '';
+            document.getElementById('attach-file-preview').classList.add('hidden');
+        });
+
+        // ---- Render kartu lampiran file di dalam kartu pengumuman/materi ----
+        function renderFileAttachmentHtml(fileData) {
+            if (!fileData) return '';
+            const isImage = (fileData.type || '').startsWith('image/');
+            const isVideo = (fileData.type || '').startsWith('video/');
+            const safeName = escapeHtml(fileData.name || 'File');
+            const sizeLabel = formatFileSize(fileData.size);
+
+            let thumbInner = '';
+            if (fileData.thumbUrl) {
+                thumbInner = `<img src="${fileData.thumbUrl}" alt="thumbnail">`;
+            } else if (isImage && fileData.url) {
+                thumbInner = `<img src="${fileData.url}" alt="thumbnail">`;
+            } else {
+                const meta = getExtIconMeta(fileData.ext);
+                thumbInner = `<div class="file-thumb-icon" style="background:${meta.color};"><span class="ext-icon-glyph">${meta.glyph}</span><span>${meta.label}</span></div>`;
+            }
+            const videoBadge = isVideo ? `<span class="video-play-badge">▶</span>` : '';
+
+            const clickAction = `openFileAttachment(${JSON.stringify(fileData).replace(/"/g, '&quot;')})`;
+
+            return `
+                <div class="announcement-file-card" onclick="event.stopPropagation(); ${clickAction}">
+                    <div style="position:relative;">
+                        <div class="file-thumb-wrap">${thumbInner}</div>
+                        ${videoBadge}
+                    </div>
+                    <div class="file-info-col">
+                        <span class="file-info-name" title="${safeName}">${safeName}</span>
+                        <span class="file-info-meta">${sizeLabel}${fileData.ext ? ' • ' + fileData.ext.toUpperCase() : ''}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ---- Buka file: gambar/video pakai lightbox overlay, tipe lain dibuka di tab baru ----
+        window.openFileAttachment = function(fileData) {
+            const isImage = (fileData.type || '').startsWith('image/');
+            const isVideo = (fileData.type || '').startsWith('video/');
+            const overlay = document.getElementById('media-lightbox-overlay');
+            const content = document.getElementById('media-lightbox-content');
+
+            if (isImage) {
+                content.innerHTML = `<div class="media-lightbox-close" onclick="closeMediaLightbox()">✕</div><img src="${fileData.url}">`;
+                overlay.classList.remove('hidden');
+            } else if (isVideo) {
+                content.innerHTML = `<div class="media-lightbox-close" onclick="closeMediaLightbox()">✕</div><video src="${fileData.url}" controls autoplay></video>`;
+                overlay.classList.remove('hidden');
+            } else {
+                window.open(fileData.url, '_blank');
+            }
+        };
+        window.closeMediaLightbox = function() {
+            const overlay = document.getElementById('media-lightbox-overlay');
+            const content = document.getElementById('media-lightbox-content');
+            overlay.classList.add('hidden');
+            content.innerHTML = '';
+        };
+        document.getElementById('media-lightbox-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'media-lightbox-overlay') closeMediaLightbox();
+        });
 
         // ================= SEMATKAN MATERI (MAKS 3) =================
         window.togglePinAnnouncement = async function(id, isPinned) {
@@ -1988,6 +2459,7 @@
                                 <div class="announcement-header-actions">${btnPin}${btnToggleComments}${btnHapus}</div>
                             </div>
                             <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${safeText}</div>
+                            ${renderFileAttachmentHtml(data.file)}
                             <div class="announcement-actions">
                                 <button class="btn-comment" data-ann="${data.id}">💬 Komentar (<span id="comment-count-${data.id}">${knownCount}</span>)</button>
                             </div>
