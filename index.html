@@ -255,6 +255,41 @@
             padding: 6px 12px; font-size: 12px; border-radius: 99px; z-index: 10; position: relative;
         }
         .btn-hapus-announcement:hover { background: var(--danger); color: white;}
+
+        /* ================= FITUR SEMATKAN / TOGGLE GURU ================= */
+        .announcement-header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; z-index: 10; position: relative; }
+        .btn-pin-announcement {
+            background: #FFF8E1; color: #946200; padding: 6px 12px; font-size: 12px;
+            border-radius: 99px; font-weight: 700; z-index: 10; position: relative;
+        }
+        .btn-pin-announcement:hover { background: var(--accent); color: #000; }
+        .btn-pin-announcement.is-pinned { background: var(--accent); color: #000; }
+
+        .announcement-card.pinned {
+            border: 2px solid var(--accent);
+            background: linear-gradient(180deg, #FFFDF3 0%, var(--surface) 60%);
+        }
+        .pin-badge {
+            background: var(--accent); color: #000; font-size: 10px; font-weight: 800;
+            padding: 3px 10px; border-radius: 99px; margin-right: 8px; letter-spacing: 0.3px;
+            display: inline-flex; align-items: center; gap: 3px; vertical-align: middle;
+        }
+        .pin-badge-comment {
+            background: var(--accent); color: #000; font-size: 10px; font-weight: 800;
+            padding: 2px 7px; border-radius: 99px; margin-left: 6px; letter-spacing: 0.3px;
+            vertical-align: middle; display: inline-block;
+        }
+        .comment-bubble.pinned-comment { background: #FFF8E1; border: 1.5px solid var(--accent); }
+        .comment-bubble.pinned-comment:hover { background: #FFF3D6; }
+
+        .btn-toggle-mini {
+            background: #F1F3F4; color: var(--text-muted); padding: 6px 12px; font-size: 12px;
+            border-radius: 99px; font-weight: 700; white-space: nowrap;
+        }
+        .btn-toggle-mini:hover { background: #E2E4E7; }
+        .btn-toggle-mini.active { background: var(--primary-light); color: var(--primary); }
+        .btn-toggle-mini.danger-active { background: var(--danger-light); color: var(--danger); }
+        .member-row-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
         
         /* Undangan Alert */
         .invitation-card { 
@@ -766,15 +801,17 @@
                             <span>Membalas <strong id="comment-reply-name"></strong></span>
                             <button id="btn-cancel-reply" type="button" title="Batal membalas">✕</button>
                         </div>
-                        <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <div id="comment-input-row" style="display:flex; gap:10px; align-items:flex-end;">
                             <textarea id="input-comment" rows="2" placeholder="Tulis komentar..." style="margin:0; flex-grow:1;"></textarea>
                             <button id="btn-kirim-komentar" class="btn-buat" style="margin:0; white-space:nowrap;">Kirim</button>
                         </div>
+                        <p id="comment-locked-msg" class="hidden" style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px 0; margin:0;">🔒 Anda tidak dapat berkomentar pada materi ini.</p>
                     </div>
                 </div>
             </div>
 
             <div id="comment-menu-popup" class="comment-menu-popup hidden">
+                <div class="comment-menu-item" id="comment-menu-pin">📌 Sematkan</div>
                 <div class="comment-menu-item" id="comment-menu-edit">✏️ Edit</div>
                 <div class="comment-menu-item danger" id="comment-menu-delete">🗑️ Hapus</div>
             </div>
@@ -849,6 +886,7 @@
         let currentReplyToName = null;
         let editingCommentId = null;
         let currentMenuCommentId = null;
+        let currentAnnouncementsCache = {}; // { annId: data } cache pengumuman aktif (untuk cek pin & status nonaktif-komentar)
 
         function escapeHtml(str) {
             return String(str == null ? '' : str)
@@ -1254,19 +1292,31 @@
                 if(currentClassData.students) totalMembers += Object.keys(currentClassData.students).length;
                 document.getElementById('member-count-display').innerText = totalMembers;
                 
-                if (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) {
-                    btnTambahPengumuman.classList.remove('hidden');
+                const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId);
+                const studentSelf = currentClassData.students && currentClassData.students[currentUserId];
+                const studentCanPost = (currentUserData.role === 'siswa' && studentSelf && studentSelf.canPost);
+
+                if (isTeacherOwner) {
                     btnHapusKelas.classList.remove('hidden');
                     btnEditKelas.classList.remove('hidden');
                     btnUndangAnggota.classList.remove('hidden');
                     hintEdit.classList.remove('hidden');
                 } else {
-                    btnTambahPengumuman.classList.add('hidden');
                     btnHapusKelas.classList.add('hidden');
                     btnEditKelas.classList.add('hidden');
                     btnUndangAnggota.classList.add('hidden');
                     hintEdit.classList.add('hidden');
                 }
+
+                if (isTeacherOwner || studentCanPost) {
+                    btnTambahPengumuman.classList.remove('hidden');
+                } else {
+                    btnTambahPengumuman.classList.add('hidden');
+                }
+
+                // Data kelas (mis. status blokir komentar per siswa) bisa berubah kapan saja,
+                // jadi perbarui juga status kotak input komentar bila modal komentar sedang terbuka.
+                if (currentCommentAnnouncementId) updateCommentInputState();
             });
             
             loadAnnouncements(classId);
@@ -1616,18 +1666,28 @@
             
             c.innerHTML += `<div class="member-category" style="margin-top:30px;">Siswa</div>`;
             if(currentClassData.students && Object.keys(currentClassData.students).length > 0) {
+                const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId);
                 Object.keys(currentClassData.students).forEach(sId => {
-                    const sName = currentClassData.students[sId].username;
-                    
-                    let removeBtn = '';
-                    if(currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId) {
-                        removeBtn = `<button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="keluarkanSiswa('${sId}', '${sName}')">Keluarkan</button>`;
+                    const student = currentClassData.students[sId];
+                    const sName = student.username;
+                    const canPost = !!student.canPost;
+                    const commentBlocked = !!student.commentBlocked;
+
+                    let actionsHtml = '';
+                    if(isTeacherOwner) {
+                        actionsHtml = `
+                            <div class="member-row-actions">
+                                <button class="btn-toggle-mini ${canPost ? 'active' : ''}" title="Izinkan siswa membuat pengumuman" onclick="toggleCanPost('${sId}', ${canPost})">📝 ${canPost ? 'Bisa Posting' : 'Izinkan Posting'}</button>
+                                <button class="btn-toggle-mini ${commentBlocked ? 'danger-active' : ''}" title="Blokir siswa dari berkomentar" onclick="toggleCommentBlocked('${sId}', ${commentBlocked})">${commentBlocked ? '🔇 Komentar Diblokir' : '💬 Blokir Komentar'}</button>
+                                <button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="keluarkanSiswa('${sId}', '${sName}')">Keluarkan</button>
+                            </div>
+                        `;
                     }
                     
                     c.innerHTML += `
-                        <div class="result-item" style="cursor:default; border-radius: var(--radius-md); margin-bottom:5px;">
+                        <div class="result-item" style="cursor:default; border-radius: var(--radius-md); margin-bottom:5px; flex-wrap:wrap; gap:10px;">
                             <span style="font-size:15px; color:var(--text-main);">${sName}</span>
-                            ${removeBtn}
+                            ${actionsHtml}
                         </div>
                     `;
                 });
@@ -1652,6 +1712,22 @@
             } else {
                  c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada yang diundang.</p>`;
             }
+        }
+
+        // ================= IZIN POSTING PENGUMUMAN UNTUK SISWA =================
+        window.toggleCanPost = async function(sId, current) {
+            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+            if (!isTeacherOwner) return;
+            await update(ref(db, `classes/${currentViewedClassId}/students/${sId}`), { canPost: !current });
+            renderAnggotaList();
+        }
+
+        // ================= BLOKIR SISWA DARI BERKOMENTAR =================
+        window.toggleCommentBlocked = async function(sId, current) {
+            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+            if (!isTeacherOwner) return;
+            await update(ref(db, `classes/${currentViewedClassId}/students/${sId}`), { commentBlocked: !current });
+            renderAnggotaList();
         }
 
         window.keluarkanSiswa = async function(id, name) {
@@ -1734,12 +1810,17 @@
         document.getElementById('btn-post-announcement').addEventListener('click', async () => {
             const text = document.getElementById('input-announcement').value.trim();
             if (!text) return await customAlert("Pengumuman tidak boleh kosong!");
-            
+
+            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+            const studentSelf = currentClassData && currentClassData.students && currentClassData.students[currentUserId];
+            const studentCanPost = (currentUserData.role === 'siswa' && studentSelf && studentSelf.canPost);
+            if (!isTeacherOwner && !studentCanPost) return await customAlert("Anda tidak memiliki izin untuk membuat pengumuman.");
+
             const btn = document.getElementById('btn-post-announcement');
             btn.disabled = true; btn.innerText = "Posting...";
 
             await push(ref(db, `announcements/${currentViewedClassId}`), {
-                text, senderName: currentUserData.username, timestamp: Date.now()
+                text, senderName: currentUserData.username, senderId: currentUserId, senderRole: currentUserData.role, timestamp: Date.now()
             });
 
             document.getElementById('announcement-modal-overlay').classList.add('hidden');
@@ -1807,6 +1888,36 @@
             }
         }
 
+        // ================= SEMATKAN MATERI (MAKS 3) =================
+        window.togglePinAnnouncement = async function(id, isPinned) {
+            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+            if (!isTeacherOwner) return;
+
+            if (isPinned) {
+                await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { pinned: false, pinnedAt: null });
+                return;
+            }
+
+            const snap = await get(ref(db, `announcements/${currentViewedClassId}`));
+            let pinnedCount = 0;
+            if (snap.exists()) {
+                const all = snap.val();
+                pinnedCount = Object.values(all).filter(a => a.pinned).length;
+            }
+            if (pinnedCount >= 3) {
+                await customAlert("Maksimal 3 materi yang bisa disematkan. Lepas salah satu dulu sebelum menyematkan yang baru.");
+                return;
+            }
+            await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { pinned: true, pinnedAt: Date.now() });
+        }
+
+        // ================= NONAKTIFKAN KOMENTAR PER MATERI =================
+        window.toggleCommentsDisabled = async function(id, current) {
+            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+            if (!isTeacherOwner) return;
+            await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { commentsDisabled: !current });
+        }
+
         function loadAnnouncements(classId) {
             const annRef = ref(db, `announcements/${classId}`);
             if (announcementListener) announcementListener();
@@ -1822,8 +1933,15 @@
                     Object.keys(commentCountListeners).forEach(id => commentCountListeners[id]());
                     commentCountListeners = {};
                     commentCounts = {};
+                    currentAnnouncementsCache = {};
+                    if (currentCommentAnnouncementId) updateCommentInputState();
                     return;
                 }
+
+                // Cache data pengumuman aktif (dipakai untuk cek status pin & nonaktif-komentar)
+                currentAnnouncementsCache = {};
+                arr.forEach(a => { currentAnnouncementsCache[a.id] = a; });
+                if (currentCommentAnnouncementId) updateCommentInputState();
 
                 // Bangun semua kartu ke dalam array dulu, baru gabungkan & pasang SEKALI ke DOM.
                 // (Sebelumnya pakai list.innerHTML += di dalam loop, dan teks pengumuman ditampilkan
@@ -1832,13 +1950,27 @@
                 // "menelan" kartu-kartu berikutnya dalam DOM dan membuatnya seperti hilang / tidak
                 // muncul. Makanya munculnya cuma satu, dan kalau yang bermasalah itu dihapus,
                 // materi berikutnya baru kelihatan.)
-                const cardsHtml = arr.sort((a,b) => (b.timestamp||0) - (a.timestamp||0)).map(data => {
+                const cardsHtml = arr.sort((a,b) => {
+                    // Materi yang disematkan selalu tampil di atas
+                    const ap = a.pinned ? 1 : 0, bp = b.pinned ? 1 : 0;
+                    if (ap !== bp) return bp - ap;
+                    if (ap && bp) return (b.pinnedAt||0) - (a.pinnedAt||0);
+                    return (b.timestamp||0) - (a.timestamp||0);
+                }).map(data => {
                   try {
                     const safeText = escapeHtml((data.text != null) ? String(data.text) : '');
                     const safeSender = escapeHtml(data.senderName || 'Pengguna');
                     const date = new Date(data.timestamp || Date.now()).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
-                    const isOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+                    const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+                    // Edit materi (klik 3x) tetap khusus guru, bukan siswa yang diizinkan posting
+                    const isOwner = isTeacherOwner;
+                    const isPinned = !!data.pinned;
+                    const commentsDisabled = !!data.commentsDisabled;
+
                     const btnHapus = isOwner ? `<button class="btn-hapus-announcement" onclick="hapusPengumuman('${data.id}')">Hapus</button>` : '';
+                    const btnPin = isOwner ? `<button class="btn-pin-announcement ${isPinned ? 'is-pinned' : ''}" onclick="togglePinAnnouncement('${data.id}', ${isPinned})">📌 ${isPinned ? 'Lepas Sematkan' : 'Sematkan'}</button>` : '';
+                    const btnToggleComments = isOwner ? `<button class="btn-toggle-mini ${commentsDisabled ? 'danger-active' : ''}" onclick="toggleCommentsDisabled('${data.id}', ${commentsDisabled})">${commentsDisabled ? '🔒 Komentar Nonaktif' : '💬 Nonaktifkan Komentar'}</button>` : '';
+                    const pinBadge = isPinned ? `<span class="pin-badge">📌 Disematkan</span>` : '';
 
                     const rawTextForEdit = escapeForJsTemplate((data.text != null) ? String(data.text) : '');
                     const clickAttr = isOwner ? `onclick="handleAnnouncementClick('${data.id}', \`${rawTextForEdit}\`)"` : '';
@@ -1850,10 +1982,10 @@
                     const knownCount = commentCounts[data.id] || 0;
 
                     return `
-                        <div class="announcement-card">
+                        <div class="announcement-card ${isPinned ? 'pinned' : ''}">
                             <div class="announcement-header">
-                                <div class="announcement-time"><strong>${safeSender}</strong> • ${date}</div>
-                                ${btnHapus}
+                                <div class="announcement-time">${pinBadge}<strong>${safeSender}</strong> • ${date}</div>
+                                <div class="announcement-header-actions">${btnPin}${btnToggleComments}${btnHapus}</div>
                             </div>
                             <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${safeText}</div>
                             <div class="announcement-actions">
@@ -1908,6 +2040,37 @@
             }
         });
 
+        // ================= AKSES KOMENTAR (BLOKIR SISWA / NONAKTIF PER MATERI) =================
+        function canCurrentUserComment() {
+            if (!currentUserData) return false;
+            // Guru selalu boleh berkomentar (misal untuk menjawab sebelum menutup diskusi)
+            if (currentUserData.role === 'guru') return true;
+
+            const ann = currentAnnouncementsCache[currentCommentAnnouncementId];
+            if (ann && ann.commentsDisabled) return false;
+
+            const studentInfo = currentClassData && currentClassData.students && currentClassData.students[currentUserId];
+            if (studentInfo && studentInfo.commentBlocked) return false;
+
+            return true;
+        }
+
+        function updateCommentInputState() {
+            const row = document.getElementById('comment-input-row');
+            const lockMsg = document.getElementById('comment-locked-msg');
+            if (!row || !lockMsg || !currentCommentAnnouncementId) return;
+
+            if (canCurrentUserComment()) {
+                row.classList.remove('hidden');
+                lockMsg.classList.add('hidden');
+            } else {
+                row.classList.add('hidden');
+                lockMsg.classList.remove('hidden');
+                cancelReply();
+                editingCommentId = null;
+            }
+        }
+
         window.openComments = function(annId) {
             currentCommentAnnouncementId = annId;
             cancelReply();
@@ -1915,6 +2078,7 @@
             document.getElementById('btn-kirim-komentar').innerText = 'Kirim';
             document.getElementById('input-comment').value = '';
             document.getElementById('comment-modal-overlay').classList.remove('hidden');
+            updateCommentInputState();
 
             if (commentsThreadListener) commentsThreadListener();
             const cRef = ref(db, `comments/${currentViewedClassId}/${annId}`);
@@ -1948,11 +2112,21 @@
                     roots.push(c);
                 }
             });
-            function sortRec(arr) {
-                arr.sort((a, b) => a.timestamp - b.timestamp);
-                arr.forEach(c => { if (c.children) sortRec(c.children); });
+            function sortRec(arr, isRootLevel) {
+                if (isRootLevel) {
+                    // Komentar root yang disematkan selalu tampil di atas
+                    arr.sort((a, b) => {
+                        const ap = a.pinned ? 1 : 0, bp = b.pinned ? 1 : 0;
+                        if (ap !== bp) return bp - ap;
+                        if (ap && bp) return (b.pinnedAt||0) - (a.pinnedAt||0);
+                        return a.timestamp - b.timestamp;
+                    });
+                } else {
+                    arr.sort((a, b) => a.timestamp - b.timestamp);
+                }
+                arr.forEach(c => { if (c.children) sortRec(c.children, false); });
             }
-            sortRec(roots);
+            sortRec(roots, true);
             return roots;
         }
 
@@ -1961,10 +2135,15 @@
             const guruBadge = isGuru ? `<span class="badge-guru">GURU</span>` : '';
             const canEdit = c.senderId === currentUserId;
             const canDelete = c.senderId === currentUserId || currentUserData.role === 'guru';
-            const showMenu = canEdit || canDelete;
-            const menuBtn = showMenu ? `<button class="comment-menu-btn" data-id="${c.id}" data-owner="${canEdit}" data-delete="${canDelete}">⋮</button>` : '';
+            // Sematkan komentar: khusus guru, dan hanya untuk komentar level root (bukan balasan)
+            const isRoot = !c.replyTo;
+            const canPin = currentUserData.role === 'guru' && isRoot;
+            const isPinned = !!c.pinned;
+            const showMenu = canEdit || canDelete || canPin;
+            const menuBtn = showMenu ? `<button class="comment-menu-btn" data-id="${c.id}" data-owner="${canEdit}" data-delete="${canDelete}" data-pin="${canPin}" data-pinned="${isPinned}">⋮</button>` : '';
             const date = new Date(c.timestamp).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
             const editedTag = c.edited ? ' <span class="comment-edited-tag">(diedit)</span>' : '';
+            const pinnedTag = isPinned ? `<span class="pin-badge-comment">📌 Disematkan</span>` : '';
             const safeName = escapeHtml(c.senderName || 'Pengguna');
             const safeText = escapeHtml(c.text || '');
 
@@ -1975,9 +2154,9 @@
 
             return `
                 <div class="comment-node">
-                    <div class="comment-bubble" data-id="${c.id}" data-name="${safeName}">
+                    <div class="comment-bubble ${isPinned ? 'pinned-comment' : ''}" data-id="${c.id}" data-name="${safeName}">
                         <div class="comment-header-row">
-                            <span class="comment-name">${safeName}${guruBadge}</span>
+                            <span class="comment-name">${safeName}${guruBadge}${pinnedTag}</span>
                             ${menuBtn}
                         </div>
                         <div class="comment-text">${safeText}</div>
@@ -2001,6 +2180,7 @@
 
         // Klik dua kali komentar untuk membalas (delegasi, hanya satu balasan aktif dalam satu waktu)
         document.getElementById('comment-thread-container').addEventListener('dblclick', (e) => {
+            if (!canCurrentUserComment()) return;
             const bubble = e.target.closest('.comment-bubble');
             if (!bubble) return;
             editingCommentId = null;
@@ -2038,10 +2218,15 @@
             currentMenuCommentId = btnEl.dataset.id;
             const canEdit = btnEl.dataset.owner === 'true';
             const canDelete = btnEl.dataset.delete === 'true';
+            const canPin = btnEl.dataset.pin === 'true';
+            const isPinned = btnEl.dataset.pinned === 'true';
             const editItem = document.getElementById('comment-menu-edit');
             const delItem = document.getElementById('comment-menu-delete');
+            const pinItem = document.getElementById('comment-menu-pin');
             editItem.style.display = canEdit ? 'flex' : 'none';
             delItem.style.display = canDelete ? 'flex' : 'none';
+            pinItem.style.display = canPin ? 'flex' : 'none';
+            pinItem.innerText = isPinned ? '📌 Lepas Sematkan' : '📌 Sematkan Komentar';
 
             const popup = document.getElementById('comment-menu-popup');
             const rect = btnEl.getBoundingClientRect();
@@ -2059,7 +2244,31 @@
             }
         });
 
+        // ================= SEMATKAN KOMENTAR (MAKS 3 PER MATERI) =================
+        document.getElementById('comment-menu-pin').addEventListener('click', async () => {
+            document.getElementById('comment-menu-popup').classList.add('hidden');
+            const targetId = currentMenuCommentId;
+            if (!targetId) return;
+            const c = currentCommentsCache[targetId];
+            if (!c) return;
+
+            if (currentUserData.role !== 'guru') return;
+
+            if (c.pinned) {
+                await update(ref(db, `comments/${currentViewedClassId}/${currentCommentAnnouncementId}/${targetId}`), { pinned: false, pinnedAt: null });
+                return;
+            }
+
+            const pinnedCount = Object.values(currentCommentsCache).filter(x => x.pinned).length;
+            if (pinnedCount >= 3) {
+                await customAlert("Maksimal 3 komentar yang bisa disematkan pada materi ini. Lepas salah satu dulu sebelum menyematkan yang baru.");
+                return;
+            }
+            await update(ref(db, `comments/${currentViewedClassId}/${currentCommentAnnouncementId}/${targetId}`), { pinned: true, pinnedAt: Date.now() });
+        });
+
         document.getElementById('comment-menu-edit').addEventListener('click', () => {
+            if (!canCurrentUserComment()) return;
             const c = currentCommentsCache[currentMenuCommentId];
             if (!c) return;
             editingCommentId = currentMenuCommentId;
@@ -2108,6 +2317,7 @@
         });
 
         document.getElementById('btn-kirim-komentar').addEventListener('click', async () => {
+            if (!canCurrentUserComment()) return;
             const input = document.getElementById('input-comment');
             const text = input.value.trim();
             if (!text) return;
