@@ -153,8 +153,10 @@ export default async function handler(req, res) {
   const model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 
   try {
+    // Pakai endpoint streamGenerateContent (bukan generateContent) supaya jawaban Gemini
+    // datang bertahap per potongan teks, bukan menunggu selesai total baru dikirim sekaligus.
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
       {
         method: 'POST',
         headers: {
@@ -169,9 +171,11 @@ export default async function handler(req, res) {
       }
     );
 
-    const data = await geminiRes.json();
-
+    // Kalau Gemini langsung menolak (mis. API key salah, model tidak ada), header responsnya
+    // sudah cukup untuk tahu itu di sini — SEBELUM kita mulai menulis stream ke client — jadi
+    // kita masih bisa balas error terstruktur seperti biasa (bukan sebagai potongan teks).
     if (!geminiRes.ok) {
+      const data = await geminiRes.json().catch(() => ({}));
       console.error('Gemini API error:', data);
       res.status(geminiRes.status).json({
         error: (data && data.error && data.error.message) || 'Gagal menghubungi Gemini API.'
@@ -179,16 +183,49 @@ export default async function handler(req, res) {
       return;
     }
 
-    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+    // Mulai stream ke client: setiap event SSE dari Gemini (format "data: {...}") berisi
+    // POTONGAN teks baru (bukan teks kumulatif), jadi cukup diteruskan apa adanya sebagai
+    // teks polos — front-end tinggal menempelkannya berurutan.
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'X-Accel-Buffering': 'no' // matikan buffering di reverse proxy (mis. Nginx) supaya benar-benar streaming
+    });
 
-    if (!text) {
-      res.status(200).json({ text: 'Maaf, EduAI tidak bisa memberikan jawaban untuk pertanyaan ini.' });
-      return;
+    const reader = geminiRes.body.getReader();
+    const decoder = new TextDecoder();
+    let sseBuffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      sseBuffer += decoder.decode(value, { stream: true });
+
+      const lines = sseBuffer.split('\n');
+      sseBuffer = lines.pop(); // baris terakhir mungkin belum lengkap, simpan untuk potongan berikutnya
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+        const jsonStr = trimmed.slice(5).trim();
+        if (!jsonStr || jsonStr === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const delta = parsed?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+          if (delta) res.write(delta);
+        } catch (e) {
+          // Baris SSE yang belum lengkap/tidak valid — lewati saja, akan tergabung di potongan berikutnya.
+        }
+      }
     }
 
-    res.status(200).json({ text });
+    res.end();
   } catch (err) {
     console.error('EduAI handler error:', err);
-    res.status(500).json({ error: 'Terjadi kesalahan saat menghubungi EduAI.' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Terjadi kesalahan saat menghubungi EduAI.' });
+    } else {
+      res.end();
+    }
   }
 }
