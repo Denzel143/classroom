@@ -363,8 +363,13 @@
             display: flex; align-items: center; justify-content: center; padding: 20px;
         }
         .media-lightbox-overlay.hidden { display: none; }
-        .media-lightbox-content { max-width: 90vw; max-height: 85vh; position: relative; }
+        .media-lightbox-content { max-width: 90vw; max-height: 85vh; position: relative; overflow: hidden; }
         .media-lightbox-content img, .media-lightbox-content video { max-width: 90vw; max-height: 85vh; border-radius: 8px; display: block; }
+        /* Foto di lightbox: satu-satunya elemen yang boleh di-zoom (pinch/scroll/double-tap),
+           bukan lewat zoom sistem/browser (viewport sudah mengunci itu secara global). */
+        .media-lightbox-content img { touch-action: none; cursor: zoom-in; user-select: none; -webkit-user-drag: none; }
+        .media-lightbox-content img.zoomed { cursor: grab; }
+        .media-lightbox-content img.panning { cursor: grabbing; }
         .media-lightbox-close {
             position: absolute; top: -18px; right: -18px; background: #fff; color: #111; border-radius: 50%;
             width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: 800;
@@ -3717,6 +3722,7 @@
                     const content = document.getElementById('media-lightbox-content');
                     content.innerHTML = `<div class="media-lightbox-close" onclick="closeMediaLightbox()">✕</div><img src="${url}" alt="${escapeHtml(name || '')}">`;
                     overlay.classList.remove('hidden');
+                    initLightboxImageZoom(content.querySelector('img'));
                 } else if (isVideo) {
                     const overlay = document.getElementById('media-lightbox-overlay');
                     const content = document.getElementById('media-lightbox-content');
@@ -3739,6 +3745,121 @@
         document.getElementById('media-lightbox-overlay').addEventListener('click', (e) => {
             if (e.target.id === 'media-lightbox-overlay') closeMediaLightbox();
         });
+
+        // ================= ZOOM KHUSUS FOTO DI LIGHTBOX =================
+        // Halaman/aplikasi secara sistem TIDAK bisa di-zoom (lihat viewport meta: user-scalable=0).
+        // Fungsi ini menambahkan zoom manual (pinch 2 jari, scroll wheel, double-tap/double-click)
+        // HANYA pada elemen <img> lightbox, jadi cuma foto yang bisa diperbesar, bukan seluruh UI.
+        function initLightboxImageZoom(imgEl) {
+            if (!imgEl) return;
+            const MIN_SCALE = 1, MAX_SCALE = 4, DOUBLE_TAP_SCALE = 2.5;
+            let scale = 1, originX = 0, originY = 0;
+            let pinchStartDist = 0, pinchStartScale = 1;
+            let isPanning = false, panPointerId = null, panStartX = 0, panStartY = 0, panOriginStartX = 0, panOriginStartY = 0;
+            let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+
+            imgEl.style.transformOrigin = '0 0';
+            imgEl.style.willChange = 'transform';
+
+            function apply() {
+                imgEl.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+                imgEl.classList.toggle('zoomed', scale > 1.01);
+            }
+
+            function zoomAt(clientX, clientY, newScale) {
+                newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newScale));
+                const rect = imgEl.getBoundingClientRect();
+                const px = clientX - rect.left, py = clientY - rect.top;
+                // Titik di bawah jari/kursor tetap di tempat yang sama setelah scale berubah
+                originX += px * (1 - newScale / scale);
+                originY += py * (1 - newScale / scale);
+                scale = newScale;
+                if (scale <= 1.001) { scale = 1; originX = 0; originY = 0; }
+                apply();
+            }
+
+            function dist(t0, t1) {
+                return Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+            }
+            function midpoint(t0, t1) {
+                return { x: (t0.clientX + t1.clientX) / 2, y: (t0.clientY + t1.clientY) / 2 };
+            }
+
+            imgEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    e.preventDefault();
+                    isPanning = false;
+                    pinchStartDist = dist(e.touches[0], e.touches[1]);
+                    pinchStartScale = scale;
+                } else if (e.touches.length === 1) {
+                    const t = e.touches[0];
+                    const now = Date.now();
+                    if (now - lastTapTime < 300 && Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 30) {
+                        e.preventDefault();
+                        if (scale > 1.01) { originX = 0; originY = 0; scale = 1; apply(); }
+                        else { zoomAt(t.clientX, t.clientY, DOUBLE_TAP_SCALE); }
+                        lastTapTime = 0;
+                        return;
+                    }
+                    lastTapTime = now; lastTapX = t.clientX; lastTapY = t.clientY;
+                    if (scale > 1.01) {
+                        isPanning = true;
+                        panStartX = t.clientX; panStartY = t.clientY;
+                        panOriginStartX = originX; panOriginStartY = originY;
+                    }
+                }
+            }, { passive: false });
+
+            imgEl.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2) {
+                    e.preventDefault();
+                    const d = dist(e.touches[0], e.touches[1]);
+                    const mid = midpoint(e.touches[0], e.touches[1]);
+                    if (pinchStartDist > 0) zoomAt(mid.x, mid.y, pinchStartScale * (d / pinchStartDist));
+                } else if (e.touches.length === 1 && isPanning) {
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    originX = panOriginStartX + (t.clientX - panStartX);
+                    originY = panOriginStartY + (t.clientY - panStartY);
+                    apply();
+                }
+            }, { passive: false });
+
+            imgEl.addEventListener('touchend', (e) => {
+                if (e.touches.length < 2) pinchStartDist = 0;
+                if (e.touches.length === 0) { isPanning = false; imgEl.classList.remove('panning'); }
+            });
+
+            // Desktop: double-click & scroll wheel untuk zoom foto
+            imgEl.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                if (scale > 1.01) { originX = 0; originY = 0; scale = 1; apply(); }
+                else { zoomAt(e.clientX, e.clientY, DOUBLE_TAP_SCALE); }
+            });
+            imgEl.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                zoomAt(e.clientX, e.clientY, scale * (1 - e.deltaY * 0.0015));
+            }, { passive: false });
+            imgEl.addEventListener('mousedown', (e) => {
+                if (scale <= 1.01) return;
+                e.preventDefault();
+                isPanning = true; panPointerId = 'mouse';
+                panStartX = e.clientX; panStartY = e.clientY;
+                panOriginStartX = originX; panOriginStartY = originY;
+                imgEl.classList.add('panning');
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isPanning || panPointerId !== 'mouse') return;
+                originX = panOriginStartX + (e.clientX - panStartX);
+                originY = panOriginStartY + (e.clientY - panStartY);
+                apply();
+            });
+            window.addEventListener('mouseup', () => {
+                if (panPointerId === 'mouse') { isPanning = false; panPointerId = null; imgEl.classList.remove('panning'); }
+            });
+
+            apply();
+        }
 
         // ================= SEMATKAN MATERI (MAKS 3) =================
         window.togglePinAnnouncement = async function(id, isPinned) {
