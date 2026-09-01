@@ -709,6 +709,21 @@
         }
         .chat-sidebar-header { padding: 26px 22px 14px 22px; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
         .chat-sidebar-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
+        .chat-sidebar-header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+        /* ---- Tombol toggle matikan/aktifkan obrolan sementara (khusus guru pemilik/kontributor) ---- */
+        .chat-toggle-btn {
+            background: var(--primary-light); color: var(--primary); border: none;
+            padding: 7px 11px; border-radius: 99px; font-size: 12.5px; font-weight: 700;
+            display: flex; align-items: center; gap: 5px; flex-shrink: 0; line-height: 1;
+        }
+        .chat-toggle-btn:hover { filter: brightness(0.96); }
+        .chat-toggle-btn.active { background: var(--danger-light); color: var(--danger); }
+        #chat-disabled-banner {
+            margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm);
+            background: var(--danger-light); color: var(--danger); font-size: 12px; font-weight: 700;
+            text-align: center;
+        }
 
         /* ---- Timer sesi EduAI (pojok kanan atas sidebar obrolan) ---- */
         #eduai-session-timer {
@@ -1042,7 +1057,14 @@
             <span id="chat-sidebar-badge" class="hidden">0</span>
         </div>
         <div class="chat-sidebar-header">
-            <h4>💬 Obrolan Kelas</h4>
+            <div class="chat-sidebar-header-row">
+                <h4>💬 Obrolan Kelas</h4>
+                <button id="btn-toggle-chat-disabled" class="chat-toggle-btn hidden" type="button" title="Matikan obrolan sementara">
+                    <span id="chat-toggle-icon">🔓</span>
+                    <span id="chat-toggle-label">Obrolan Aktif</span>
+                </button>
+            </div>
+            <div id="chat-disabled-banner" class="hidden">🔒 Obrolan sedang dimatikan sementara oleh guru</div>
             <div id="eduai-session-timer" class="hidden" title="Sisa waktu sesi memori EduAI">
                 <span class="eduai-timer-dot"></span>
                 <span id="eduai-session-timer-label">EduAI 15:00</span>
@@ -2104,6 +2126,8 @@
             document.getElementById('chat-attach-preview').innerHTML = '';
             document.getElementById('input-chat').value = '';
             document.getElementById('btn-kirim-chat').innerText = 'Kirim';
+            document.getElementById('btn-toggle-chat-disabled').classList.add('hidden');
+            updateChatDisabledUI(false, false);
             
             currentViewedClassId = null;
             currentClassData = null;
@@ -2187,6 +2211,12 @@
                     btnTambahPengumuman.classList.add('hidden');
                 }
 
+                // ---- Toggle matikan/aktifkan obrolan sementara (khusus guru pemilik/kontributor) ----
+                const canToggleChat = isTeacherOwner || isClassContributor();
+                const btnToggleChat = document.getElementById('btn-toggle-chat-disabled');
+                btnToggleChat.classList.toggle('hidden', !canToggleChat);
+                updateChatDisabledUI(!!currentClassData.chatDisabled, canToggleChat);
+
                 // Data kelas (mis. status blokir komentar per siswa) bisa berubah kapan saja,
                 // jadi perbarui juga status kotak input komentar bila modal komentar sedang terbuka.
                 if (currentCommentAnnouncementId) updateCommentInputState();
@@ -2198,6 +2228,51 @@
         // ================= OBROLAN KELAS (CHAT SEPERTI GRUP WHATSAPP) =================
         const chatSidebarEl = document.getElementById('chat-sidebar');
         const chatSidebarHandle = document.getElementById('chat-sidebar-handle');
+
+        // ---- Toggle matikan/aktifkan obrolan sementara ----
+        // Saat dimatikan, siswa tidak bisa mengirim pesan baru (pesan lama tetap bisa dibaca).
+        // Guru (pemilik kelas maupun kontributor) tetap bisa mengirim pesan meski obrolan dimatikan,
+        // supaya mereka tetap bisa memberi pengumuman/instruksi selama obrolan siswa dibekukan.
+        function updateChatDisabledUI(chatDisabled, canManageChat) {
+            const btnToggleChat = document.getElementById('btn-toggle-chat-disabled');
+            const toggleIcon = document.getElementById('chat-toggle-icon');
+            const toggleLabel = document.getElementById('chat-toggle-label');
+            const banner = document.getElementById('chat-disabled-banner');
+            const input = document.getElementById('input-chat');
+            const btnSend = document.getElementById('btn-kirim-chat');
+            const btnAttach = document.getElementById('btn-attach-chat');
+
+            btnToggleChat.classList.toggle('active', chatDisabled);
+            toggleIcon.innerText = chatDisabled ? '🔒' : '🔓';
+            toggleLabel.innerText = chatDisabled ? 'Obrolan Nonaktif' : 'Obrolan Aktif';
+            btnToggleChat.title = chatDisabled ? 'Aktifkan kembali obrolan' : 'Matikan obrolan sementara';
+
+            banner.classList.toggle('hidden', !chatDisabled);
+
+            const blockComposer = chatDisabled && !canManageChat;
+            input.disabled = blockComposer;
+            btnSend.disabled = blockComposer;
+            btnAttach.disabled = blockComposer;
+            input.placeholder = blockComposer ? 'Obrolan dimatikan sementara oleh guru' : 'Tulis pesan...';
+        }
+
+        document.getElementById('btn-toggle-chat-disabled').addEventListener('click', async () => {
+            if (!currentViewedClassId || !currentClassData) return;
+            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId);
+            if (!isTeacherOwner && !isClassContributor()) return; // jaga-jaga, tombol memang hanya tampil untuk guru
+
+            const btnToggleChat = document.getElementById('btn-toggle-chat-disabled');
+            const newState = !currentClassData.chatDisabled;
+            btnToggleChat.disabled = true;
+            try {
+                await update(ref(db, `classes/${currentViewedClassId}`), { chatDisabled: newState });
+            } catch (err) {
+                console.error(err);
+                await customAlert('Gagal mengubah status obrolan. Coba lagi.');
+            } finally {
+                btnToggleChat.disabled = false;
+            }
+        });
 
         chatSidebarHandle.addEventListener('click', () => {
             if (chatSidebarEl.classList.contains('open')) {
@@ -2987,6 +3062,15 @@
             }
 
             if (!text && !chatAttachAnnouncementId) return; // materi bisa dikirim tanpa teks, tapi pesan kosong tanpa lampiran tidak boleh
+
+            // Jaga-jaga di sisi klien: kalau obrolan sedang dimatikan guru, hanya guru
+            // (pemilik kelas maupun kontributor) yang tetap boleh mengirim pesan.
+            if (currentClassData && currentClassData.chatDisabled) {
+                const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId);
+                if (!isTeacherOwner && !isClassContributor()) {
+                    return await customAlert('Obrolan sedang dimatikan sementara oleh guru.');
+                }
+            }
 
             const btn = document.getElementById('btn-kirim-chat');
             btn.disabled = true;
