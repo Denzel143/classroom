@@ -2238,6 +2238,9 @@
 
         // Bangun blok konteks berisi isi materi/pengumuman + daftar file lampirannya (kalau ada),
         // supaya EduAI tahu materi apa yang sedang ditanyakan lewat mention di obrolan.
+        // Mengembalikan { text, files }: `files` berisi URL presigned tiap file, dikirim TERPISAH
+        // ke backend supaya backend bisa mengunduh & melampirkan ISI file-nya ke Gemini (bukan
+        // cuma link-nya sebagai teks, yang tidak bisa "dibuka" sendiri oleh model).
         async function buildAnnouncementAiContext(annId) {
             const ann = annId ? currentAnnouncementsCache[annId] : null;
             if (!ann) return null;
@@ -2246,20 +2249,20 @@
             if (ann.text) lines.push(`Isi materi: ${ann.text}`);
 
             const filesArr = ann.files || (ann.file ? [ann.file] : []);
+            const files = [];
             if (filesArr.length > 0) {
-                const fileLines = await Promise.all(filesArr.map(async (fd) => {
-                    const label = `${fd.name || 'File'}${fd.ext ? ' (' + String(fd.ext).toUpperCase() + ')' : ''}`;
+                lines.push(`File lampiran materi: ${filesArr.map(fd => fd.name || 'File').join(', ')}`);
+                await Promise.all(filesArr.map(async (fd) => {
                     try {
                         const key = getObjectKeyOf(fd, 'key', 'url');
                         const url = key ? await getPresignedGetUrl(key, 3600) : null;
-                        return url ? `- ${label}: ${url}` : `- ${label}`;
+                        if (url) files.push({ name: fd.name || 'File', ext: fd.ext || '', url });
                     } catch (e) {
-                        return `- ${label}`;
+                        // File tidak bisa diakses (mis. sudah dihapus) — cukup dilewati, materi teksnya tetap terkirim.
                     }
                 }));
-                lines.push(`File lampiran materi:\n${fileLines.join('\n')}`);
             }
-            return lines.join('\n');
+            return { text: lines.join('\n'), files };
         }
 
         async function handleEduAiTrigger(rawText, classId, senderName, triggerMessageId, attachedAnnouncementId) {
@@ -2271,13 +2274,17 @@
 
             // Kirim ulang OTOMATIS konteks SEMUA materi yang pernah dilampirkan selama sesi ini
             // masih berjalan — jadi siswa cukup melampirkan materi sekali di awal sesi, pertanyaan
-            // lanjutan setelahnya ("@EduAI" tanpa lampiran baru) tetap membawa konteks materi itu.
+            // lanjutan setelahnya ("@EduAI" tanpa lampiran baru) tetap membawa konteks materi itu,
+            // termasuk isi file-nya.
             const sessionMateriIds = Object.keys(session.attachedMateri || {})
                 .filter(id => !isAiRestrictedForCurrentUser(id));
             let prompt = question;
+            let sessionFiles = [];
             if (sessionMateriIds.length > 0) {
-                const contexts = (await Promise.all(sessionMateriIds.map(buildAnnouncementAiContext))).filter(Boolean);
-                if (contexts.length > 0) prompt = `${contexts.join('\n\n')}\n\nPertanyaan: ${question}`;
+                const results = (await Promise.all(sessionMateriIds.map(buildAnnouncementAiContext))).filter(Boolean);
+                const texts = results.map(r => r.text).filter(Boolean);
+                sessionFiles = results.flatMap(r => r.files || []).slice(0, 10); // batas wajar per pertanyaan
+                if (texts.length > 0) prompt = `${texts.join('\n\n')}\n\nPertanyaan: ${question}`;
             }
             const history = buildEduAiHistory();
             showEduAiTypingIndicator();
@@ -2285,7 +2292,7 @@
                 const res = await fetch('/api/eduai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: prompt, senderName, history })
+                    body: JSON.stringify({ message: prompt, senderName, history, files: sessionFiles })
                 });
                 const data = await res.json().catch(() => ({}));
                 const answer = (res.ok && data.text)
