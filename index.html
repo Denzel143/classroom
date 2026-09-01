@@ -2156,12 +2156,15 @@
                 ? { deleted: true, deletedBy: 'self', deletedByName: null }
                 : { deleted: true, deletedBy: 'teacher', deletedByName: currentUserData.username };
 
-            const updates = { [`chats/${currentViewedClassId}/${targetId}`]: payload };
+            // PENTING: multi-path update() Firebase akan MENIMPA seluruh node pada path yang
+            // diberikan (bukan menggabungkan field), jadi payload harus digabung (spread) dengan
+            // data pesan asli agar text/senderId/senderName/timestamp dkk tidak ikut terhapus.
+            const updates = { [`chats/${currentViewedClassId}/${targetId}`]: { ...m, ...payload } };
             // Kalau pesan yang dihapus ini mengandung "@EduAI" (pemicu), ikut hapus juga
             // respons EduAI untuk pesan tersebut.
             Object.entries(chatMessagesCache).forEach(([id, msg]) => {
                 if (!msg.deleted && msg.senderId === EDUAI_SENDER_ID && msg.triggerMessageId === targetId) {
-                    updates[`chats/${currentViewedClassId}/${id}`] = payload;
+                    updates[`chats/${currentViewedClassId}/${id}`] = { ...msg, ...payload };
                 }
             });
             await update(ref(db), updates);
