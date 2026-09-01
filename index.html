@@ -832,6 +832,53 @@
         .ann-share-menu-btn:hover { background: var(--border); color: var(--text-main); }
         .announcement-card.jump-highlight { box-shadow: 0 0 0 3px var(--accent); }
 
+
+        /* ================= TUGAS ================= */
+        .task-card { background: var(--surface); border-radius: var(--radius-md); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow-sm); border-left: 6px solid #94A3B8; transition: box-shadow .2s, transform .2s; }
+        .task-card:hover { box-shadow: var(--shadow-md); }
+        .task-card.deadline { border-left-color: var(--primary); }
+        .task-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; }
+        .task-title-badge { display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border-radius:99px; font-size:11px; font-weight:800; background:#EEF0F3; color:#64748B; }
+        .task-title-badge.deadline { background:var(--primary-light); color:var(--primary); }
+        .task-deadline { font-size:13px; color:var(--text-muted); margin-top:6px; }
+        .task-status { font-size:12px; font-weight:800; padding:6px 10px; border-radius:99px; white-space:nowrap; }
+        .task-status.pending { background:#FFF8E1; color:#946200; }
+        .task-status.submitted { background:#E6F4EA; color:#137333; }
+        .task-status.late { background:var(--danger-light); color:var(--danger); }
+        .task-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid var(--border); }
+        .task-action-btn { padding:9px 14px; border-radius:99px; font-size:12.5px; font-weight:800; }
+        .task-submit-btn { background:var(--primary); color:#fff; }
+        .task-view-btn { background:#F1F3F4; color:var(--text-main); }
+        .task-danger-btn { background:var(--danger-light); color:var(--danger); }
+        .task-file-preview-list, .task-url-preview-list { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+        .task-preview-item { display:flex; align-items:center; gap:10px; background:#F7F8FA; border:1px solid var(--border); border-radius:12px; padding:8px 10px; }
+        .task-preview-item .remove { margin-left:auto; background:transparent; color:var(--danger); padding:3px 7px; font-weight:800; }
+        .task-preview-thumb { width:44px; height:44px; border-radius:9px; overflow:hidden; flex-shrink:0; background:#E2E4E7; display:flex; align-items:center; justify-content:center; }
+        .task-preview-thumb img { width:100%; height:100%; object-fit:cover; }
+        .task-url-row { display:flex; align-items:center; gap:8px; }
+        .task-url-row input { margin:0; padding:12px 14px; }
+        .task-upload-section { margin-top:4px; }
+        .task-upload-picker { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+        .task-upload-picker button { padding:10px 14px; font-size:13px; background:#F1F3F4; color:var(--text-main); }
+        .task-upload-picker button:hover { background:#E2E4E7; }
+        .task-criteria { font-size:12px; color:var(--text-muted); line-height:1.5; margin-top:6px; }
+        .calendar-task-list { margin-top:20px; border-top:1px solid var(--border); padding-top:16px; }
+        .calendar-task-list h5 { margin:0 0 10px; color:var(--primary); font-size:13px; }
+        .calendar-task-item { border-radius:12px; padding:10px 12px; margin-bottom:8px; cursor:pointer; border-left:4px solid #94A3B8; background:#F7F8FA; }
+        .calendar-task-item.deadline-blue { border-left-color:var(--primary); }
+        .calendar-task-item.deadline-yellow { border-left-color:#F9AB00; background:#FFFDF3; }
+        .calendar-task-item.deadline-red { border-left-color:var(--danger); background:var(--danger-light); }
+        .calendar-task-item.no-deadline { border-left-color:#94A3B8; }
+        .calendar-task-name { font-size:13px; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .calendar-task-meta { font-size:11px; color:var(--text-muted); margin-top:3px; }
+        .calendar-badge { position:absolute; top:-7px; left:-7px; min-width:20px; height:20px; padding:0 5px; border-radius:99px; background:var(--danger); color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+        .task-student-row { border:1px solid var(--border); border-radius:14px; padding:13px; margin-bottom:10px; background:#FAFBFC; }
+        .task-student-row-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+        .task-student-name { font-weight:800; font-size:14px; }
+        .task-student-meta { font-size:12px; color:var(--text-muted); line-height:1.5; margin-top:4px; }
+        .task-student-row-actions { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+        .task-submission-empty { padding:18px; background:#F8F9FA; border-radius:12px; text-align:center; color:var(--text-muted); font-size:13px; }
+
     </style>
     <!-- pdf.js: dipakai untuk membuat thumbnail halaman pertama dari file PDF yang diunggah -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -950,7 +997,7 @@
         <div id="calendar-sidebar-handle" title="Buka/Tutup Kalender">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
+            </svg><span id="calendar-task-badge" class="calendar-badge hidden">0</span>
         </div>
         <div class="calendar-sidebar-inner">
             <div class="calendar-sidebar-header">
@@ -962,6 +1009,7 @@
                 <button id="btn-cal-next">&rsaquo;</button>
             </div>
             <div class="calendar-grid" id="calendar-grid"></div>
+            <div id="calendar-task-list" class="calendar-task-list"></div>
             <button class="btn-cal-today" id="btn-cal-today">Hari Ini</button>
         </div>
     </div>
@@ -1115,6 +1163,7 @@
                     <h3 style="color: var(--primary); margin-top:0;">Menu Guru</h3>
                     <div class="modal-actions center" style="flex-direction: column; gap: 12px; margin-top:20px;">
                         <button id="btn-choice-pengumuman" class="btn-buat" style="width: 100%; padding:16px;">📢 Buat Pengumuman</button>
+                        <button id="btn-choice-task" class="btn-outline" style="width: 100%; padding:16px;">📝 Buat Tugas</button>
                         <button id="btn-choice-team-generator" class="btn-outline" style="width: 100%; padding:16px;">🎲 Random Team Generator</button>
                         <button id="btn-choice-random-picker" class="btn-outline" style="width: 100%; padding:16px;">🎡 Random Picker</button>
                         <button id="btn-choice-teacher-batal" class="btn-batal" style="width: 100%; margin-top: 10px;">Tutup</button>
@@ -1255,6 +1304,101 @@
                     <span id="hint-edit" style="font-size: 13px; color: var(--text-muted);" class="hidden">(Klik 3x materi untuk edit)</span>
                 </div>
                 <div id="announcement-list"></div>
+            </div>
+
+
+            <div id="task-create-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-card">
+                    <h3 style="margin-top:0; color:var(--primary);">📝 Buat Tugas</h3>
+                    <label>Deskripsi Tugas / Perintah</label>
+                    <textarea id="input-task-description" rows="6" placeholder="Tuliskan instruksi tugas untuk siswa..."></textarea>
+                    <input type="file" id="input-task-file" class="hidden" multiple>
+                    <button type="button" id="btn-task-attach-file" class="btn-attach-file">📎 Lampirkan File</button>
+                    <p class="task-criteria">Maksimal 5 file, total 20 MB per tugas. Aturan file mengikuti lampiran materi.</p>
+                    <div id="task-file-list" class="attach-file-list hidden"></div>
+                    <div class="switch-row">
+                        <span>Ada deadline</span>
+                        <label class="switch"><input type="checkbox" id="task-deadline-toggle"><span class="switch-slider"></span></label>
+                    </div>
+                    <div id="task-deadline-fields" class="hidden">
+                        <label>Tanggal deadline</label>
+                        <input type="date" id="input-task-deadline-date">
+                        <label>Jam deadline</label>
+                        <input type="time" id="input-task-deadline-time">
+                        <p class="task-criteria">Deadline tidak boleh lebih kecil dari waktu sekarang.</p>
+                    </div>
+                    <div id="task-upload-progress" class="attach-upload-progress-wrap hidden">
+                        <span>Mengunggah file... <span id="task-upload-percent">0%</span></span>
+                        <div class="attach-upload-bar-bg"><div class="attach-upload-bar-fill" id="task-upload-bar-fill"></div></div>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="btn-batal-task" class="btn-batal">Batal</button>
+                        <button id="btn-post-task" class="btn-buat">Posting</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="task-edit-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-card">
+                    <h3 style="margin-top:0; color:var(--primary);">✏️ Edit Tugas</h3>
+                    <label>Deskripsi Tugas / Perintah</label>
+                    <textarea id="input-edit-task-description" rows="6"></textarea>
+                    <input type="file" id="input-edit-task-file" class="hidden" multiple>
+                    <button type="button" id="btn-edit-task-attach-file" class="btn-attach-file">📎 Tambah File</button>
+                    <p class="task-criteria">Maksimal 5 file, total 20 MB per tugas (file lama ikut dihitung).</p>
+                    <div id="edit-task-file-list" class="attach-file-list hidden"></div>
+                    <div class="switch-row">
+                        <span>Ada deadline</span>
+                        <label class="switch"><input type="checkbox" id="edit-task-deadline-toggle"><span class="switch-slider"></span></label>
+                    </div>
+                    <div id="edit-task-deadline-fields" class="hidden">
+                        <label>Tanggal deadline</label>
+                        <input type="date" id="input-edit-task-deadline-date">
+                        <label>Jam deadline</label>
+                        <input type="time" id="input-edit-task-deadline-time">
+                    </div>
+                    <div class="modal-actions">
+                        <button id="btn-batal-edit-task" class="btn-batal">Batal</button>
+                        <button id="btn-simpan-edit-task" class="btn-buat">Simpan</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="task-submission-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-card" style="max-width:620px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px;">
+                        <h3 id="task-submission-modal-title" style="margin:0; color:var(--primary);">Unggahan Tugas</h3>
+                        <button id="btn-close-task-submission" class="btn-batal" style="padding:8px 16px; border-radius:99px;">Tutup</button>
+                    </div>
+                    <div id="task-submission-info" style="font-size:13px; color:var(--text-muted); line-height:1.5;"></div>
+                    <div id="student-task-upload-panel" class="task-upload-section hidden">
+                        <div class="task-upload-picker">
+                            <button type="button" id="btn-student-add-file">📎 Tambah File</button>
+                            <button type="button" id="btn-student-add-url">🔗 Tambah URL</button>
+                        </div>
+                        <input type="file" id="input-student-task-file" class="hidden" multiple>
+                        <div id="student-task-file-list" class="task-file-preview-list"></div>
+                        <div id="student-task-url-list" class="task-url-preview-list"></div>
+                        <p class="task-criteria">Maksimal 5 file / 20 MB dan maksimal 5 URL.</p>
+                        <div id="student-task-progress" class="attach-upload-progress-wrap hidden">
+                            <span>Menyimpan unggahan... <span id="student-task-progress-percent">0%</span></span>
+                            <div class="attach-upload-bar-bg"><div class="attach-upload-bar-fill" id="student-task-progress-bar"></div></div>
+                        </div>
+                        <div class="modal-actions">
+                            <button id="btn-student-send-task" class="btn-buat">Kirim</button>
+                        </div>
+                    </div>
+                    <div id="student-task-viewonly-panel" class="hidden">
+                        <div id="student-task-existing-files" class="task-file-preview-list"></div>
+                        <div id="student-task-existing-urls" class="task-url-preview-list"></div>
+                    </div>
+                    <div id="teacher-task-submissions-panel" class="hidden">
+                        <div id="teacher-task-submissions-list"></div>
+                    </div>
+                    <div id="teacher-single-submission-panel" class="hidden">
+                        <div id="teacher-single-submission-content"></div>
+                    </div>
+                </div>
             </div>
 
             <div id="comment-modal-overlay" class="modal-overlay hidden">
@@ -1776,6 +1920,7 @@
             if (calendarSidebar.classList.contains('open')) {
                 calendarSidebar.classList.remove('open');
             } else {
+                refreshTaskCalendarData();
                 renderCalendar();
                 calendarSidebar.classList.add('open');
             }
@@ -1884,6 +2029,7 @@
                 announcementListener();
                 announcementListener = null;
             }
+            if(taskListener) { taskListener(); taskListener = null; }
             if(classRoomListener) {
                 classRoomListener();
                 classRoomListener = null;
@@ -3089,6 +3235,7 @@
                 
                 if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); 
                 if(!hasClass) container.innerHTML = '<p style="color:var(--text-muted);">Anda belum memiliki kelas. Klik tombol + untuk membuat atau bergabung kelas.</p>';
+                if (typeof refreshTaskCalendarData === 'function') refreshTaskCalendarData();
             });
         }
 
@@ -3113,6 +3260,8 @@
             if(confirm) {
                 await remove(ref(db, `classes/${currentViewedClassId}`));
                 await remove(ref(db, `announcements/${currentViewedClassId}`));
+                await remove(ref(db, `tasks/${currentViewedClassId}`));
+                await remove(ref(db, `taskSubmissions/${currentViewedClassId}`));
                 
                 const snap = await get(ref(db, 'invitations'));
                 if(snap.exists()) {
@@ -5290,8 +5439,383 @@
                 
                 if (bottomPanel.classList.contains('open')) updateQuickSwitchPanel(); 
                 if(!hasClass) container.innerHTML = '<p style="color:var(--text-muted);">Anda belum tergabung dalam kelas manapun.</p>';
+                if (typeof refreshTaskCalendarData === 'function') refreshTaskCalendarData();
             });
         }
+
+
+        // ======================================================================
+        // =============================== TUGAS ================================
+        // ======================================================================
+        const MAX_TASK_FILES = 5;
+        const MAX_TASK_FILE_SIZE = 20 * 1024 * 1024;
+        let taskListener = null;
+        let currentTasksCache = {};
+        let selectedTaskFiles = [];
+        let editTaskExistingFiles = [];
+        let editTaskRemovedFiles = [];
+        let editTaskNewFiles = [];
+        let currentTaskSubmissionMode = null;
+        let currentTaskIdForSubmission = null;
+        let currentTeacherSubmissionStudentId = null;
+        let taskCalendarRefreshTimer = null;
+        let taskEditClickCount = 0;
+        let taskEditClickTaskId = null;
+        let taskEditClickTimer = null;
+
+        function isTaskTeacher() { return !!(currentUserData && currentUserData.role === 'guru'); }
+        function canManageTask(data) {
+            if (!data || !isTaskTeacher()) return false;
+            if (data.senderId === currentUserId) return true;
+            return isClassOwner();
+        }
+        function taskFilesArray(data) { return data ? (data.files || (data.file ? [data.file] : [])) : []; }
+        function taskDeadlineTs(data) { return data && data.deadlineEnabled && Number(data.deadlineAt) ? Number(data.deadlineAt) : null; }
+        function taskGraceEnd(data) { const d = taskDeadlineTs(data); return d == null ? null : d + 15 * 60 * 1000; }
+        function taskCanSubmit(data, submittedAt) {
+            if (!data || isTaskTeacher()) return false;
+            const grace = taskGraceEnd(data);
+            return grace == null || correctedNow() <= grace;
+        }
+        function taskIsLate(data, submittedAt) {
+            const d = taskDeadlineTs(data);
+            return !!(d && submittedAt && Number(submittedAt) > d);
+        }
+        function formatTaskDeadline(ts) {
+            return ts ? new Date(ts).toLocaleString('id-ID', {weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'}) : 'Tidak ada deadline';
+        }
+        function getDateInputMin() {
+            const d = new Date(correctedNow());
+            const pad = n => String(n).padStart(2,'0');
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        }
+        function setTaskDeadlineMinInputs(prefix='') {
+            const date = document.getElementById(`${prefix}input-task-deadline-date`);
+            if (date) date.min = getDateInputMin();
+            const editDate = document.getElementById('input-edit-task-deadline-date');
+            if (editDate && prefix === '') editDate.min = getDateInputMin();
+        }
+        function taskQuotaFilter(newFiles, existingCount, existingSize) {
+            const accepted=[]; let count=existingCount, total=existingSize, skipped=0;
+            for (const f of newFiles) {
+                if (count >= MAX_TASK_FILES || total + f.size > MAX_TASK_FILE_SIZE) { skipped++; continue; }
+                accepted.push(f); count++; total += f.size;
+            }
+            return { accepted, skipped };
+        }
+        function taskResetCreateModal() {
+            selectedTaskFiles=[];
+            document.getElementById('input-task-description').value='';
+            document.getElementById('input-task-file').value='';
+            document.getElementById('task-file-list').innerHTML='';
+            document.getElementById('task-file-list').classList.add('hidden');
+            document.getElementById('task-deadline-toggle').checked=false;
+            document.getElementById('task-deadline-fields').classList.add('hidden');
+            const today=getDateInputMin();
+            document.getElementById('input-task-deadline-date').value=today;
+            document.getElementById('input-task-deadline-time').value='23:59';
+            setTaskDeadlineMinInputs();
+        }
+        function renderTaskSelectedFiles() {
+            const box=document.getElementById('task-file-list');
+            if (!selectedTaskFiles.length){ box.classList.add('hidden'); box.innerHTML=''; return; }
+            box.classList.remove('hidden');
+            box.innerHTML=selectedTaskFiles.map((f,i)=>`<div class="attach-file-item"><span class="attach-file-item-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span><span class="attach-file-item-size">${formatFileSize(f.size)}</span><button class="attach-file-item-remove" onclick="removeSelectedTaskFile(${i})">×</button></div>`).join('');
+        }
+        window.removeSelectedTaskFile=function(i){ selectedTaskFiles.splice(i,1); renderTaskSelectedFiles(); };
+
+        function toggleDeadlineFields(idToggle,idFields){ document.getElementById(idToggle).addEventListener('change',e=>document.getElementById(idFields).classList.toggle('hidden',!e.target.checked)); }
+        toggleDeadlineFields('task-deadline-toggle','task-deadline-fields');
+        toggleDeadlineFields('edit-task-deadline-toggle','edit-task-deadline-fields');
+
+        document.getElementById('btn-show-announcement-modal').addEventListener('click',()=>{});
+        document.getElementById('btn-choice-task').addEventListener('click',()=>{
+            document.getElementById('teacher-fab-choice-modal').classList.add('hidden');
+            taskResetCreateModal();
+            document.getElementById('task-create-modal-overlay').classList.remove('hidden');
+        });
+        document.getElementById('btn-task-attach-file').addEventListener('click',()=>document.getElementById('input-task-file').click());
+        document.getElementById('input-task-file').addEventListener('change',e=>{
+            const files=Array.from(e.target.files||[]); e.target.value='';
+            const q=taskQuotaFilter(files,selectedTaskFiles.length,sumFileSizes(selectedTaskFiles));
+            selectedTaskFiles.push(...q.accepted); renderTaskSelectedFiles();
+            if(q.skipped) customAlert(`${q.skipped} file dilewati karena batas maksimal 5 file atau total 20 MB telah tercapai.`);
+        });
+        document.getElementById('btn-batal-task').addEventListener('click',()=>document.getElementById('task-create-modal-overlay').classList.add('hidden'));
+
+        async function uploadTaskFiles(files, taskId, onProgress) {
+            const out=[]; let done=0;
+            for(const file of files){
+                const fd=await processAndUploadAnnouncementFile(file,currentViewedClassId,taskId,p=>{ onProgress(((done+p)/files.length)*100); });
+                out.push(fd); done++;
+            }
+            return out;
+        }
+
+        function buildTaskDeadline(dateVal,timeVal){
+            if(!dateVal || !timeVal) return null;
+            const [y,m,d]=dateVal.split('-').map(Number), [hh,mm]=timeVal.split(':').map(Number);
+            return new Date(y,m-1,d,hh,mm,0,0).getTime();
+        }
+        function validateTaskDeadline(enabled,dateVal,timeVal){
+            if(!enabled) return null;
+            const ts=buildTaskDeadline(dateVal,timeVal); if(!ts || ts < correctedNow()) throw new Error('Deadline tidak boleh berada di masa lalu.');
+            return ts;
+        }
+        document.getElementById('btn-post-task').addEventListener('click',async()=>{
+            const text=document.getElementById('input-task-description').value.trim();
+            if(!text) return customAlert('Deskripsi tugas tidak boleh kosong.');
+            if(!isTaskTeacher() || !(isClassOwner() || isClassContributor())) return customAlert('Anda tidak memiliki izin membuat tugas.');
+            const enabled=document.getElementById('task-deadline-toggle').checked;
+            let deadlineAt=null;
+            try{ deadlineAt=validateTaskDeadline(enabled,document.getElementById('input-task-deadline-date').value,document.getElementById('input-task-deadline-time').value); }catch(e){ return customAlert(e.message); }
+            const btn=document.getElementById('btn-post-task'); btn.disabled=true; btn.innerText='Posting...';
+            let taskId=null, uploaded=[];
+            try{
+                const taskRef=push(ref(db,`tasks/${currentViewedClassId}`)); taskId=taskRef.key;
+                if(selectedTaskFiles.length){ document.getElementById('task-upload-progress').classList.remove('hidden'); uploaded=await uploadTaskFiles(selectedTaskFiles,taskId,p=>{document.getElementById('task-upload-percent').innerText=`${Math.round(p)}%`;document.getElementById('task-upload-bar-fill').style.width=`${p}%`;}); }
+                await set(taskRef,{ text, senderId:currentUserId, senderName:currentUserData.username, senderRole:'guru', timestamp:correctedNow(), deadlineEnabled:enabled, deadlineAt:deadlineAt, files:uploaded.length?uploaded:null });
+                document.getElementById('task-create-modal-overlay').classList.add('hidden'); taskResetCreateModal(); refreshTaskCalendarData();
+            }catch(e){
+                console.error(e); if(uploaded.length) await deleteAnnouncementFilesFromStorj(uploaded).catch(()=>{});
+                customAlert('Gagal membuat tugas: '+(e.message||'Terjadi kesalahan.'));
+            }finally{ document.getElementById('task-upload-progress').classList.add('hidden'); btn.disabled=false; btn.innerText='Posting'; }
+        });
+
+        function renderTaskCard(id,data,submission){
+            const deadline=taskDeadlineTs(data); const teacher=isTaskTeacher();
+            const files=taskFilesArray(data);
+            const status=teacher?'':(submission ? (taskIsLate(data,submission.submittedAt)?'Terlambat':'Sudah dikirim') : ((deadline&&correctedNow()>taskGraceEnd(data))?'Terkunci':'Belum dikirim'));
+            const statusClass=status==='Sudah dikirim'?'submitted':status==='Terlambat'?'late':status==='Terkunci'?'late':'pending';
+            const canEdit=canManageTask(data);
+            const body=linkifyText(String(data.text||''));
+            const fileHtml=files.length?`<div style="margin-top:12px;">${files.map(fd=>`<div style="font-size:12.5px;color:var(--text-muted);margin-top:5px;">📎 ${escapeHtml(fd.name||'File')}</div>`).join('')}</div>`:'';
+            let actions='';
+            if(!teacher){
+                if(submission){ actions+=`<button class="task-action-btn task-view-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','view')">👁️ Lihat unggahan</button>`; if(taskCanSubmit(data,submission.submittedAt)) actions+=`<button class="task-action-btn task-submit-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','edit')">✏️ Ubah unggahan</button>`; }
+                else if(taskCanSubmit(data,null)) actions+=`<button class="task-action-btn task-submit-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','new')">➕ Tambahkan unggahan</button>`;
+                else actions+=`<span class="task-status late">🔒 Pengumpulan ditutup</span>`;
+            } else {
+                actions=`<button class="task-action-btn task-view-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','teacher')">👥 Lihat pengumpulan</button>`;
+            }
+            const title=`${teacher?'':'📝 '}<span class="task-title-badge ${deadline?'deadline':''}">📝 TUGAS${deadline?' • DEADLINE':''}</span>`;
+            const click=teacher?`onclick="handleTaskClick('${id}')" style="cursor:pointer;"`:'';
+            return `<div class="task-card ${deadline?'deadline':''}" data-task-id="${id}" ${click}><div class="task-card-header"><div>${title}<div class="announcement-time" style="margin-top:8px;"><strong>${escapeHtml(data.senderName||'Guru')}</strong> • ${new Date(data.timestamp||Date.now()).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>${!teacher?`<span class="task-status ${statusClass}">${escapeHtml(status)}</span>`:''}</div><div class="announcement-text">${body}</div>${deadline?`<div class="task-deadline">⏰ Deadline: <strong>${formatTaskDeadline(deadline)}</strong><br><span style="font-size:11.5px;">Toleransi terlambat maksimal 15 menit setelah deadline.</span></div>`:'<div class="task-deadline">◻️ Tidak ada deadline</div>'}${fileHtml}<div class="task-actions">${actions}</div></div>`;
+        }
+
+        window.openTaskSubmission=async function(taskId,mode){
+            const task=currentTasksCache[taskId]; if(!task) return;
+            currentTaskIdForSubmission=taskId; currentTaskSubmissionMode=mode; currentTeacherSubmissionStudentId=null;
+            const overlay=document.getElementById('task-submission-modal-overlay'); overlay.classList.remove('hidden');
+            document.getElementById('task-submission-modal-title').innerText=mode==='teacher'?'Pengumpulan Tugas':mode==='view'?'Unggahan Tugas':'Unggah Tugas';
+            document.getElementById('task-submission-info').innerText=`${task.senderName||'Guru'} • ${task.deadlineEnabled?`Deadline ${formatTaskDeadline(task.deadlineAt)}`:'Tanpa deadline'}`;
+            ['student-task-upload-panel','student-task-viewonly-panel','teacher-task-submissions-panel','teacher-single-submission-panel'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+            if(mode==='teacher'){ await renderTeacherSubmissions(taskId); return; }
+            const snap=await get(ref(db,`taskSubmissions/${currentViewedClassId}/${taskId}/${currentUserId}`));
+            const sub=snap.exists()?snap.val():null;
+            renderStudentSubmissionPanel(taskId,task,sub,mode);
+        };
+        function resetStudentDraft(){ window.currentTaskDraftFiles=[]; window.currentTaskDraftUrls=[]; }
+        function renderStudentSubmissionPanel(taskId,task,sub,mode){
+            if(mode==='view' && sub){
+                document.getElementById('student-task-viewonly-panel').classList.remove('hidden');
+                renderExistingSubmissionReadOnly(sub); return;
+            }
+            if(!taskCanSubmit(task,sub&&sub.submittedAt)){ document.getElementById('student-task-viewonly-panel').classList.remove('hidden'); renderExistingSubmissionReadOnly(sub||{locked:true}); return; }
+            document.getElementById('student-task-upload-panel').classList.remove('hidden');
+            resetStudentDraft();
+            if(sub){ window.currentTaskDraftFiles=(sub.files||[]).slice(); window.currentTaskDraftUrls=(sub.urls||[]).slice(); }
+            renderStudentDrafts();
+        }
+        function renderExistingSubmissionReadOnly(sub){
+            document.getElementById('student-task-existing-files').innerHTML=(sub&&sub.files||[]).map(fd=>`<div class="task-preview-item"><div class="task-preview-thumb" id="ro-thumb-${escapeHtml(fd.key||fd.name)}"></div><div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(fd.name||'File')}</div><div style="font-size:11px;color:var(--text-muted);">${formatFileSize(fd.size)}</div></div></div>`).join('');
+            document.getElementById('student-task-existing-urls').innerHTML=(sub&&sub.urls||[]).map(u=>`<div class="task-preview-item"><div style="font-size:18px;">🔗</div><a href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer" class="msg-link">${escapeHtml(u)}</a></div>`).join('');
+            if(!sub || sub.locked) document.getElementById('task-submission-info').innerText += ' • Pengumpulan sudah ditutup.';
+            (sub&&sub.files||[]).forEach(async(fd)=>{ try{ const key=getObjectKeyOf(fd,'key','url'); const thumb=getObjectKeyOf(fd,'thumbKey','thumbUrl'); const u=thumb?await getPresignedGetUrl(thumb,21600):((fd.type||'').startsWith('image/')&&key?await getPresignedGetUrl(key,21600):null); const el=document.getElementById(`ro-thumb-${CSS.escape(fd.key||fd.name)}`); if(el) el.innerHTML=u?`<img src="${u}">`:`<div style="font-size:20px;">📄</div>`; }catch(e){} });
+        }
+        function renderStudentDrafts(){
+            const files=window.currentTaskDraftFiles||[], urls=window.currentTaskDraftUrls||[];
+            document.getElementById('student-task-file-list').innerHTML=files.map((fd,i)=>`<div class="task-preview-item"><div class="task-preview-thumb" id="draft-thumb-${i}"></div><div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(fd.name||'File')}</div><div style="font-size:11px;color:var(--text-muted);">${formatFileSize(fd.size||0)}</div></div><button class="remove" onclick="removeTaskDraftFile(${i})">×</button></div>`).join('');
+            document.getElementById('student-task-url-list').innerHTML=urls.map((u,i)=>`<div class="task-preview-item"><div style="font-size:18px;">🔗</div><a href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer" class="msg-link" style="flex:1;">${escapeHtml(u)}</a><button class="remove" onclick="removeTaskDraftUrl(${i})">×</button></div>`).join('');
+            files.forEach(async(fd,i)=>{ if(!fd || !fd.name) return; try{const key=getObjectKeyOf(fd,'key','url'), thumb=getObjectKeyOf(fd,'thumbKey','thumbUrl'); const u=thumb?await getPresignedGetUrl(thumb,21600):((fd.type||'').startsWith('image/')&&key?await getPresignedGetUrl(key,21600):null); const el=document.getElementById('draft-thumb-'+i); if(el) el.innerHTML=u?`<img src="${u}">`:`<div style="font-size:20px;">📄</div>`;}catch(e){} });
+        }
+        window.removeTaskDraftFile=function(i){ window.currentTaskDraftFiles.splice(i,1); renderStudentDrafts(); };
+        window.removeTaskDraftUrl=function(i){ window.currentTaskDraftUrls.splice(i,1); renderStudentDrafts(); };
+        document.getElementById('btn-student-add-file').addEventListener('click',()=>document.getElementById('input-student-task-file').click());
+        document.getElementById('input-student-task-file').addEventListener('change',e=>{
+            const files=Array.from(e.target.files||[]); e.target.value=''; const q=taskQuotaFilter(files,(window.currentTaskDraftFiles||[]).length,sumFileSizes((window.currentTaskDraftFiles||[]).filter(f=>f instanceof File)));
+            // existing metadata may already have sizes; calculate safely
+            let count=window.currentTaskDraftFiles.length,total=sumFileSizes(window.currentTaskDraftFiles); const accepted=[]; let skipped=0;
+            for(const f of files){ if(count>=MAX_TASK_FILES || total+f.size>MAX_TASK_FILE_SIZE){skipped++;continue;} accepted.push(f);count++;total+=f.size; }
+            window.currentTaskDraftFiles.push(...accepted); renderStudentDrafts(); if(skipped) customAlert(`${skipped} file dilewati karena batas maksimal 5 file / 20 MB.`);
+        });
+        document.getElementById('btn-student-add-url').addEventListener('click',async()=>{
+            if((window.currentTaskDraftUrls||[]).length>=5) return customAlert('Maksimal 5 URL.');
+            const val=prompt('Masukkan URL (http/https):','https://');
+            if(val===null) return; const u=val.trim();
+            try{const parsed=new URL(u); if(!/^https?:$/.test(parsed.protocol)) throw 0;}catch(e){return customAlert('URL tidak valid. Gunakan http:// atau https://');}
+            window.currentTaskDraftUrls.push(u); renderStudentDrafts();
+        });
+        document.getElementById('btn-close-task-submission').addEventListener('click',()=>{document.getElementById('task-submission-modal-overlay').classList.add('hidden');currentTaskIdForSubmission=null;});
+        document.getElementById('btn-student-send-task').addEventListener('click',async()=>{
+            const task=currentTasksCache[currentTaskIdForSubmission]; if(!task) return;
+            const files=window.currentTaskDraftFiles||[], urls=window.currentTaskDraftUrls||[];
+            if(!files.length && !urls.length) return customAlert('Tambahkan minimal satu file atau URL.');
+            if(!taskCanSubmit(task,null)) return customAlert('Pengumpulan sudah ditutup.');
+            const btn=document.getElementById('btn-student-send-task');btn.disabled=true;btn.innerText='Mengirim...';let newly=[];
+            try{
+                const oldSnap=await get(ref(db,`taskSubmissions/${currentViewedClassId}/${currentTaskIdForSubmission}/${currentUserId}`));
+                const old=oldSnap.exists()?oldSnap.val():null;
+                newly=files.filter(f=>f instanceof File);
+                const uploaded=newly.length?await uploadTaskFiles(newly,currentTaskIdForSubmission,p=>{document.getElementById('student-task-progress').classList.remove('hidden');document.getElementById('student-task-progress-percent').innerText=`${Math.round(p)}%`;document.getElementById('student-task-progress-bar').style.width=`${p}%`;}):[];
+                const keepExisting=files.filter(f=>!(f instanceof File));
+                const oldFiles=(old&&old.files)||[];
+                const finalFiles=[...keepExisting,...uploaded];
+                if(finalFiles.length>MAX_TASK_FILES||sumFileSizes(finalFiles)>MAX_TASK_FILE_SIZE) throw new Error('Kuota unggahan melebihi batas.');
+                await set(ref(db,`taskSubmissions/${currentViewedClassId}/${currentTaskIdForSubmission}/${currentUserId}`),{studentId:currentUserId,studentName:currentUserData.username,submittedAt:correctedNow(),files:finalFiles.length?finalFiles:null,urls:urls.length?urls:null});
+                const retainedKeys=new Set(finalFiles.map(f=>getObjectKeyOf(f,'key','url')).filter(Boolean));
+                const removedOld=oldFiles.filter(f=>{const k=getObjectKeyOf(f,'key','url'); return k && !retainedKeys.has(k);});
+                if(removedOld.length) deleteAnnouncementFilesFromStorj(removedOld);
+                document.getElementById('task-submission-modal-overlay').classList.add('hidden'); refreshTaskCalendarData();
+            }catch(e){
+                console.error(e);
+                if(newly.length) { try { /* uploaded objects cannot be identified if the RTDB write failed midway */ } catch(_) {} }
+                customAlert('Gagal mengirim tugas: '+(e.message||'Terjadi kesalahan.'));
+            }
+            finally{btn.disabled=false;btn.innerText='Kirim';document.getElementById('student-task-progress').classList.add('hidden');}
+        });
+
+        async function renderTeacherSubmissions(taskId){
+            document.getElementById('teacher-task-submissions-panel').classList.remove('hidden');
+            const box=document.getElementById('teacher-task-submissions-list'); const task=currentTasksCache[taskId];
+            const snap=await get(ref(db,`taskSubmissions/${currentViewedClassId}/${taskId}`)); const subs=snap.exists()?snap.val():{};
+            const students=currentClassData&&currentClassData.students?currentClassData.students:{};
+            const entries=Object.keys(students).map(uid=>({uid,user:students[uid],sub:subs[uid]||null}));
+            if(!entries.length){box.innerHTML='<div class="task-submission-empty">Belum ada siswa di kelas ini.</div>';return;}
+            box.innerHTML=entries.map(e=>{
+                const sub=e.sub, late=sub?taskIsLate(task,sub.submittedAt):false, submitted=sub?new Date(sub.submittedAt).toLocaleString('id-ID',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'Belum mengumpulkan';
+                const badge=sub?`<span class="task-status ${late?'late':'submitted'}">${late?'Terlambat':'Tepat waktu'}</span>`:'<span class="task-status pending">Belum dikumpulkan</span>';
+                return `<div class="task-student-row"><div class="task-student-row-header"><div><div class="task-student-name">${escapeHtml(e.user.username||e.user.name||'Siswa')}</div><div class="task-student-meta">${sub?`Dikirim ${submitted}`:'Belum ada pengumpulan'}${sub&&late?' • melewati deadline':''}</div></div>${badge}</div>${sub?`<div class="task-student-row-actions"><button class="task-action-btn task-view-btn" onclick="openTeacherSingleSubmission('${taskId}','${e.uid}')">👁️ Lihat pekerjaan</button></div>`:''}</div>`;
+            }).join('');
+        }
+        window.openTeacherSingleSubmission=async function(taskId,uid){
+            const task=currentTasksCache[taskId]; const snap=await get(ref(db,`taskSubmissions/${currentViewedClassId}/${taskId}/${uid}`)); if(!snap.exists()) return;
+            const sub=snap.val(); currentTeacherSubmissionStudentId=uid;
+            document.getElementById('teacher-task-submissions-panel').classList.add('hidden'); document.getElementById('teacher-single-submission-panel').classList.remove('hidden');
+            document.getElementById('teacher-single-submission-content').innerHTML=`<div class="task-student-name">${escapeHtml(sub.studentName||'Siswa')}</div><div class="task-student-meta">Dikirim ${new Date(sub.submittedAt).toLocaleString('id-ID',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})} • ${taskIsLate(task,sub.submittedAt)?'Terlambat':'Tepat waktu'}</div><div class="task-file-preview-list" id="teacher-sub-files"></div><div class="task-url-preview-list" id="teacher-sub-urls"></div><div class="modal-actions"><button class="btn-batal" onclick="backToTeacherSubmissions()">Kembali</button></div>`;
+            document.getElementById('teacher-sub-files').innerHTML=(sub.files||[]).map((fd,i)=>`<div class="task-preview-item"><div class="task-preview-thumb" id="teach-thumb-${i}"></div><div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:700;">${escapeHtml(fd.name||'File')}</div><div style="font-size:11px;color:var(--text-muted);">${formatFileSize(fd.size)}</div></div><button class="task-action-btn task-view-btn" onclick="openFileAttachmentByKey('${escapeForJsTemplate(getObjectKeyOf(fd,'key','url')||'')}','${escapeForJsTemplate(fd.type||'')}','${escapeForJsTemplate(fd.name||'File')}')">Buka</button></div>`).join('');
+            document.getElementById('teacher-sub-urls').innerHTML=(sub.urls||[]).map(u=>`<div class="task-preview-item"><div>🔗</div><a class="msg-link" href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer">${escapeHtml(u)}</a></div>`).join('');
+            (sub.files||[]).forEach(async(fd,i)=>{try{const key=getObjectKeyOf(fd,'key','url'),thumb=getObjectKeyOf(fd,'thumbKey','thumbUrl');const u=thumb?await getPresignedGetUrl(thumb,21600):((fd.type||'').startsWith('image/')&&key?await getPresignedGetUrl(key,21600):null);const el=document.getElementById('teach-thumb-'+i);if(el)el.innerHTML=u?`<img src="${u}">`:`<div style="font-size:20px;">📄</div>`;}catch(e){}});
+        };
+        window.backToTeacherSubmissions=function(){ if(currentTaskIdForSubmission) openTaskSubmission(currentTaskIdForSubmission,'teacher'); };
+
+        function canEditTask(data){ return !!(isTaskTeacher() && data && (data.senderId===currentUserId || isClassOwner())); }
+        window.handleTaskClick=function(id){
+            const data=currentTasksCache[id]; if(!data) return;
+            if(taskEditClickTaskId !== id){ taskEditClickTaskId=id; taskEditClickCount=0; clearTimeout(taskEditClickTimer); }
+            taskEditClickCount++;
+            if(taskEditClickCount===1){
+                taskEditClickTimer=setTimeout(()=>{ taskEditClickCount=0; taskEditClickTaskId=null; openTaskSubmission(id,'teacher'); },650);
+            } else if(taskEditClickCount===3 && canEditTask(data)){
+                clearTimeout(taskEditClickTimer); taskEditClickCount=0; taskEditClickTaskId=null; openEditTaskModal(id);
+            }
+        };
+        function openEditTaskModal(id){
+            const data=currentTasksCache[id]; if(!canEditTask(data)) return;
+            window.editingTaskId=id; editTaskExistingFiles=taskFilesArray(data).slice(); editTaskRemovedFiles=[]; editTaskNewFiles=[];
+            document.getElementById('input-edit-task-description').value=data.text||''; document.getElementById('edit-task-deadline-toggle').checked=!!data.deadlineEnabled; document.getElementById('edit-task-deadline-fields').classList.toggle('hidden',!data.deadlineEnabled);
+            if(data.deadlineAt){const d=new Date(data.deadlineAt),pad=n=>String(n).padStart(2,'0');document.getElementById('input-edit-task-deadline-date').value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;document.getElementById('input-edit-task-deadline-time').value=`${pad(d.getHours())}:${pad(d.getMinutes())}`;} else {document.getElementById('input-edit-task-deadline-date').value=getDateInputMin();document.getElementById('input-edit-task-deadline-time').value='23:59';}
+            renderEditTaskFiles(); document.getElementById('task-submission-modal-overlay').classList.add('hidden'); document.getElementById('task-edit-modal-overlay').classList.remove('hidden');
+        }
+        function renderEditTaskFiles(){
+            const box=document.getElementById('edit-task-file-list'), total=editTaskExistingFiles.length+editTaskNewFiles.length;
+            if(!total){box.classList.add('hidden');box.innerHTML='';return;} box.classList.remove('hidden');
+            box.innerHTML=[...editTaskExistingFiles.map((fd,i)=>`<div class="attach-file-item is-existing"><span class="attach-file-item-name">${escapeHtml(fd.name||'File')}</span><span class="attach-file-item-size">${formatFileSize(fd.size)}</span><button class="attach-file-item-remove" onclick="removeEditTaskExistingFile(${i})">×</button></div>`),...editTaskNewFiles.map((f,i)=>`<div class="attach-file-item"><span class="attach-file-item-name">${escapeHtml(f.name)}</span><span class="attach-file-item-size">${formatFileSize(f.size)}</span><button class="attach-file-item-remove" onclick="removeEditTaskNewFile(${i})">×</button></div>`)].join('');
+        }
+        window.removeEditTaskExistingFile=function(i){editTaskRemovedFiles.push(editTaskExistingFiles[i]);editTaskExistingFiles.splice(i,1);renderEditTaskFiles();};
+        window.removeEditTaskNewFile=function(i){editTaskNewFiles.splice(i,1);renderEditTaskFiles();};
+        document.getElementById('btn-edit-task-attach-file').addEventListener('click',()=>document.getElementById('input-edit-task-file').click());
+        document.getElementById('input-edit-task-file').addEventListener('change',e=>{const files=Array.from(e.target.files||[]);e.target.value='';const q=taskQuotaFilter(files,editTaskExistingFiles.length+editTaskNewFiles.length,sumFileSizes(editTaskExistingFiles)+sumFileSizes(editTaskNewFiles));editTaskNewFiles.push(...q.accepted);renderEditTaskFiles();if(q.skipped)customAlert(`${q.skipped} file dilewati karena batas maksimal 5 file / 20 MB.`);});
+        document.getElementById('btn-batal-edit-task').addEventListener('click',()=>document.getElementById('task-edit-modal-overlay').classList.add('hidden'));
+        document.getElementById('btn-simpan-edit-task').addEventListener('click',async()=>{
+            const id=window.editingTaskId,data=currentTasksCache[id];if(!canEditTask(data))return;
+            const text=document.getElementById('input-edit-task-description').value.trim();if(!text)return customAlert('Deskripsi tugas tidak boleh kosong.');
+            let deadlineAt=null;try{deadlineAt=validateTaskDeadline(document.getElementById('edit-task-deadline-toggle').checked,document.getElementById('input-edit-task-deadline-date').value,document.getElementById('input-edit-task-deadline-time').value);}catch(e){return customAlert(e.message);}
+            const btn=document.getElementById('btn-simpan-edit-task');btn.disabled=true;btn.innerText='Menyimpan...';let uploaded=[];
+            try{if(editTaskNewFiles.length)uploaded=await uploadTaskFiles(editTaskNewFiles,id,()=>{});const finalFiles=[...editTaskExistingFiles,...uploaded];await update(ref(db,`tasks/${currentViewedClassId}/${id}`),{text,deadlineEnabled:document.getElementById('edit-task-deadline-toggle').checked,deadlineAt,files:finalFiles.length?finalFiles:null});if(editTaskRemovedFiles.length)deleteAnnouncementFilesFromStorj(editTaskRemovedFiles);document.getElementById('task-edit-modal-overlay').classList.add('hidden');refreshTaskCalendarData();}catch(e){if(uploaded.length)deleteAnnouncementFilesFromStorj(uploaded);customAlert('Gagal menyimpan tugas: '+e.message);}finally{btn.disabled=false;btn.innerText='Simpan';}
+        });
+
+        async function renderClassTasks(classId,existingAnnouncements=[]){
+            const taskBox=document.getElementById('task-list'); if(!taskBox)return;
+            const snap=await get(ref(db,`tasks/${classId}`)); currentTasksCache={};
+            const tasks=[]; if(snap.exists()) snap.forEach(c=>{const d={id:c.key,...c.val()};currentTasksCache[d.id]=d;tasks.push(d);});
+            tasks.sort((a,b)=>{const ad=taskDeadlineTs(a),bd=taskDeadlineTs(b);if(ad&&bd)return ad-bd;if(ad)return -1;if(bd)return 1;return (b.timestamp||0)-(a.timestamp||0);});
+            let subs={}; if(!isTaskTeacher() && tasks.length){const vals=await Promise.all(tasks.map(t=>get(ref(db,`taskSubmissions/${classId}/${t.id}/${currentUserId}`))));tasks.forEach((t,i)=>{subs[t.id]=vals[i].exists()?vals[i].val():null;});}
+            taskBox.innerHTML=tasks.length?tasks.map(t=>renderTaskCard(t.id,t,subs[t.id])).join(''):'<p style="color:var(--text-muted); text-align:center; padding:10px 0 25px;">Belum ada tugas di kelas ini.</p>';
+        }
+        function setupTaskListener(classId){
+            if(taskListener) taskListener();
+            taskListener=onValue(ref(db,`tasks/${classId}`),()=>{renderClassTasks(classId);refreshTaskCalendarData();});
+        }
+        // Wrap existing room setup by attaching task rendering/listener after class id is established.
+        const _setupClassRoomOriginal = setupClassRoom;
+        setupClassRoom = function(classId){ _setupClassRoomOriginal(classId); setTimeout(()=>{setupTaskListener(classId);},0); };
+
+        async function refreshTaskCalendarData(){
+            if(!currentUserId || !currentUserData || !window.cachedClasses) return;
+            try{
+                const rows=[];
+                for(const c of window.cachedClasses){
+                    const ts=await get(ref(db,`tasks/${c.id}`)); if(!ts.exists()) continue;
+                    for(const child of Object.entries(ts.val()||{})){ const [id,data]=child; if(!data || !data.timestamp) continue; let submitted=false; if(currentUserData.role==='siswa'){const ss=await get(ref(db,`taskSubmissions/${c.id}/${id}/${currentUserId}`));submitted=ss.exists();} rows.push({classId:c.id,className:c.name||'',teacher:c.teacher||'',id,data,submitted}); }
+                }
+                window.cachedTaskCalendarRows=rows; renderCalendarTaskList(rows); updateTaskCalendarBadge(rows);
+            }catch(e){console.error('refresh task calendar',e);}
+        }
+        function calendarTaskTone(row){
+            const d=taskDeadlineTs(row.data); if(!d) return 'no-deadline';
+            if(isTaskTeacher()) return 'deadline-blue';
+            const diff=d-correctedNow();
+            if(diff<=2*24*60*60*1000) return 'deadline-red';
+            if(diff<=7*24*60*60*1000) return 'deadline-yellow';
+            return 'deadline-blue';
+        }
+        function renderCalendarTaskList(rows){
+            const box=document.getElementById('calendar-task-list'); if(!box)return;
+            const visible=rows.filter(r=>!(currentUserData&&currentUserData.role==='siswa'&&r.submitted));
+            visible.sort((a,b)=>{const ad=taskDeadlineTs(a.data),bd=taskDeadlineTs(b.data);if(ad&&bd)return ad-bd;if(ad)return -1;if(bd)return 1;return (a.data.timestamp||0)-(b.data.timestamp||0);});
+            if(!visible.length){box.innerHTML='<h5>Tugas</h5><div style="font-size:12px;color:var(--text-muted);">Tidak ada tugas yang perlu dikumpulkan.</div>';return;}
+            box.innerHTML='<h5>Tugas yang perlu dikumpulkan</h5>'+visible.map(r=>{const d=taskDeadlineTs(r.data);return `<div class="calendar-task-item ${calendarTaskTone(r)}" onclick="jumpToTaskFromCalendar('${r.classId}','${r.id}')"><div class="calendar-task-name">${escapeHtml(r.data.text||'Tugas')}</div><div class="calendar-task-meta">${escapeHtml(r.className)} • ${d?formatTaskDeadline(d):'Tanpa deadline'}</div></div>`;}).join('');
+        }
+        function updateTaskCalendarBadge(rows){
+            const badge=document.getElementById('calendar-task-badge');if(!badge)return;
+            let count=0;for(const r of rows){if(currentUserData.role==='guru'){const d=taskDeadlineTs(r.data);if(d&&correctedNow()>d)count++;}else{if(!r.submitted){const d=taskDeadlineTs(r.data);if(!d||correctedNow()>d-2*24*60*60*1000)count++;}}}
+            if(count){badge.innerText=count>99?'99+':String(count);badge.classList.remove('hidden');}else badge.classList.add('hidden');
+        }
+        window.jumpToTaskFromCalendar=function(classId,taskId){
+            calendarSidebar.classList.remove('open');
+            if(currentViewedClassId===classId){setTimeout(()=>document.querySelector(`[data-task-id="${taskId}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),180);}
+            else{bottomPanel.classList.remove('open'); masukKelas(classId); setTimeout(()=>{const tryJump=()=>{const el=document.querySelector(`[data-task-id="${taskId}"]`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.boxShadow='0 0 0 3px var(--accent)';setTimeout(()=>el.style.boxShadow='',1500);}else setTimeout(tryJump,250);};tryJump();},450);}
+        };
+        const _calendarRenderOriginal=renderCalendar;
+        renderCalendar=function(){_calendarRenderOriginal();renderCalendarTaskList(window.cachedTaskCalendarRows||[]);};
+        // Refresh task agenda after account/class cache changes and periodically for deadline notifications.
+        if(taskCalendarRefreshTimer) clearInterval(taskCalendarRefreshTimer);
+        taskCalendarRefreshTimer=setInterval(refreshTaskCalendarData,60000);
+        setTimeout(refreshTaskCalendarData,1000);
+
+        // Sisipkan container tugas tepat sebelum forum pengumuman.
+        const taskForumInsert = () => {
+            const list=document.getElementById('announcement-list'); if(!list || document.getElementById('task-list')) return;
+            const wrap=document.createElement('div'); wrap.id='task-list'; wrap.style.marginBottom='20px'; list.parentNode.insertBefore(wrap,list);
+        };
+        taskForumInsert();
+        new MutationObserver(taskForumInsert).observe(document.getElementById('announcement-list').parentElement,{childList:true});
+
+        // Saat kelas dihapus, hapus juga tugas & pengumpulan.
+        const _deleteClassBtnHandlerInstalled = !!document.getElementById('btn-hapus-kelas');
+
+
     </script>
 </body>
 </html>
