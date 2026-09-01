@@ -10,7 +10,6 @@
         body { margin: 0; background-color: var(--bg-color); color: var(--text-main); }
         .container { max-width: 1000px; margin: 40px auto; padding: 20px; }
         
-        /* Tambahan style untuk halaman login center */
         .login-container { max-width: 400px; margin: 100px auto; }
         
         header { background: var(--card-bg); padding: 15px 20px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-radius: 8px;}
@@ -25,9 +24,12 @@
         button.icon-btn { padding: 6px 10px; font-size: 14px; margin-left: 5px; background-color: #f1f3f4; color: #333; border: 1px solid var(--border); border-radius: 4px; }
         button.icon-btn:hover { background-color: #e8eaed; }
         
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        /* Modifikasi untuk Wrapper Tabel Responsif */
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; background: white; white-space: nowrap; /* Mencegah teks tabel turun ke bawah jika layar sempit */ }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
         th { background-color: #f1f3f4; font-weight: bold; }
+        
         .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
         .badge.guru { background: #e8f0fe; color: var(--primary); }
         .badge.siswa { background: #e6f4ea; color: #34a853; }
@@ -41,8 +43,38 @@
         .tab-content.active { display: block; }
         .search-bar { padding: 12px; margin-bottom: 15px; width: 100%; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
         
-        /* Utility untuk menyembunyikan elemen */
         .hidden { display: none !important; }
+
+        /* Class baru untuk Form Input */
+        .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+
+        /* Media Query khusus untuk HP (Mobile Responsiveness) */
+        @media screen and (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr; /* Mengubah 4 kolom menjadi 1 kolom tumpuk ke bawah */
+                gap: 5px;
+            }
+            .container {
+                margin: 20px auto;
+                padding: 10px;
+            }
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            .login-container {
+                margin: 50px auto;
+                padding: 15px;
+            }
+            .tab-buttons {
+                flex-wrap: wrap; /* Agar tombol tab rapi jika layarnya sangat sempit */
+            }
+            .tab-btn {
+                flex: 1; /* Membuat tombol tab membagi ruang sama rata */
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -68,7 +100,7 @@
 
         <div class="form-box">
             <h3>Buat Akun Baru</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+            <div class="form-grid">
                 <div>
                     <label>Username / Nama</label>
                     <input type="text" id="new-username" placeholder="Nama Lengkap">
@@ -102,47 +134,49 @@
 
         <div id="tab-siswa" class="tab-content active">
             <input type="text" id="search-siswa" class="search-bar" placeholder="🔍 Ketik username siswa untuk mencari...">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Password (Database)</th>
-                        <th style="text-align: right;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="table-siswa">
-                    <tr><td colspan="5" style="text-align: center;">Memuat data...</td></tr>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Password (Database)</th>
+                            <th style="text-align: right;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-siswa">
+                        <tr><td colspan="5" style="text-align: center;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div id="tab-guru" class="tab-content">
             <input type="text" id="search-guru" class="search-bar" placeholder="🔍 Ketik username guru untuk mencari...">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Password (Database)</th>
-                        <th style="text-align: right;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="table-guru">
-                    <tr><td colspan="5" style="text-align: center;">Memuat data...</td></tr>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Password (Database)</th>
+                            <th style="text-align: right;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-guru">
+                        <tr><td colspan="5" style="text-align: center;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // Tambahan import: onAuthStateChanged
         import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword, deleteUser as deleteAuthUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        // Tambahan import: get (untuk membaca role sekali saat login)
         import { getDatabase, ref as dbRef, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -159,14 +193,11 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         
-        // Main Auth untuk sesi Admin (Guru)
         const mainAuth = getAuth(app); 
         
-        // Secondary App untuk membuat/menghapus user tanpa menendang admin keluar
         const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
         const secondaryAuth = getAuth(secondaryApp);
 
-        // Referensi UI
         const loginSection = document.getElementById('login-section');
         const adminSection = document.getElementById('admin-section');
         const loginMsg = document.getElementById('login-msg');
@@ -175,29 +206,22 @@
         let searchSiswaQuery = '';
         let searchGuruQuery = '';
         let dbListenerUnsubscribe = null;
-
-        // ================= FITUR AUTENTIKASI & PROTEKSI GURU =================
         
-        // Listener status login
         onAuthStateChanged(mainAuth, async (user) => {
             if (user) {
-                // User sudah login, sekarang cek apakah dia GURU
                 const userRef = dbRef(db, 'users/' + user.uid);
                 const snapshot = await get(userRef);
                 
                 if (snapshot.exists() && snapshot.val().role === 'guru') {
-                    // Akses Diberikan
                     loginSection.classList.add('hidden');
                     adminSection.classList.remove('hidden');
-                    loadAdminData(); // Mulai tarik data user ke tabel
+                    loadAdminData();
                 } else {
-                    // Akses Ditolak (Bukan guru)
                     await signOut(mainAuth);
                     alert("Akses Ditolak! Hanya akun dengan role Guru yang dapat mengakses Panel Admin.");
                     showLogin();
                 }
             } else {
-                // Belum login
                 showLogin();
             }
         });
@@ -205,10 +229,9 @@
         function showLogin() {
             loginSection.classList.remove('hidden');
             adminSection.classList.add('hidden');
-            if(dbListenerUnsubscribe) dbListenerUnsubscribe(); // Hentikan penarikan data jika logout
+            if(dbListenerUnsubscribe) dbListenerUnsubscribe(); 
         }
 
-        // Fungsi Tombol Login
         document.getElementById('btn-login').addEventListener('click', async () => {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -226,7 +249,6 @@
 
             try {
                 await signInWithEmailAndPassword(mainAuth, email, password);
-                // onAuthStateChanged akan otomatis menangani sisanya
             } catch (error) {
                 loginMsg.innerText = "Gagal login: Periksa kembali email dan password.";
                 loginMsg.style.display = "block";
@@ -235,7 +257,6 @@
             }
         });
 
-        // Fungsi Tombol Logout
         document.getElementById('btn-logout').addEventListener('click', async () => {
             const confirmLogout = confirm("Apakah Anda yakin ingin keluar dari Panel Admin?");
             if (confirmLogout) {
@@ -247,8 +268,6 @@
             }
         });
 
-
-        // ================= FITUR LOGIKA TAB =================
         const btnTabSiswa = document.getElementById('btn-tab-siswa');
         const btnTabGuru = document.getElementById('btn-tab-guru');
         const contentSiswa = document.getElementById('tab-siswa');
@@ -268,7 +287,6 @@
             contentSiswa.classList.remove('active');
         });
 
-        // ================= FITUR PENCARIAN REAL-TIME =================
         document.getElementById('search-siswa').addEventListener('input', (e) => {
             searchSiswaQuery = e.target.value.toLowerCase();
             renderTables();
@@ -279,7 +297,6 @@
             renderTables();
         });
 
-        // ================= FITUR BUAT AKUN =================
         const btnCreate = document.getElementById('btn-create-user');
         const msgBox = document.getElementById('admin-msg');
 
@@ -298,7 +315,6 @@
             btnCreate.disabled = true;
 
             try {
-                // Menggunakan secondaryAuth agar admin utama tidak ter-logout
                 const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
                 const uid = userCredential.user.uid;
 
@@ -330,9 +346,7 @@
             }
         });
 
-        // ================= FITUR AMBIL DATA & RENDER =================
         function loadAdminData() {
-            // Pasang listener hanya saat admin sudah terverifikasi masuk
             dbListenerUnsubscribe = onValue(dbRef(db, 'users'), (snapshot) => {
                 allUsers = [];
                 if (snapshot.exists()) {
@@ -386,7 +400,6 @@
             return tr;
         }
 
-        // ================= FITUR LIHAT PASSWORD & HAPUS AKUN =================
         window.togglePassword = function(uid) {
             const pwdElement = document.getElementById(`pwd-${uid}`);
             const realPassword = pwdElement.getAttribute('data-pw');
