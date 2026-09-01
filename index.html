@@ -1194,6 +1194,26 @@
         let currentUserId = null;
         let currentViewedClassId = null;
         let currentClassData = null;
+
+        // ================= HIRARKI IZIN: GURU PEMILIK vs GURU KONTRIBUTOR vs SISWA =================
+        // Guru pemilik (teacherId) punya kontrol penuh atas kontributor maupun siswa.
+        // Guru kontributor punya akses guru penuh, TAPI hanya boleh mengontrol siswa dan
+        // konten miliknya sendiri — tidak boleh mengelola/menghapus konten guru lain
+        // (baik milik pemilik kelas maupun kontributor lain).
+        function isClassOwner() {
+            return !!(currentUserData && currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+        }
+        function isClassContributor() {
+            return !!(currentUserData && currentUserData.role === 'guru' && currentClassData && currentClassData.contributors && currentClassData.contributors[currentUserId] && !isClassOwner());
+        }
+        // Bisakah user guru saat ini mengelola (edit/hapus/nonaktifkan-komentar/sematkan) konten
+        // milik `targetSenderId` yang punya role `targetSenderRole`?
+        function canGuruManageTarget(targetSenderId, targetSenderRole) {
+            if (!currentUserData || currentUserData.role !== 'guru') return false;
+            if (targetSenderId === currentUserId) return true; // kelola milik sendiri selalu boleh
+            if (isClassOwner()) return true; // pemilik kelas boleh kelola siapa saja
+            return targetSenderRole !== 'guru'; // kontributor hanya boleh kelola non-guru (siswa)
+        }
         
         let announcementListener = null;
         let classRoomListener = null;
@@ -1770,7 +1790,7 @@
                     hintEdit.classList.add('hidden');
                 }
 
-                if (isTeacherOwner || studentCanPost) {
+                if (isTeacherOwner || isClassContributor() || studentCanPost) {
                     btnTambahPengumuman.classList.remove('hidden');
                 } else {
                     btnTambahPengumuman.classList.add('hidden');
@@ -1954,7 +1974,7 @@
 
             const canEdit = isSelf && !isDeleted;
             const canDeleteSelf = isSelf && !isDeleted;
-            const canDeleteAsTeacher = !isSelf && !isDeleted && !isAiSender && currentUserData.role === 'guru';
+            const canDeleteAsTeacher = !isSelf && !isDeleted && !isAiSender && canGuruManageTarget(m.senderId, m.senderRole);
             const canReply = !isDeleted && !isAiSender;
             const showMenu = canEdit || canDeleteSelf || canDeleteAsTeacher || canReply;
             const menuBtn = showMenu
@@ -2157,9 +2177,10 @@
             const targetId = currentChatMenuMessageId;
             const m = chatMessagesCache[targetId];
             if (!m) return;
+            const isSelf = m.senderId === currentUserId;
+            if (!isSelf && !canGuruManageTarget(m.senderId, m.senderRole)) return;
             const ok = await customConfirm("Hapus pesan ini?");
             if (!ok) return;
-            const isSelf = m.senderId === currentUserId;
             const payload = isSelf
                 ? { deleted: true, deletedBy: 'self', deletedByName: null }
                 : { deleted: true, deletedBy: 'teacher', deletedByName: currentUserData.username };
@@ -2814,6 +2835,7 @@
             c.innerHTML += `<div class="member-category" style="margin-top:30px;">Siswa</div>`;
             if(currentClassData.students && Object.keys(currentClassData.students).length > 0) {
                 const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId);
+                const canControlStudents = isTeacherOwner || isClassContributor();
                 Object.keys(currentClassData.students).forEach(sId => {
                     const student = currentClassData.students[sId];
                     const sName = student.username;
@@ -2821,12 +2843,18 @@
                     const commentBlocked = !!student.commentBlocked;
 
                     let actionsHtml = '';
-                    if(isTeacherOwner) {
+                    if(canControlStudents) {
+                        // Keluarkan siswa dari kelas tetap khusus guru pemilik kelas (aksi
+                        // manajemen keanggotaan), sedangkan kontrol posting/komentar boleh
+                        // dilakukan kontributor juga.
+                        const btnKeluarkan = isTeacherOwner
+                            ? `<button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="keluarkanSiswa('${sId}', '${sName}')">Keluarkan</button>`
+                            : '';
                         actionsHtml = `
                             <div class="member-row-actions">
                                 <button class="btn-toggle-mini ${canPost ? 'active' : ''}" title="Izinkan siswa membuat pengumuman" onclick="toggleCanPost('${sId}', ${canPost})">📝 ${canPost ? 'Bisa Posting' : 'Izinkan Posting'}</button>
                                 <button class="btn-toggle-mini ${commentBlocked ? 'danger-active' : ''}" title="Blokir siswa dari berkomentar" onclick="toggleCommentBlocked('${sId}', ${commentBlocked})">${commentBlocked ? '🔇 Komentar Diblokir' : '💬 Blokir Komentar'}</button>
-                                <button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="keluarkanSiswa('${sId}', '${sName}')">Keluarkan</button>
+                                ${btnKeluarkan}
                             </div>
                         `;
                     }
@@ -2864,7 +2892,7 @@
         // ================= IZIN POSTING PENGUMUMAN UNTUK SISWA =================
         window.toggleCanPost = async function(sId, current) {
             const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
-            if (!isTeacherOwner) return;
+            if (!isTeacherOwner && !isClassContributor()) return;
             await update(ref(db, `classes/${currentViewedClassId}/students/${sId}`), { canPost: !current });
             renderAnggotaList();
         }
@@ -2872,7 +2900,7 @@
         // ================= BLOKIR SISWA DARI BERKOMENTAR =================
         window.toggleCommentBlocked = async function(sId, current) {
             const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
-            if (!isTeacherOwner) return;
+            if (!isTeacherOwner && !isClassContributor()) return;
             await update(ref(db, `classes/${currentViewedClassId}/students/${sId}`), { commentBlocked: !current });
             renderAnggotaList();
         }
@@ -3006,7 +3034,7 @@
             const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
             const studentSelf = currentClassData && currentClassData.students && currentClassData.students[currentUserId];
             const studentCanPost = (currentUserData.role === 'siswa' && studentSelf && studentSelf.canPost);
-            if (!isTeacherOwner && !studentCanPost) return await customAlert("Anda tidak memiliki izin untuk membuat pengumuman.");
+            if (!isTeacherOwner && !isClassContributor() && !studentCanPost) return await customAlert("Anda tidak memiliki izin untuk membuat pengumuman.");
 
             const btn = document.getElementById('btn-post-announcement');
             btn.disabled = true; btn.innerText = "Posting...";
@@ -3064,14 +3092,14 @@
         let editClickCount = 0;
         let editClickTimer = null;
 
-        // Guru bisa mengedit SEMUA materi (miliknya sendiri maupun materi siswa).
+        // Guru pemilik kelas bisa mengedit SEMUA materi (miliknya, kontributor, maupun siswa).
+        // Guru kontributor hanya bisa mengedit materi miliknya sendiri atau materi siswa —
+        // TIDAK BISA mengedit materi milik guru lain (pemilik atau kontributor lain).
         // Siswa hanya bisa mengedit materi miliknya sendiri, dan hanya selama dia masih
-        // diberi akses posting (canPost) — tidak pernah bisa mengedit materi orang lain
-        // (siswa lain maupun guru).
+        // diberi akses posting (canPost) — tidak pernah bisa mengedit materi orang lain.
         function canEditAnnouncement(data) {
             if (!data) return false;
-            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
-            if (isTeacherOwner) return true;
+            if (currentUserData.role === 'guru') return canGuruManageTarget(data.senderId, data.senderRole);
             const isAuthorSelf = data.senderId === currentUserId;
             const studentSelf = currentClassData && currentClassData.students && currentClassData.students[currentUserId];
             const studentCanPost = (currentUserData.role === 'siswa' && studentSelf && studentSelf.canPost);
@@ -3233,6 +3261,8 @@
         });
 
         window.hapusPengumuman = async function(id) {
+            const data = currentAnnouncementsCache[id];
+            if (!data || !canGuruManageTarget(data.senderId, data.senderRole)) return;
             const confirm = await customConfirm("Hapus materi ini?");
             if (confirm) {
                 // Ambil dulu data file (kalau ada) dari cache SEBELUM datanya dihapus dari Firebase,
@@ -3905,8 +3935,8 @@
 
         // ================= SEMATKAN MATERI (MAKS 3) =================
         window.togglePinAnnouncement = async function(id, isPinned) {
-            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
-            if (!isTeacherOwner) return;
+            const data = currentAnnouncementsCache[id];
+            if (!data || !canGuruManageTarget(data.senderId, data.senderRole)) return;
 
             if (isPinned) {
                 await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { pinned: false, pinnedAt: null });
@@ -3928,8 +3958,8 @@
 
         // ================= NONAKTIFKAN KOMENTAR PER MATERI =================
         window.toggleCommentsDisabled = async function(id, current) {
-            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
-            if (!isTeacherOwner) return;
+            const data = currentAnnouncementsCache[id];
+            if (!data || !canGuruManageTarget(data.senderId, data.senderRole)) return;
             await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { commentsDisabled: !current });
         }
 
@@ -3976,18 +4006,19 @@
                     const safeText = linkifyText((data.text != null) ? String(data.text) : '');
                     const safeSender = escapeHtml(data.senderName || 'Pengguna');
                     const date = new Date(data.timestamp || Date.now()).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
-                    const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
-                    // Hapus/sematkan/nonaktifkan-komentar tetap khusus guru pemilik kelas.
-                    const isOwner = isTeacherOwner;
+                    // Hapus/sematkan/nonaktifkan-komentar: pemilik kelas bisa untuk semua materi;
+                    // kontributor cuma bisa untuk materi miliknya sendiri atau materi siswa
+                    // (tidak bisa untuk materi guru lain).
+                    const canManageThisAnn = canGuruManageTarget(data.senderId, data.senderRole);
                     // Edit materi (klik 3x): guru bisa edit semua materi; siswa hanya bisa edit
                     // materi miliknya sendiri, selama masih diberi akses posting.
                     const canEditThis = canEditAnnouncement(data);
                     const isPinned = !!data.pinned;
                     const commentsDisabled = !!data.commentsDisabled;
 
-                    const btnHapus = isOwner ? `<button class="btn-hapus-announcement" onclick="hapusPengumuman('${data.id}')">Hapus</button>` : '';
-                    const btnPin = isOwner ? `<button class="btn-pin-announcement ${isPinned ? 'is-pinned' : ''}" onclick="togglePinAnnouncement('${data.id}', ${isPinned})">📌 ${isPinned ? 'Lepas Sematkan' : 'Sematkan'}</button>` : '';
-                    const btnToggleComments = isOwner ? `<button class="btn-toggle-mini ${commentsDisabled ? 'danger-active' : ''}" onclick="toggleCommentsDisabled('${data.id}', ${commentsDisabled})">${commentsDisabled ? '🔒 Komentar Nonaktif' : '💬 Nonaktifkan Komentar'}</button>` : '';
+                    const btnHapus = canManageThisAnn ? `<button class="btn-hapus-announcement" onclick="hapusPengumuman('${data.id}')">Hapus</button>` : '';
+                    const btnPin = canManageThisAnn ? `<button class="btn-pin-announcement ${isPinned ? 'is-pinned' : ''}" onclick="togglePinAnnouncement('${data.id}', ${isPinned})">📌 ${isPinned ? 'Lepas Sematkan' : 'Sematkan'}</button>` : '';
+                    const btnToggleComments = canManageThisAnn ? `<button class="btn-toggle-mini ${commentsDisabled ? 'danger-active' : ''}" onclick="toggleCommentsDisabled('${data.id}', ${commentsDisabled})">${commentsDisabled ? '🔒 Komentar Nonaktif' : '💬 Nonaktifkan Komentar'}</button>` : '';
                     const pinBadge = isPinned ? `<span class="pin-badge">📌 Disematkan</span>` : '';
 
                     const rawTextForEdit = escapeForJsTemplate((data.text != null) ? String(data.text) : '');
@@ -4242,10 +4273,12 @@
             const isGuru = c.senderRole === 'guru';
             const guruBadge = isGuru ? `<span class="badge-guru">GURU</span>` : '';
             const canEdit = c.senderId === currentUserId;
-            const canDelete = c.senderId === currentUserId || currentUserData.role === 'guru';
-            // Sematkan komentar: khusus guru, dan hanya untuk komentar level root (bukan balasan)
+            const canDelete = c.senderId === currentUserId || canGuruManageTarget(c.senderId, c.senderRole);
+            // Sematkan komentar: khusus guru, dan hanya untuk komentar level root (bukan balasan).
+            // Kontributor cuma boleh sematkan komentar miliknya sendiri atau milik siswa, bukan
+            // komentar guru lain (pemilik kelas atau kontributor lain).
             const isRoot = !c.replyTo;
-            const canPin = currentUserData.role === 'guru' && isRoot;
+            const canPin = isRoot && canGuruManageTarget(c.senderId, c.senderRole);
             const isPinned = !!c.pinned;
             const showMenu = canEdit || canDelete || canPin;
             const menuBtn = showMenu ? `<button class="comment-menu-btn" data-id="${c.id}" data-owner="${canEdit}" data-delete="${canDelete}" data-pin="${canPin}" data-pinned="${isPinned}">⋮</button>` : '';
@@ -4367,7 +4400,7 @@
             const c = currentCommentsCache[targetId];
             if (!c) return;
 
-            if (currentUserData.role !== 'guru') return;
+            if (!canGuruManageTarget(c.senderId, c.senderRole)) return;
 
             if (c.pinned) {
                 await update(ref(db, `comments/${currentViewedClassId}/${currentCommentAnnouncementId}/${targetId}`), { pinned: false, pinnedAt: null });
@@ -4405,6 +4438,9 @@
             document.getElementById('comment-menu-popup').classList.add('hidden');
             const targetId = currentMenuCommentId;
             if (!targetId) return;
+            const c = currentCommentsCache[targetId];
+            if (!c) return;
+            if (c.senderId !== currentUserId && !canGuruManageTarget(c.senderId, c.senderRole)) return;
             const hasReplies = collectDescendantIds(targetId, currentCommentsCache).length > 0;
             const ok = await customConfirm(hasReplies ? "Hapus komentar ini beserta seluruh balasannya?" : "Hapus komentar ini?");
             if (!ok) return;
