@@ -223,6 +223,35 @@
         .btn-outline { border: 2px solid var(--primary); color: var(--primary); background: transparent; }
         .btn-outline:hover { background: var(--primary-light); }
 
+        /* ===== Random Team Generator & Random Picker ===== */
+        .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F8F9FA; border-radius: var(--radius-md); padding: 14px 18px; margin: 8px 0 20px 0; }
+        .switch-row span { font-weight: 600; font-size: 0.95rem; }
+        .switch { position: relative; display: inline-block; width: 48px; height: 28px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; padding: 0; margin: 0; }
+        .switch-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #CBD1D9; border-radius: 99px; transition: 0.25s; }
+        .switch-slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.25s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .switch input:checked + .switch-slider { background-color: var(--primary); }
+        .switch input:checked + .switch-slider:before { transform: translateX(20px); }
+
+        .team-group-card { background: #F8F9FA; border-radius: var(--radius-md); padding: 16px 18px; margin-bottom: 12px; }
+        .team-group-card h4 { margin: 0 0 10px 0; color: var(--primary); font-size: 1rem; }
+        .team-group-card ul { margin: 0; padding-left: 20px; }
+        .team-group-card li { font-size: 0.95rem; padding: 3px 0; }
+
+        #random-picker-overlay .modal-card { max-width: 860px; width: 94%; }
+        .picker-layout { display: flex; gap: 28px; flex-wrap: wrap; }
+        .picker-wheel-col { flex: 1 1 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .picker-input-col { flex: 1 1 300px; display: flex; flex-direction: column; }
+        #picker-wheel-wrap { position: relative; width: 280px; height: 280px; margin: 10px auto 6px; }
+        #picker-wheel-svg { width: 100%; height: 100%; border-radius: 50%; box-shadow: var(--shadow-md); }
+        #picker-wheel-pointer { position: absolute; top: -4px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 13px solid transparent; border-right: 13px solid transparent; border-top: 22px solid var(--text-main); z-index: 5; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25)); }
+        #btn-spin-wheel { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 74px; height: 74px; border-radius: 50%; background: var(--accent); color: #000; font-weight: 800; font-size: 13px; letter-spacing: 0.02em; box-shadow: 0 8px 18px rgba(0,0,0,0.25); z-index: 4; padding: 0; }
+        #btn-spin-wheel:hover { background: var(--accent-hover); }
+        #btn-spin-wheel:disabled { opacity: 0.6; cursor: default; transform: translate(-50%,-50%) scale(1); }
+        #picker-wheel-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; color: var(--text-muted); font-size: 12.5px; font-weight: 600; background: rgba(255,255,255,0.9); border-radius: 50%; line-height: 1.5; }
+        #input-picker-list { flex-grow: 1; min-height: 180px; resize: vertical; }
+        .picker-result-name { font-size: 1.6rem; font-weight: 800; color: var(--primary); text-align: center; padding: 20px 10px; word-break: break-word; }
+
         /* Tampilan Detail Kelas */
         #class-detail-section { 
             background: transparent; padding: 0; min-height: 400px; margin-top: 10px;
@@ -1080,6 +1109,94 @@
                 </div>
             </div>
 
+            <!-- Menu pilihan tombol + khusus guru (pemilik kelas & kontributor) -->
+            <div id="teacher-fab-choice-modal" class="modal-overlay hidden">
+                <div class="modal-card alert-card">
+                    <h3 style="color: var(--primary); margin-top:0;">Menu Guru</h3>
+                    <div class="modal-actions center" style="flex-direction: column; gap: 12px; margin-top:20px;">
+                        <button id="btn-choice-pengumuman" class="btn-buat" style="width: 100%; padding:16px;">📢 Buat Pengumuman</button>
+                        <button id="btn-choice-team-generator" class="btn-outline" style="width: 100%; padding:16px;">🎲 Random Team Generator</button>
+                        <button id="btn-choice-random-picker" class="btn-outline" style="width: 100%; padding:16px;">🎡 Random Picker</button>
+                        <button id="btn-choice-teacher-batal" class="btn-batal" style="width: 100%; margin-top: 10px;">Tutup</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== Random Team Generator ===== -->
+            <div id="team-gen-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-card">
+                    <h3 style="margin-top:0; color:var(--primary);">🎲 Random Team Generator</h3>
+                    <p style="font-size:14px; color:var(--text-muted); margin-top:-10px; margin-bottom: 20px;">Seluruh siswa di kelas ini akan diacak dan dibagi rata ke dalam kelompok.</p>
+                    <label>Jumlah Kelompok</label>
+                    <input type="number" id="input-team-count" min="1" value="2" inputmode="numeric">
+                    <div class="switch-row">
+                        <span>Tunjuk Ketua Tiap Kelompok</span>
+                        <label class="switch">
+                            <input type="checkbox" id="input-team-leader-toggle">
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="btn-batal-team-gen" class="btn-batal">Batal</button>
+                        <button id="btn-generate-team" class="btn-buat">Acak Sekarang</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="team-result-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-card" style="height: 80vh;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                        <h3 style="margin:0; color:var(--primary);">Hasil Pembagian Kelompok</h3>
+                        <button id="btn-close-team-result-x" class="btn-batal" style="padding: 8px 16px; border-radius: 99px;">Tutup</button>
+                    </div>
+                    <div id="team-result-list" style="flex-grow:1; overflow-y:auto; padding-right:5px;"></div>
+                    <div class="modal-actions">
+                        <button id="btn-batal-team-result" class="btn-batal">Batal</button>
+                        <button id="btn-reroll-team" class="btn-outline">Acak Ulang</button>
+                        <button id="btn-post-team-result" class="btn-buat">Posting</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== Random Picker ===== -->
+            <div id="random-picker-overlay" class="modal-overlay hidden">
+                <div class="modal-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h3 style="margin:0; color:var(--primary);">🎡 Random Picker</h3>
+                        <button id="btn-close-random-picker" class="btn-batal" style="padding: 8px 16px; border-radius: 99px;">Tutup</button>
+                    </div>
+                    <div class="picker-layout">
+                        <div class="picker-wheel-col">
+                            <div id="picker-wheel-wrap">
+                                <div id="picker-wheel-pointer"></div>
+                                <svg id="picker-wheel-svg" viewBox="0 0 300 300">
+                                    <g id="picker-wheel-group" style="transform-origin: 150px 150px;"></g>
+                                </svg>
+                                <div id="picker-wheel-empty">Tambahkan minimal 2 pilihan di kolom sebelah untuk mulai memutar roda</div>
+                                <button id="btn-spin-wheel" type="button" disabled>PUTAR</button>
+                            </div>
+                        </div>
+                        <div class="picker-input-col">
+                            <label>Daftar Pilihan (pisahkan dengan Enter)</label>
+                            <textarea id="input-picker-list" placeholder="Contoh:&#10;Budi&#10;Siti&#10;Andi"></textarea>
+                            <button type="button" id="btn-autofill-students" class="btn-outline" style="width:100%;">👥 Isi Otomatis dengan Siswa</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="picker-result-overlay" class="modal-overlay hidden" style="z-index: 1050;">
+                <div class="modal-card alert-card">
+                    <h3 style="margin-top:0; color:var(--primary);">🎉 Terpilih!</h3>
+                    <div class="picker-result-name" id="picker-result-name"></div>
+                    <div class="modal-actions center" style="flex-direction: column; gap: 12px; margin-top:10px;">
+                        <button id="btn-picker-mark" class="btn-buat" style="width: 100%; padding:16px;">✅ Tandai</button>
+                        <button id="btn-picker-remove" class="btn-bahaya" style="width: 100%; padding:16px;">🗑️ Hapus dari Daftar</button>
+                        <button id="btn-picker-close-result" class="btn-batal" style="width: 100%; margin-top: 6px;">Tutup Hasil</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="media-lightbox-overlay" class="media-lightbox-overlay hidden">
                 <div class="media-lightbox-content" id="media-lightbox-content"></div>
             </div>
@@ -1817,7 +1934,19 @@
             
             currentViewedClassId = null;
             currentClassData = null;
-            
+
+            // ---- Bersihkan state & modal fitur guru (team generator & random picker) ----
+            document.getElementById('teacher-fab-choice-modal').classList.add('hidden');
+            document.getElementById('team-gen-modal-overlay').classList.add('hidden');
+            document.getElementById('team-result-modal-overlay').classList.add('hidden');
+            document.getElementById('random-picker-overlay').classList.add('hidden');
+            document.getElementById('picker-result-overlay').classList.add('hidden');
+            lastTeamGenResult = null;
+            pendingPickerWinner = null;
+            wheelSpinning = false;
+            wheelRotation = 0;
+            document.getElementById('input-picker-list').value = '';
+
             // Sembunyikan Panel saat di luar kelas
             bottomPanel.classList.add('hidden');
             bottomPanel.classList.remove('open');
@@ -3303,13 +3432,45 @@
 
 
         // ================= PENGUMUMAN =================
-        document.getElementById('btn-show-announcement-modal').addEventListener('click', () => {
+        function isCurrentUserClassTeacher() {
+            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+            return isTeacherOwner || isClassContributor();
+        }
+
+        function openAnnouncementModalDirect() {
             document.getElementById('announcement-modal-overlay').classList.remove('hidden');
             document.getElementById('input-announcement').value = '';
             selectedAnnouncementFiles = [];
             document.getElementById('input-announcement-file').value = '';
             renderAttachFileList();
             document.getElementById('attach-upload-progress').classList.add('hidden');
+        }
+
+        document.getElementById('btn-show-announcement-modal').addEventListener('click', () => {
+            // Guru (pemilik kelas maupun kontributor) melihat menu tambahan: pengumuman,
+            // random team generator, dan random picker. Siswa yang diberi izin posting
+            // langsung menuju form pengumuman seperti sebelumnya.
+            if (isCurrentUserClassTeacher()) {
+                document.getElementById('teacher-fab-choice-modal').classList.remove('hidden');
+            } else {
+                openAnnouncementModalDirect();
+            }
+        });
+
+        document.getElementById('btn-choice-pengumuman').addEventListener('click', () => {
+            document.getElementById('teacher-fab-choice-modal').classList.add('hidden');
+            openAnnouncementModalDirect();
+        });
+        document.getElementById('btn-choice-team-generator').addEventListener('click', () => {
+            document.getElementById('teacher-fab-choice-modal').classList.add('hidden');
+            openTeamGenModal();
+        });
+        document.getElementById('btn-choice-random-picker').addEventListener('click', () => {
+            document.getElementById('teacher-fab-choice-modal').classList.add('hidden');
+            openRandomPickerModal();
+        });
+        document.getElementById('btn-choice-teacher-batal').addEventListener('click', () => {
+            document.getElementById('teacher-fab-choice-modal').classList.add('hidden');
         });
 
         document.getElementById('btn-batal-announcement').addEventListener('click', () => {
@@ -3407,6 +3568,283 @@
             document.getElementById('input-announcement-file').value = '';
             renderAttachFileList();
             btn.disabled = false; btn.innerText = "Posting";
+        });
+
+        // Posting teks sederhana (tanpa lampiran) sebagai materi/pengumuman baru ke forum kelas.
+        // Dipakai bersama oleh Random Team Generator & (bila diperlukan nanti) fitur guru lainnya.
+        async function postSimpleTextAsAnnouncement(text) {
+            const newAnnRef = push(ref(db, `announcements/${currentViewedClassId}`));
+            const payload = {
+                text, senderName: currentUserData.username, senderId: currentUserId, senderRole: currentUserData.role, timestamp: Date.now()
+            };
+            await set(newAnnRef, payload);
+        }
+
+        // ================= RANDOM TEAM GENERATOR (FITUR GURU) =================
+        let lastTeamGenSettings = { count: 2, wantLeader: false };
+        let lastTeamGenResult = null;
+
+        function openTeamGenModal() {
+            document.getElementById('input-team-count').value = lastTeamGenSettings.count;
+            document.getElementById('input-team-leader-toggle').checked = lastTeamGenSettings.wantLeader;
+            document.getElementById('team-gen-modal-overlay').classList.remove('hidden');
+        }
+
+        function getClassStudentEntries() {
+            // Guru (pemilik maupun kontributor) tidak pernah dimasukkan ke dalam kelompok — hanya siswa.
+            const students = (currentClassData && currentClassData.students) || {};
+            return Object.keys(students).map(sid => ({ id: sid, username: students[sid].username }));
+        }
+
+        function runTeamGeneration() {
+            const entries = getClassStudentEntries();
+            if (entries.length < 2) {
+                customAlert("Jumlah siswa di kelas ini belum cukup untuk membuat kelompok (minimal 2 siswa).");
+                return false;
+            }
+            let count = parseInt(document.getElementById('input-team-count').value, 10);
+            if (!count || count < 1) count = 1;
+            if (count > entries.length) count = entries.length;
+            const wantLeader = document.getElementById('input-team-leader-toggle').checked;
+            lastTeamGenSettings = { count, wantLeader };
+
+            // Fisher-Yates shuffle supaya benar-benar acak merata.
+            const shuffled = entries.slice();
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            const groups = Array.from({ length: count }, () => []);
+            shuffled.forEach((entry, idx) => { groups[idx % count].push(entry.username); });
+
+            lastTeamGenResult = groups.map(names => {
+                const leader = (wantLeader && names.length > 0) ? names[Math.floor(Math.random() * names.length)] : null;
+                return { names, leader };
+            });
+            return true;
+        }
+
+        function renderTeamResult() {
+            const c = document.getElementById('team-result-list');
+            c.innerHTML = lastTeamGenResult.map((g, i) => `
+                <div class="team-group-card">
+                    <h4>Kelompok ${i + 1}</h4>
+                    <ul>
+                        ${g.names.map(n => `<li>${escapeHtml(n)}${g.leader === n ? ' <strong style="color:var(--accent-hover);">(Ketua)</strong>' : ''}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        function teamResultToText() {
+            let text = "🎲 Hasil Random Team Generator\n\n";
+            lastTeamGenResult.forEach((g, i) => {
+                text += `Kelompok ${i + 1}:\n`;
+                g.names.forEach(n => { text += `- ${n}${g.leader === n ? ' (Ketua)' : ''}\n`; });
+                text += "\n";
+            });
+            return text.trim();
+        }
+
+        document.getElementById('btn-batal-team-gen').addEventListener('click', () => {
+            document.getElementById('team-gen-modal-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('btn-generate-team').addEventListener('click', () => {
+            if (!runTeamGeneration()) return;
+            renderTeamResult();
+            document.getElementById('team-gen-modal-overlay').classList.add('hidden');
+            document.getElementById('team-result-modal-overlay').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-reroll-team').addEventListener('click', () => {
+            // Pakai pengaturan (jumlah kelompok & opsi ketua) yang sama seperti sebelumnya.
+            document.getElementById('input-team-count').value = lastTeamGenSettings.count;
+            document.getElementById('input-team-leader-toggle').checked = lastTeamGenSettings.wantLeader;
+            if (!runTeamGeneration()) return;
+            renderTeamResult();
+        });
+
+        function closeTeamResultModal() {
+            document.getElementById('team-result-modal-overlay').classList.add('hidden');
+            lastTeamGenResult = null;
+        }
+        document.getElementById('btn-batal-team-result').addEventListener('click', closeTeamResultModal);
+        document.getElementById('btn-close-team-result-x').addEventListener('click', closeTeamResultModal);
+
+        document.getElementById('btn-post-team-result').addEventListener('click', async () => {
+            if (!lastTeamGenResult) return;
+            if (!isCurrentUserClassTeacher()) return await customAlert("Anda tidak memiliki izin untuk memposting hasil ini.");
+            const btn = document.getElementById('btn-post-team-result');
+            btn.disabled = true; btn.innerText = "Posting...";
+            try {
+                await postSimpleTextAsAnnouncement(teamResultToText());
+                closeTeamResultModal();
+                showToast("Hasil kelompok berhasil diposting ke forum kelas!");
+            } catch (err) {
+                console.error(err);
+                await customAlert("Gagal memposting hasil kelompok: " + (err.message || 'Terjadi kesalahan tak dikenal.'));
+            }
+            btn.disabled = false; btn.innerText = "Posting";
+        });
+
+        // ================= RANDOM PICKER / RODA PUTAR (FITUR GURU) =================
+        const WHEEL_COLORS = ['#1A73E8', '#FFC107', '#34A853', '#EA4335', '#8E24AA', '#00ACC1', '#FB8C00', '#5E35B1', '#43A047', '#D81B60'];
+        let wheelRotation = 0;
+        let wheelSpinning = false;
+        let pendingPickerWinner = null;
+
+        function openRandomPickerModal() {
+            document.getElementById('random-picker-overlay').classList.remove('hidden');
+            wheelRotation = 0;
+            const svg = document.getElementById('picker-wheel-group');
+            svg.style.transition = 'none';
+            svg.style.transform = 'rotate(0deg)';
+            renderPickerWheel();
+        }
+
+        function getPickerItems() {
+            return document.getElementById('input-picker-list').value
+                .split('\n')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+        }
+
+        function polarPoint(cx, cy, r, angleDeg) {
+            const rad = (angleDeg - 90) * Math.PI / 180;
+            return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+        }
+
+        function renderPickerWheel() {
+            const items = getPickerItems();
+            const group = document.getElementById('picker-wheel-group');
+            const emptyMsg = document.getElementById('picker-wheel-empty');
+            const spinBtn = document.getElementById('btn-spin-wheel');
+
+            if (items.length < 2) {
+                group.innerHTML = '';
+                emptyMsg.classList.remove('hidden');
+                spinBtn.disabled = true;
+                return;
+            }
+            emptyMsg.classList.add('hidden');
+            spinBtn.disabled = wheelSpinning;
+
+            const n = items.length;
+            const angleStep = 360 / n;
+            const cx = 150, cy = 150, r = 148;
+            let html = '';
+            items.forEach((item, i) => {
+                const startA = i * angleStep;
+                const endA = (i + 1) * angleStep;
+                const p1 = polarPoint(cx, cy, r, startA);
+                const p2 = polarPoint(cx, cy, r, endA);
+                const largeArc = angleStep > 180 ? 1 : 0;
+                const color = WHEEL_COLORS[i % WHEEL_COLORS.length];
+                html += `<path d="M${cx},${cy} L${p1.x.toFixed(2)},${p1.y.toFixed(2)} A${r},${r} 0 ${largeArc} 1 ${p2.x.toFixed(2)},${p2.y.toFixed(2)} Z" fill="${color}" stroke="#fff" stroke-width="2"/>`;
+
+                const midA = startA + angleStep / 2;
+                const labelR = r * 0.62;
+                const lp = polarPoint(cx, cy, labelR, midA);
+                const label = item.length > 14 ? item.slice(0, 13) + '…' : item;
+                html += `<text x="${lp.x.toFixed(2)}" y="${lp.y.toFixed(2)}" fill="#fff" font-size="13" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(${midA.toFixed(2)} ${lp.x.toFixed(2)} ${lp.y.toFixed(2)})">${escapeHtml(label)}</text>`;
+            });
+            group.innerHTML = html;
+        }
+
+        document.getElementById('input-picker-list').addEventListener('input', () => {
+            // Setiap perubahan pada daftar langsung diterapkan ke roda, tanpa animasi lompat.
+            const group = document.getElementById('picker-wheel-group');
+            wheelRotation = wheelRotation % 360;
+            group.style.transition = 'none';
+            group.style.transform = `rotate(${wheelRotation}deg)`;
+            renderPickerWheel();
+        });
+
+        document.getElementById('btn-autofill-students').addEventListener('click', () => {
+            const entries = getClassStudentEntries();
+            if (entries.length === 0) {
+                customAlert("Belum ada siswa di kelas ini.");
+                return;
+            }
+            document.getElementById('input-picker-list').value = entries.map(e => e.username).join('\n');
+            const group = document.getElementById('picker-wheel-group');
+            wheelRotation = wheelRotation % 360;
+            group.style.transition = 'none';
+            group.style.transform = `rotate(${wheelRotation}deg)`;
+            renderPickerWheel();
+        });
+
+        document.getElementById('btn-spin-wheel').addEventListener('click', () => {
+            if (wheelSpinning) return;
+            const items = getPickerItems();
+            if (items.length < 2) return;
+
+            wheelSpinning = true;
+            document.getElementById('btn-spin-wheel').disabled = true;
+
+            const winnerIdx = Math.floor(Math.random() * items.length);
+            const angleStep = 360 / items.length;
+            const centerAngle = winnerIdx * angleStep + angleStep / 2;
+
+            const currentMod = ((wheelRotation % 360) + 360) % 360;
+            const requiredMod = ((360 - centerAngle) % 360 + 360) % 360;
+            const deltaToRequired = ((requiredMod - currentMod) % 360 + 360) % 360;
+            const extraSpins = 5 + Math.floor(Math.random() * 3);
+            const newRotation = wheelRotation + extraSpins * 360 + deltaToRequired;
+            wheelRotation = newRotation;
+
+            const group = document.getElementById('picker-wheel-group');
+            group.style.transition = 'transform 4.2s cubic-bezier(0.15,0.65,0.1,1)';
+            group.style.transform = `rotate(${newRotation}deg)`;
+
+            setTimeout(() => {
+                wheelSpinning = false;
+                pendingPickerWinner = items[winnerIdx];
+                document.getElementById('picker-result-name').innerText = pendingPickerWinner;
+                document.getElementById('picker-result-overlay').classList.remove('hidden');
+                document.getElementById('btn-spin-wheel').disabled = false;
+            }, 4200);
+        });
+
+        document.getElementById('btn-close-random-picker').addEventListener('click', () => {
+            document.getElementById('random-picker-overlay').classList.add('hidden');
+            document.getElementById('picker-result-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('btn-picker-close-result').addEventListener('click', () => {
+            document.getElementById('picker-result-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('btn-picker-mark').addEventListener('click', () => {
+            if (!pendingPickerWinner) return;
+            const textarea = document.getElementById('input-picker-list');
+            const lines = textarea.value.split('\n');
+            const idx = lines.findIndex(l => l.trim() === pendingPickerWinner);
+            if (idx !== -1 && !lines[idx].trim().startsWith('✅')) {
+                lines[idx] = '✅ ' + lines[idx].trim();
+                textarea.value = lines.join('\n');
+                renderPickerWheel();
+            }
+            document.getElementById('picker-result-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('btn-picker-remove').addEventListener('click', () => {
+            if (!pendingPickerWinner) return;
+            const textarea = document.getElementById('input-picker-list');
+            const lines = textarea.value.split('\n');
+            const idx = lines.findIndex(l => l.trim() === pendingPickerWinner);
+            if (idx !== -1) {
+                lines.splice(idx, 1);
+                textarea.value = lines.join('\n');
+                const group = document.getElementById('picker-wheel-group');
+                wheelRotation = wheelRotation % 360;
+                group.style.transition = 'none';
+                group.style.transform = `rotate(${wheelRotation}deg)`;
+                renderPickerWheel();
+            }
+            document.getElementById('picker-result-overlay').classList.add('hidden');
         });
 
         // ================= EDIT PENGUMUMAN =================
