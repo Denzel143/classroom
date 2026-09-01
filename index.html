@@ -678,8 +678,30 @@
             border-radius: 99px; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
-        .chat-sidebar-header { padding: 26px 22px 14px 22px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .chat-sidebar-header { padding: 26px 22px 14px 22px; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
         .chat-sidebar-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
+
+        /* ---- Timer sesi EduAI (pojok kanan atas sidebar obrolan) ---- */
+        #eduai-session-timer {
+            position: absolute; top: 14px; right: 18px;
+            display: flex; align-items: center; gap: 6px;
+            background: #F7F1FB; border: 1px solid #8E24AA33; color: #6A1B9A;
+            font-size: 11.5px; font-weight: 700; padding: 5px 10px 5px 8px;
+            border-radius: 99px; box-shadow: var(--shadow-sm);
+        }
+        #eduai-session-timer.warning { background: #FFF3E0; border-color: #FB8C0055; color: #E65100; }
+        #eduai-session-timer .eduai-timer-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: #8E24AA; flex-shrink: 0;
+            animation: eduaiPulse 1.4s ease-in-out infinite;
+        }
+        #eduai-session-timer.warning .eduai-timer-dot { background: #E65100; }
+        @keyframes eduaiPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+        #btn-eduai-end-session {
+            background: transparent; border: none; color: inherit; font-size: 12px;
+            font-weight: 800; padding: 0 0 0 4px; margin: 0 -2px 0 2px; line-height: 1;
+            cursor: pointer;
+        }
+        #btn-eduai-end-session:hover { text-decoration: underline; }
         #chat-messages-container {
             flex-grow: 1; overflow-y: auto; padding: 16px 16px 4px 16px;
             display: flex; flex-direction: column; gap: 10px;
@@ -937,6 +959,11 @@
         </div>
         <div class="chat-sidebar-header">
             <h4>💬 Obrolan Kelas</h4>
+            <div id="eduai-session-timer" class="hidden" title="Sisa waktu sesi memori EduAI">
+                <span class="eduai-timer-dot"></span>
+                <span id="eduai-session-timer-label">EduAI 15:00</span>
+                <button id="btn-eduai-end-session" type="button" title="Akhiri sesi EduAI sekarang">Akhiri</button>
+            </div>
         </div>
         <div id="chat-messages-container"></div>
         <div class="chat-input-area">
@@ -1168,6 +1195,13 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
+        // Sinkronkan jam "asli" (setara NTP) dari server Firebase, karena jam tiap HP siswa bisa
+        // berbeda-beda. `.info/serverTimeOffset` adalah fitur bawaan Firebase RTDB: selisih (ms)
+        // antara jam server dan jam perangkat ini. Dipakai lewat correctedNow() di seluruh fitur timer EduAI.
+        onValue(ref(db, '.info/serverTimeOffset'), (snap) => {
+            serverTimeOffsetMs = snap.val() || 0;
+        });
+
         // ==================== KONFIGURASI STORJ (S3-COMPATIBLE) — ISI SENDIRI ====================
         // PERHATIAN: aplikasi ini murni client-side (tanpa backend), jadi nilai di bawah ini akan
         // terlihat oleh siapa saja yang membuka DevTools/View Source browser. Sebaiknya gunakan
@@ -1292,6 +1326,24 @@
         let chatPausedReplyName = null;
         let chatPausedAttachId = null;
         let currentAnnShareMenuId = null; // id materi yang sedang dibuka menu titik-tiga "Bagikan ke Obrolan"-nya
+
+        // ---- Sesi memori EduAI (timer idle berbasis waktu server Firebase, bukan jam lokal HP) ----
+        // Setiap kelas punya satu sesi aktif di node `aiSessions/{classId}`: { startedAt, expiresAt, attachedMateri }.
+        // - startedAt: kapan sesi ini mulai (dipakai sebagai batas bawah riwayat percakapan yang dikirim ke AI).
+        // - expiresAt: batas waktu idle. Di-refresh (reset) tiap kali ada yang menandai "@EduAI".
+        // - attachedMateri: kumpulan id materi yang sudah pernah dilampirkan selama sesi ini berlangsung,
+        //   supaya materi yang sama otomatis ikut dikirim lagi tanpa siswa harus melampirkan ulang.
+        // Kadaluarsa dicek secara "lazy" (dibandingkan tiap kali dipakai) dengan waktu server Firebase,
+        // jadi tetap berlaku walau tidak ada satupun perangkat yang sedang membuka aplikasi.
+        const EDUAI_SESSION_IDLE_MS = 15 * 60 * 1000; // 15 menit tidak ada tag "@EduAI" -> sesi berakhir otomatis
+        let serverTimeOffsetMs = 0; // selisih waktu server Firebase vs jam lokal perangkat ini
+        let currentAiSession = null; // cache node aiSessions/{classId} milik kelas yang sedang dibuka
+        let aiSessionListenerRef = null;
+        let aiSessionTickInterval = null;
+
+        function correctedNow() {
+            return Date.now() + serverTimeOffsetMs;
+        }
 
         function escapeHtml(str) {
             return String(str == null ? '' : str)
@@ -1748,6 +1800,7 @@
             chatPausedReplyName = null;
             chatPausedAttachId = null;
             currentAnnShareMenuId = null;
+            stopAiSessionListeners();
             const chatSidebarEl = document.getElementById('chat-sidebar');
             chatSidebarEl.classList.add('hidden');
             chatSidebarEl.classList.remove('open');
@@ -1784,6 +1837,7 @@
             bottomPanel.classList.remove('hidden');
             document.getElementById('chat-sidebar').classList.remove('hidden');
             setupChatListeners(classId);
+            startAiSessionListeners(classId);
             
             const btnTambahPengumuman = document.getElementById('btn-show-announcement-modal');
             const btnHapusKelas = document.getElementById('btn-hapus-kelas');
@@ -2049,21 +2103,102 @@
             return isAnnouncementAiBlocked(annId);
         }
 
-        function isSameLocalDay(ts1, ts2) {
-            const d1 = new Date(ts1);
-            const d2 = new Date(ts2);
-            return d1.getFullYear() === d2.getFullYear()
-                && d1.getMonth() === d2.getMonth()
-                && d1.getDate() === d2.getDate();
+        // ================= EduAI: SESI MEMORI (TIMER IDLE VIA WAKTU SERVER FIREBASE) =================
+        // Path: aiSessions/{classId} = { startedAt, expiresAt, attachedMateri: { [annId]: true } }
+        function aiSessionDbRef(classId) {
+            return ref(db, `aiSessions/${classId}`);
         }
 
+        function isAiSessionRowActive(session) {
+            return !!(session && session.expiresAt && session.expiresAt > correctedNow());
+        }
+
+        // Dipanggil setiap kali ada yang menandai "@EduAI". Membuat sesi baru kalau belum ada/sudah
+        // kadaluarsa (memori riwayat dimulai dari sini/"startedAt"), atau memperpanjang ("reset")
+        // batas waktu idle kalau sesi masih berjalan. Mengembalikan { startedAt, attachedMateriIds }.
+        async function ensureAiSession(classId, attachedAnnouncementId) {
+            const now = correctedNow();
+            const isFresh = !isAiSessionRowActive(currentAiSession);
+            const startedAt = isFresh ? now : (currentAiSession.startedAt || now);
+            const attachedMateri = isFresh ? {} : { ...(currentAiSession.attachedMateri || {}) };
+            if (attachedAnnouncementId) attachedMateri[attachedAnnouncementId] = true;
+
+            const nextSession = { startedAt, expiresAt: now + EDUAI_SESSION_IDLE_MS, attachedMateri };
+            currentAiSession = nextSession; // update cache dulu (optimis) supaya UI timer langsung responsif
+            await set(aiSessionDbRef(classId), nextSession);
+            return nextSession;
+        }
+
+        // Tombol "Akhiri" / versi manual dari timer: langsung mengakhiri sesi sekarang juga,
+        // tanpa menunggu idle timeout. Riwayat & materi terlampir sebelumnya jadi tidak ikut
+        // dikirim lagi ke AI mulai pertanyaan berikutnya (pesan obrolan sendiri tidak dihapus).
+        async function endAiSession(classId) {
+            if (!classId) return;
+            currentAiSession = null;
+            hideAiSessionTimerUi();
+            await remove(aiSessionDbRef(classId));
+        }
+
+        function formatMmSs(ms) {
+            const totalSec = Math.max(0, Math.ceil(ms / 1000));
+            const mm = Math.floor(totalSec / 60);
+            const ss = totalSec % 60;
+            return `${mm}:${String(ss).padStart(2, '0')}`;
+        }
+
+        function hideAiSessionTimerUi() {
+            const el = document.getElementById('eduai-session-timer');
+            if (el) el.classList.add('hidden');
+        }
+
+        // Ditik tiap detik selagi sidebar obrolan sedang dibuka, murni untuk tampilan; kadaluarsa
+        // sesungguhnya tetap dicek "lazy" lewat isAiSessionRowActive() di buildEduAiHistory(),
+        // jadi tetap berlaku walau tab ini ditutup atau sidebar tidak pernah dibuka lagi.
+        function tickAiSessionTimerUi() {
+            const el = document.getElementById('eduai-session-timer');
+            const label = document.getElementById('eduai-session-timer-label');
+            if (!el || !label) return;
+            if (!isAiSessionRowActive(currentAiSession)) {
+                el.classList.add('hidden');
+                return;
+            }
+            const remainingMs = currentAiSession.expiresAt - correctedNow();
+            label.innerText = `EduAI ${formatMmSs(remainingMs)}`;
+            el.classList.toggle('warning', remainingMs <= 60 * 1000);
+            el.classList.remove('hidden');
+        }
+
+        function startAiSessionListeners(classId) {
+            stopAiSessionListeners();
+            aiSessionListenerRef = aiSessionDbRef(classId);
+            onValue(aiSessionListenerRef, (snap) => {
+                currentAiSession = snap.exists() ? snap.val() : null;
+                tickAiSessionTimerUi();
+            });
+            aiSessionTickInterval = setInterval(tickAiSessionTimerUi, 1000);
+        }
+
+        function stopAiSessionListeners() {
+            if (aiSessionTickInterval) { clearInterval(aiSessionTickInterval); aiSessionTickInterval = null; }
+            aiSessionListenerRef = null;
+            currentAiSession = null;
+            hideAiSessionTimerUi();
+        }
+
+        document.getElementById('btn-eduai-end-session').addEventListener('click', () => {
+            if (currentViewedClassId) endAiSession(currentViewedClassId);
+        });
+
         function buildEduAiHistory() {
-            // Memori sesi EduAI: hanya pesan HARI INI yang mengandung "@EduAI" (dari siapa pun)
-            // beserta jawaban EduAI untuk pesan-pesan itu.
-            const now = Date.now();
+            // Memori sesi EduAI: hanya pesan SEJAK SESI AKTIF SAAT INI DIMULAI ("startedAt") yang
+            // mengandung "@EduAI" (dari siapa pun) beserta jawaban EduAI untuk pesan-pesan itu.
+            // Begitu sesi berakhir (idle timeout atau tombol "Akhiri"), sesi berikutnya mulai dari
+            // startedAt yang baru, sehingga percakapan sebelumnya otomatis tidak lagi ikut terkirim
+            // ke AI sebagai konteks (pesannya sendiri tetap ada & terlihat di obrolan kelas).
+            const sessionStart = isAiSessionRowActive(currentAiSession) ? currentAiSession.startedAt : correctedNow();
             return Object.values(chatMessagesCache)
                 .filter(m => !m.deleted && m.text && String(m.text).trim())
-                .filter(m => isSameLocalDay(m.timestamp, now))
+                .filter(m => (m.timestamp || 0) >= sessionStart)
                 .filter(m => m.senderId === EDUAI_SENDER_ID || containsEduAiTrigger(m.text))
                 .sort((a, b) => a.timestamp - b.timestamp)
                 .map(m => ({
@@ -2129,10 +2264,20 @@
 
         async function handleEduAiTrigger(rawText, classId, senderName, triggerMessageId, attachedAnnouncementId) {
             const question = rawText.replace(new RegExp(EDUAI_TRIGGER, 'ig'), '').trim() || rawText;
+
+            // Mulai/perpanjang sesi memori (reset timer idle), dan catat materi yang baru
+            // dilampirkan (jika ada) ke daftar materi sesi ini.
+            const session = await ensureAiSession(classId, attachedAnnouncementId);
+
+            // Kirim ulang OTOMATIS konteks SEMUA materi yang pernah dilampirkan selama sesi ini
+            // masih berjalan — jadi siswa cukup melampirkan materi sekali di awal sesi, pertanyaan
+            // lanjutan setelahnya ("@EduAI" tanpa lampiran baru) tetap membawa konteks materi itu.
+            const sessionMateriIds = Object.keys(session.attachedMateri || {})
+                .filter(id => !isAiRestrictedForCurrentUser(id));
             let prompt = question;
-            if (attachedAnnouncementId) {
-                const context = await buildAnnouncementAiContext(attachedAnnouncementId);
-                if (context) prompt = `${context}\n\nPertanyaan: ${question}`;
+            if (sessionMateriIds.length > 0) {
+                const contexts = (await Promise.all(sessionMateriIds.map(buildAnnouncementAiContext))).filter(Boolean);
+                if (contexts.length > 0) prompt = `${contexts.join('\n\n')}\n\nPertanyaan: ${question}`;
             }
             const history = buildEduAiHistory();
             showEduAiTypingIndicator();
