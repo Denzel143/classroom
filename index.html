@@ -665,7 +665,23 @@
         }
         #chat-messages-container::-webkit-scrollbar { width: 6px; }
         #chat-messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-        .chat-input-area { padding: 12px 16px 20px 16px; border-top: 1px solid var(--border); flex-shrink: 0; }
+        .chat-input-area { padding: 12px 16px 20px 16px; border-top: 1px solid var(--border); flex-shrink: 0; position: relative; }
+
+        /* EduAI: saran autocomplete saat mengetik "@" di kolom obrolan */
+        .eduai-suggest-popup {
+            position: absolute; left: 16px; right: 16px; bottom: 100%;
+            margin-bottom: 8px; background: var(--surface); border-radius: var(--radius-md);
+            box-shadow: var(--shadow-floating); border: 1px solid var(--border);
+            overflow: hidden; z-index: 50;
+        }
+        .eduai-suggest-item {
+            display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+            cursor: pointer; transition: background 0.15s ease;
+        }
+        .eduai-suggest-item:hover, .eduai-suggest-item.active { background: #F7F1FB; }
+        .eduai-suggest-icon { font-size: 20px; }
+        .eduai-suggest-name { font-weight: 700; font-size: 14px; color: #6A1B9A; }
+        .eduai-suggest-desc { font-size: 12px; color: var(--text-muted); }
 
         .chat-msg-row { display: flex; }
         .chat-msg-row.chat-msg-self { justify-content: flex-end; }
@@ -907,6 +923,15 @@
                 <button id="btn-cancel-chat-reply" type="button" title="Batal membalas">✕</button>
             </div>
             <div id="chat-attach-preview" class="chat-attach-preview hidden"></div>
+            <div id="eduai-suggest-popup" class="eduai-suggest-popup hidden">
+                <div class="eduai-suggest-item active" id="eduai-suggest-item">
+                    <span class="eduai-suggest-icon">🤖</span>
+                    <div>
+                        <div class="eduai-suggest-name">@EduAI</div>
+                        <div class="eduai-suggest-desc">Tanya asisten AI kelas</div>
+                    </div>
+                </div>
+            </div>
             <div style="display:flex; gap:8px; align-items:flex-end;">
                 <textarea id="input-chat" rows="1" placeholder="Tulis pesan..." style="margin:0; flex-grow:1;"></textarea>
                 <button id="btn-attach-chat" type="button" class="btn-chat-attach-icon" title="Lampirkan materi/pengumuman">📎</button>
@@ -2305,8 +2330,69 @@
         document.getElementById('input-chat').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
+                if (eduAiSuggestRange) {
+                    applyEduAiSuggestion();
+                    return;
+                }
                 document.getElementById('btn-kirim-chat').click();
+            } else if (e.key === 'Escape' && eduAiSuggestRange) {
+                eduAiSuggestRange = null;
+                eduAiSuggestPopup.classList.add('hidden');
             }
+        });
+
+        // ================= EduAI: SARAN AUTOCOMPLETE "@EduAI" DI KOLOM OBROLAN =================
+        const eduAiSuggestPopup = document.getElementById('eduai-suggest-popup');
+        const eduAiSuggestItem = document.getElementById('eduai-suggest-item');
+        let eduAiSuggestRange = null; // { start, end } posisi token "@..." di dalam teks saat ini
+
+        function updateEduAiSuggestion() {
+            const input = document.getElementById('input-chat');
+            const value = input.value;
+            const cursor = input.selectionStart;
+            const textBeforeCursor = value.slice(0, cursor);
+            const match = textBeforeCursor.match(/(?:^|\s)(@[A-Za-z]*)$/);
+
+            if (match) {
+                const token = match[1]; // termasuk tanda "@"
+                const query = token.slice(1).toLowerCase();
+                if ('eduai'.startsWith(query)) {
+                    eduAiSuggestRange = { start: cursor - token.length, end: cursor };
+                    eduAiSuggestPopup.classList.remove('hidden');
+                    return;
+                }
+            }
+            eduAiSuggestRange = null;
+            eduAiSuggestPopup.classList.add('hidden');
+        }
+
+        function applyEduAiSuggestion() {
+            const input = document.getElementById('input-chat');
+            if (!eduAiSuggestRange) return;
+            const value = input.value;
+            const before = value.slice(0, eduAiSuggestRange.start);
+            const after = value.slice(eduAiSuggestRange.end);
+            const inserted = `${EDUAI_TRIGGER} `;
+            input.value = before + inserted + after;
+            const newCursor = (before + inserted).length;
+            input.setSelectionRange(newCursor, newCursor);
+            eduAiSuggestPopup.classList.add('hidden');
+            eduAiSuggestRange = null;
+            input.focus();
+        }
+
+        document.getElementById('input-chat').addEventListener('input', updateEduAiSuggestion);
+        document.getElementById('input-chat').addEventListener('click', updateEduAiSuggestion);
+        document.getElementById('input-chat').addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') updateEduAiSuggestion();
+        });
+        document.getElementById('input-chat').addEventListener('blur', () => {
+            // delay supaya event klik pada saran sempat diproses lebih dulu
+            setTimeout(() => { eduAiSuggestRange = null; eduAiSuggestPopup.classList.add('hidden'); }, 150);
+        });
+        eduAiSuggestItem.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // cegah textarea kehilangan fokus sebelum klik diproses
+            applyEduAiSuggestion();
         });
 
         // ================= EDIT KELAS (GURU) =================
