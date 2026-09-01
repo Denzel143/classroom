@@ -23,28 +23,33 @@ export default async function handler(req, res) {
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch { body = {}; }
   }
-  const { message, history } = body || {};
+  const { message, senderName, history } = body || {};
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     res.status(400).json({ error: 'Pesan kosong.' });
     return;
   }
 
+  const safeSenderName = (senderName && String(senderName).trim()) || 'Pengguna';
+  const promptText = `${safeSenderName}: ${message.slice(0, 4000)}`;
+
   // Riwayat dari front-end sudah difilter: hanya pesan hari ini yang mengandung "@EduAI"
-  // beserta jawaban EduAI-nya. Batasi jumlah pesan yang diteruskan ke Gemini agar payload wajar,
-  // dan batasi panjang tiap pesan.
+  // beserta jawaban EduAI-nya (sudah ada nama pengirim di dalam teksnya). Batasi jumlah
+  // pesan yang diteruskan ke Gemini agar payload wajar, dan batasi panjang tiap pesan.
   const trimmedHistory = Array.isArray(history) ? history.slice(-40) : [];
   const contents = [
     ...trimmedHistory.map(h => ({
       role: h.role === 'ai' ? 'model' : 'user',
       parts: [{ text: String(h.text || '').slice(0, 2000) }]
     })),
-    { role: 'user', parts: [{ text: message.slice(0, 4000) }] }
+    { role: 'user', parts: [{ text: promptText }] }
   ];
 
   const systemInstruction = {
     parts: [{
       text: 'Kamu adalah EduAI, asisten belajar di dalam aplikasi kelas EduClass. ' +
+            'Setiap pesan pengguna diawali dengan "Nama: " yang menandakan siapa yang bertanya — ' +
+            'gunakan nama itu untuk menyapa secara personal bila relevan, tapi jangan mengulangi format "Nama: " dalam jawabanmu. ' +
             'Jawab dalam Bahasa Indonesia yang ramah, jelas, dan ringkas, cocok untuk siswa maupun guru. ' +
             'Bantu jelaskan materi pelajaran, jawab pertanyaan, atau berikan contoh soal jika diminta.'
     }]
