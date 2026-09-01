@@ -1242,6 +1242,7 @@
         // ================= STATE FITUR EduAI (ASISTEN AI) =================
         const EDUAI_SENDER_ID = 'eduai-bot';
         const EDUAI_TRIGGER = '@EduAI';
+        let eduAiIsTyping = false; // tetap true selama menunggu jawaban, walau sidebar chat ditutup lalu dibuka lagi
         let chatPausedReplyName = null;
         let chatPausedAttachId = null;
         let currentAnnShareMenuId = null; // id materi yang sedang dibuka menu titik-tiga "Bagikan ke Obrolan"-nya
@@ -1851,6 +1852,7 @@
             if (ids.length === 0) {
                 container.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding: 30px 0;">Belum ada obrolan. Mulai percakapan pertama di kelas ini!</p>';
                 chatJustOpened = false;
+                if (eduAiIsTyping) container.insertAdjacentHTML('beforeend', eduAiTypingBubbleHtml());
                 return;
             }
 
@@ -1866,6 +1868,7 @@
             }
 
             container.innerHTML = ids.map(id => renderChatBubble(id, chatMessagesCache[id])).join('');
+            if (eduAiIsTyping) container.insertAdjacentHTML('beforeend', eduAiTypingBubbleHtml());
 
             requestAnimationFrame(() => {
                 if (chatJustOpened) {
@@ -1994,28 +1997,36 @@
                 }));
         }
 
+        function eduAiTypingBubbleHtml() {
+            return `
+                <div class="chat-msg-row chat-msg-other" id="eduai-typing-indicator">
+                    <div class="chat-bubble chat-bubble-other chat-bubble-ai">
+                        <div class="chat-header-row"><span class="chat-name">EduAI<span class="badge-ai">AI</span></span></div>
+                        <div class="chat-text eduai-typing-dots">EduAI sedang mengetik…</div>
+                    </div>
+                </div>`;
+        }
+
         function showEduAiTypingIndicator() {
-            hideEduAiTypingIndicator();
+            eduAiIsTyping = true;
             const container = document.getElementById('chat-messages-container');
             if (!container) return;
-            const el = document.createElement('div');
-            el.className = 'chat-msg-row chat-msg-other';
-            el.id = 'eduai-typing-indicator';
-            el.innerHTML = `
-                <div class="chat-bubble chat-bubble-other chat-bubble-ai">
-                    <div class="chat-header-row"><span class="chat-name">EduAI<span class="badge-ai">AI</span></span></div>
-                    <div class="chat-text eduai-typing-dots">EduAI sedang mengetik…</div>
-                </div>`;
-            container.appendChild(el);
+            hideEduAiTypingIndicatorDom();
+            container.insertAdjacentHTML('beforeend', eduAiTypingBubbleHtml());
             container.scrollTop = container.scrollHeight;
         }
 
-        function hideEduAiTypingIndicator() {
+        function hideEduAiTypingIndicatorDom() {
             const el = document.getElementById('eduai-typing-indicator');
             if (el) el.remove();
         }
 
-        async function handleEduAiTrigger(rawText, classId) {
+        function hideEduAiTypingIndicator() {
+            eduAiIsTyping = false;
+            hideEduAiTypingIndicatorDom();
+        }
+
+        async function handleEduAiTrigger(rawText, classId, senderName) {
             const prompt = rawText.replace(new RegExp(EDUAI_TRIGGER, 'ig'), '').trim() || rawText;
             const history = buildEduAiHistory();
             showEduAiTypingIndicator();
@@ -2023,7 +2034,7 @@
                 const res = await fetch('/api/eduai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: prompt, history })
+                    body: JSON.stringify({ message: prompt, senderName, history })
                 });
                 const data = await res.json().catch(() => ({}));
                 const answer = (res.ok && data.text)
@@ -2331,7 +2342,7 @@
                 cancelChatAttach();
                 input.value = '';
                 if (containsEduAiTrigger(text)) {
-                    handleEduAiTrigger(text, currentViewedClassId); // dijalankan async, tidak menunggu (tidak memblokir UI)
+                    handleEduAiTrigger(text, currentViewedClassId, currentUserData.username); // dijalankan async, tidak menunggu (tidak memblokir UI)
                 }
             } finally {
                 btn.disabled = false;
