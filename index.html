@@ -561,6 +561,16 @@
             vertical-align: middle; display: inline-block;
         }
 
+        /* EduAI (asisten AI di obrolan kelas) */
+        .badge-ai {
+            background: linear-gradient(90deg, #8E24AA, #5E35B1); color: #fff; font-size: 10px; font-weight: 800;
+            padding: 2px 8px; border-radius: 99px; margin-left: 7px; letter-spacing: 0.3px;
+            vertical-align: middle; display: inline-block;
+        }
+        .chat-bubble-ai { border: 1.5px solid #8E24AA33; background: #F7F1FB !important; }
+        .chat-bubble-ai .chat-name { color: #6A1B9A !important; }
+        .eduai-typing-dots { color: var(--text-muted); font-style: italic; font-size: 13.5px; }
+
         /* Modal Komentar */
         #comment-modal-overlay .modal-card { display: flex; flex-direction: column; }
         #comment-thread-container { flex-grow: 1; overflow-y: auto; padding-right: 4px; }
@@ -661,26 +671,25 @@
         .chat-msg-row.chat-msg-self { justify-content: flex-end; }
         .chat-msg-row.chat-msg-other { justify-content: flex-start; }
         .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: var(--radius-sm); word-break: break-word; transition: box-shadow 0.2s ease; }
-        .chat-bubble-self { background: var(--accent); color: #3D2E00; border-bottom-right-radius: 4px; }
+        .chat-bubble-self { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
         .chat-bubble-other { background: #F8F9FA; color: var(--text-main); border-bottom-left-radius: 4px; }
         .chat-header-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; }
         .chat-name { font-weight: 700; font-size: 12.5px; }
         .chat-bubble-other .chat-name { color: var(--primary); }
-        .chat-bubble-self .chat-name { color: #5C4400; }
+        .chat-bubble-self .chat-name { color: rgba(255,255,255,0.88); }
         .chat-text { font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
-        .chat-bubble-self .msg-link { color: #0B4FA8; }
         .chat-text-deleted { font-style: italic; opacity: 0.75; }
         .chat-meta { font-size: 10.5px; margin-top: 4px; }
-        .chat-bubble-self .chat-meta { color: #6B5300; }
+        .chat-bubble-self .chat-meta { color: rgba(255,255,255,0.85); }
         .chat-bubble-other .chat-meta { color: var(--text-muted); }
         .chat-menu-btn { background: transparent; padding: 0 4px; font-size: 15px; line-height: 1; border-radius: 8px; flex-shrink: 0; }
-        .chat-bubble-self .chat-menu-btn { color: #6B5300; }
+        .chat-bubble-self .chat-menu-btn { color: rgba(255,255,255,0.85); }
         .chat-bubble-other .chat-menu-btn { color: var(--text-muted); }
-        .chat-bubble-self .chat-menu-btn:hover { background: rgba(0,0,0,0.1); }
+        .chat-bubble-self .chat-menu-btn:hover { background: rgba(255,255,255,0.2); }
         .chat-bubble-other .chat-menu-btn:hover { background: var(--border); color: var(--text-main); }
         .chat-reply-quote { font-size: 12px; padding: 6px 8px; border-radius: 8px; margin-bottom: 6px; cursor: pointer; border-left: 3px solid; }
         .chat-reply-quote:hover { filter: brightness(0.97); }
-        .chat-bubble-self .chat-reply-quote { background: rgba(0,0,0,0.08); border-left-color: rgba(0,0,0,0.35); color: #4A3800; }
+        .chat-bubble-self .chat-reply-quote { background: rgba(255,255,255,0.15); border-left-color: rgba(255,255,255,0.7); color: rgba(255,255,255,0.92); }
         .chat-bubble-other .chat-reply-quote { background: rgba(26,115,232,0.07); border-left-color: var(--primary); color: var(--text-muted); }
         .chat-bubble.chat-highlight { box-shadow: 0 0 0 3px var(--accent); }
 
@@ -709,9 +718,9 @@
             display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 10px;
             margin-top: 6px; cursor: pointer; border: 1px solid;
         }
-        .chat-bubble-self .chat-attachment-chip { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.2); }
-        .chat-bubble-self .chat-attach-chip-label { color: #4A3800; }
-        .chat-bubble-self .chat-attach-chip-snippet { color: #5C4400; }
+        .chat-bubble-self .chat-attachment-chip { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35); }
+        .chat-bubble-self .chat-attach-chip-label { color: rgba(255,255,255,0.95); }
+        .chat-bubble-self .chat-attach-chip-snippet { color: rgba(255,255,255,0.85); }
         .chat-bubble-other .chat-attachment-chip { background: rgba(26,115,232,0.06); border-color: rgba(26,115,232,0.2); }
         .chat-attachment-chip:hover { filter: brightness(0.97); }
         .chat-attachment-chip.chat-attachment-missing { color: var(--text-muted); font-size: 12.5px; font-style: italic; cursor: default; }
@@ -1204,6 +1213,10 @@
         // supaya bisa dikembalikan lagi setelah edit disimpan/dibatalkan.
         let chatDraftBeforeEdit = null;
         let chatPausedReplyId = null;
+
+        // ================= STATE FITUR EduAI (ASISTEN AI) =================
+        const EDUAI_SENDER_ID = 'eduai-bot';
+        const EDUAI_TRIGGER = '@EduAI';
         let chatPausedReplyName = null;
         let chatPausedAttachId = null;
         let currentAnnShareMenuId = null; // id materi yang sedang dibuka menu titik-tiga "Bagikan ke Obrolan"-nya
@@ -1850,7 +1863,9 @@
         function renderChatBubble(id, m) {
             const isSelf = m.senderId === currentUserId;
             const isGuruSender = m.senderRole === 'guru';
+            const isAiSender = m.senderRole === 'ai';
             const guruBadge = isGuruSender ? `<span class="badge-guru">GURU</span>` : '';
+            const aiBadge = isAiSender ? `<span class="badge-ai">AI</span>` : '';
             const safeName = escapeHtml(m.senderName || 'Pengguna');
             const time = new Date(m.timestamp).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
             const isDeleted = !!m.deleted;
@@ -1903,8 +1918,8 @@
 
             const canEdit = isSelf && !isDeleted;
             const canDeleteSelf = isSelf && !isDeleted;
-            const canDeleteAsTeacher = !isSelf && !isDeleted && currentUserData.role === 'guru';
-            const canReply = !isDeleted;
+            const canDeleteAsTeacher = !isSelf && !isDeleted && !isAiSender && currentUserData.role === 'guru';
+            const canReply = !isDeleted && !isAiSender;
             const showMenu = canEdit || canDeleteSelf || canDeleteAsTeacher || canReply;
             const menuBtn = showMenu
                 ? `<button class="chat-menu-btn" data-id="${id}" data-owner="${canEdit}" data-delete="${canDeleteSelf || canDeleteAsTeacher}" data-reply="${canReply}">⋮</button>`
@@ -1912,9 +1927,9 @@
 
             return `
                 <div class="chat-msg-row ${isSelf ? 'chat-msg-self' : 'chat-msg-other'}" data-id="${id}">
-                    <div class="chat-bubble ${isSelf ? 'chat-bubble-self' : 'chat-bubble-other'}">
+                    <div class="chat-bubble ${isSelf ? 'chat-bubble-self' : 'chat-bubble-other'} ${isAiSender ? 'chat-bubble-ai' : ''}">
                         <div class="chat-header-row">
-                            <span class="chat-name">${safeName}${guruBadge}</span>
+                            <span class="chat-name">${safeName}${guruBadge}${aiBadge}</span>
                             ${menuBtn}
                         </div>
                         ${replyHtml}
@@ -1923,6 +1938,80 @@
                     </div>
                 </div>
             `;
+        }
+
+        // ================= EduAI: ASISTEN AI DI DALAM OBROLAN KELAS =================
+        // Diaktifkan dengan menuliskan "@EduAI" di pesan obrolan kelas.
+        function containsEduAiTrigger(text) {
+            return typeof text === 'string' && text.toLowerCase().includes(EDUAI_TRIGGER.toLowerCase());
+        }
+
+        function buildEduAiHistory() {
+            // Ambil beberapa pesan teks terakhir (bukan yang dihapus) sebagai konteks percakapan untuk EduAI
+            return Object.values(chatMessagesCache)
+                .filter(m => !m.deleted && m.text && String(m.text).trim())
+                .sort((a, b) => a.timestamp - b.timestamp)
+                .slice(-8)
+                .map(m => ({
+                    role: m.senderId === EDUAI_SENDER_ID ? 'ai' : 'user',
+                    text: m.senderId === EDUAI_SENDER_ID ? m.text : `${m.senderName}: ${m.text}`
+                }));
+        }
+
+        function showEduAiTypingIndicator() {
+            hideEduAiTypingIndicator();
+            const container = document.getElementById('chat-messages-container');
+            if (!container) return;
+            const el = document.createElement('div');
+            el.className = 'chat-msg-row chat-msg-other';
+            el.id = 'eduai-typing-indicator';
+            el.innerHTML = `
+                <div class="chat-bubble chat-bubble-other chat-bubble-ai">
+                    <div class="chat-header-row"><span class="chat-name">EduAI<span class="badge-ai">AI</span></span></div>
+                    <div class="chat-text eduai-typing-dots">EduAI sedang mengetik…</div>
+                </div>`;
+            container.appendChild(el);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideEduAiTypingIndicator() {
+            const el = document.getElementById('eduai-typing-indicator');
+            if (el) el.remove();
+        }
+
+        async function handleEduAiTrigger(rawText, classId) {
+            const prompt = rawText.replace(new RegExp(EDUAI_TRIGGER, 'ig'), '').trim() || rawText;
+            const history = buildEduAiHistory();
+            showEduAiTypingIndicator();
+            try {
+                const res = await fetch('/api/eduai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: prompt, history })
+                });
+                const data = await res.json().catch(() => ({}));
+                const answer = (res.ok && data.text)
+                    ? data.text
+                    : (data.error || 'Maaf, EduAI sedang mengalami gangguan. Coba lagi nanti.');
+                await push(ref(db, `chats/${classId}`), {
+                    text: answer,
+                    senderId: EDUAI_SENDER_ID,
+                    senderName: 'EduAI',
+                    senderRole: 'ai',
+                    timestamp: Date.now()
+                });
+            } catch (err) {
+                console.error('EduAI error:', err);
+                await push(ref(db, `chats/${classId}`), {
+                    text: 'Maaf, EduAI tidak dapat merespons saat ini. Periksa koneksi internet dan coba lagi.',
+                    senderId: EDUAI_SENDER_ID,
+                    senderName: 'EduAI',
+                    senderRole: 'ai',
+                    timestamp: Date.now()
+                });
+            } finally {
+                hideEduAiTypingIndicator();
+            }
         }
 
         document.getElementById('chat-messages-container').addEventListener('click', (e) => {
@@ -2205,6 +2294,9 @@
                 cancelChatReply();
                 cancelChatAttach();
                 input.value = '';
+                if (containsEduAiTrigger(text)) {
+                    handleEduAiTrigger(text, currentViewedClassId); // dijalankan async, tidak menunggu (tidak memblokir UI)
+                }
             } finally {
                 btn.disabled = false;
             }
