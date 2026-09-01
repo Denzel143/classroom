@@ -56,7 +56,7 @@ export default async function handler(req, res) {
   };
 
   // Bisa dioverride lewat env var GEMINI_MODEL jika perlu ganti model tanpa ubah kode.
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+  const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
   try {
     const geminiRes = await fetch(
