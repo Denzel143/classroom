@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     res.status(500).json({
-      error: 'GEMINI_API_KEY belum diset di Environment Variables Vercel. Tambahkan di Project Settings > Environment Variables, lalu redeploy.'
+      error: '_API_KEY belum diset di Environment Variables Vercel. Tambahkan di Project Settings > Environment Variables, lalu redeploy.'
     });
     return;
   }
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   };
 
   // Bisa dioverride lewat env var GEMINI_MODEL jika perlu ganti model tanpa ubah kode.
-  const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+  const model = process.env.GEMINI_MODEL || 'gemini-3-flash';
 
   try {
     const geminiRes = await fetch(
