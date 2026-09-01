@@ -872,12 +872,18 @@
         .calendar-task-name { font-size:13px; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .calendar-task-meta { font-size:11px; color:var(--text-muted); margin-top:3px; }
         .calendar-handle-icon-wrap { display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
-        .calendar-badge { position:absolute; top:-7px; right:-10px; min-width:20px; height:20px; padding:0 5px; border-radius:99px; background:var(--danger); color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+        .calendar-badge { position:absolute; top:50%; right:-40px; transform:translateY(-50%); min-width:20px; height:20px; padding:0 5px; border-radius:99px; background:var(--danger); color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.2); }
         .task-student-row { border:1px solid var(--border); border-radius:14px; padding:13px; margin-bottom:10px; background:#FAFBFC; }
         .task-student-row-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
         .task-student-name { font-weight:800; font-size:14px; }
         .task-student-meta { font-size:12px; color:var(--text-muted); line-height:1.5; margin-top:4px; }
-        .task-student-row-actions { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+        .task-student-row-actions { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .task-grade-wrap { display:flex; align-items:center; gap:6px; margin-left:auto; }
+        .task-grade-input { width:82px !important; margin:0 !important; padding:9px 12px !important; text-align:right; }
+        .task-grade-suffix { font-weight:800; color:var(--text-muted); font-size:13px; }
+        .task-grade-btn { background:var(--primary-light); color:var(--primary); }
+        .task-grade-display { display:flex; align-items:center; gap:7px; padding:10px 12px; border-radius:12px; background:#F8F9FA; border:1px solid var(--border); margin:0 0 10px; }
+        .task-grade-display strong { color:var(--primary); font-size:1.15rem; }
         .task-submission-empty { padding:18px; background:#F8F9FA; border-radius:12px; text-align:center; color:var(--text-muted); font-size:13px; }
 
     </style>
@@ -1402,6 +1408,22 @@
                     </div>
                     <div id="teacher-single-submission-panel" class="hidden">
                         <div id="teacher-single-submission-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="task-url-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-card" style="max-width:460px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                        <h3 style="margin:0; color:var(--primary);">🔗 Tambah URL</h3>
+                        <button id="btn-close-task-url" class="btn-batal" style="padding:8px 16px; border-radius:99px;">Tutup</button>
+                    </div>
+                    <label>URL</label>
+                    <input type="url" id="input-task-url" placeholder="https://contoh.com/..." autocomplete="url">
+                    <p class="task-criteria">Gunakan URL lengkap dengan http:// atau https://. Maksimal 5 URL.</p>
+                    <div class="modal-actions">
+                        <button id="btn-cancel-task-url" class="btn-batal">Batal</button>
+                        <button id="btn-save-task-url" class="btn-buat">Tambahkan</button>
                     </div>
                 </div>
             </div>
@@ -5629,6 +5651,8 @@
             viewActions.innerHTML='';
             if(mode==='view' && sub){
                 viewPanel.classList.remove('hidden');
+                const grade = Number.isFinite(Number(sub.grade)) ? Number(sub.grade) : null;
+                document.getElementById('task-submission-info').innerText=`${task.senderName||'Guru'} • ${task.deadlineEnabled?`Deadline ${formatTaskDeadline(task.deadlineAt)}`:'Tanpa deadline'}${grade!==null?` • Nilai ${grade}/100`:' • Belum dinilai'}`;
                 const canEdit=taskCanSubmit(task,sub.submittedAt);
                 viewActions.innerHTML=canEdit ? `<button class="btn-buat" style="width:100%;" onclick="openTaskSubmission('${taskId}','edit')">✏️ Edit Pekerjaan</button>` : `<div style="width:100%;font-size:12px;color:var(--text-muted);text-align:center;">Pengeditan sudah ditutup setelah masa toleransi deadline.</div>`;
                 renderExistingSubmissionReadOnly(sub); return;
@@ -5646,10 +5670,12 @@
             renderStudentDrafts();
         }
         function renderExistingSubmissionReadOnly(sub){
-            document.getElementById('student-task-existing-files').innerHTML=(sub&&sub.files||[]).map(fd=>`<div class="task-preview-item"><div class="task-preview-thumb" id="ro-thumb-${escapeHtml(fd.key||fd.name)}"></div><div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(fd.name||'File')}</div><div style="font-size:11px;color:var(--text-muted);">${formatFileSize(fd.size)}</div></div></div>`).join('');
+            const grade = sub && Number.isFinite(Number(sub.grade)) ? Number(sub.grade) : null;
+            const files = (sub&&sub.files)||[];
+            document.getElementById('student-task-existing-files').innerHTML = `<div class="task-grade-display"><span>Nilai:</span><strong>${grade===null?'Belum dinilai':grade+'/100'}</strong></div>` + files.map(fd=>`<div class="task-preview-item"><div class="task-preview-thumb" id="ro-thumb-${escapeHtml(fd.key||fd.name)}"></div><div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(fd.name||'File')}</div><div style="font-size:11px;color:var(--text-muted);">${formatFileSize(fd.size)}</div></div></div>`).join('');
             document.getElementById('student-task-existing-urls').innerHTML=(sub&&sub.urls||[]).map(u=>`<div class="task-preview-item"><div style="font-size:18px;">🔗</div><a href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer" class="msg-link">${escapeHtml(u)}</a></div>`).join('');
             if(!sub || sub.locked) document.getElementById('task-submission-info').innerText += ' • Pengumpulan sudah ditutup.';
-            (sub&&sub.files||[]).forEach(async(fd)=>{ try{ const key=getObjectKeyOf(fd,'key','url'); const thumb=getObjectKeyOf(fd,'thumbKey','thumbUrl'); const u=thumb?await getPresignedGetUrl(thumb,21600):((fd.type||'').startsWith('image/')&&key?await getPresignedGetUrl(key,21600):null); const el=document.getElementById(`ro-thumb-${CSS.escape(fd.key||fd.name)}`); if(el) el.innerHTML=u?`<img src="${u}">`:`<div style="font-size:20px;">📄</div>`; }catch(e){} });
+            files.forEach(async(fd)=>{ try{ const key=getObjectKeyOf(fd,'key','url'); const thumb=getObjectKeyOf(fd,'thumbKey','thumbUrl'); const u=thumb?await getPresignedGetUrl(thumb,21600):((fd.type||'').startsWith('image/')&&key?await getPresignedGetUrl(key,21600):null); const el=document.getElementById(`ro-thumb-${CSS.escape(fd.key||fd.name)}`); if(el) el.innerHTML=u?`<img src="${u}">`:`<div style="font-size:20px;">📄</div>`; }catch(e){} });
         }
         function renderStudentDrafts(){
             const files=window.currentTaskDraftFiles||[], urls=window.currentTaskDraftUrls||[];
@@ -5667,12 +5693,20 @@
             for(const f of files){ if(count>=MAX_TASK_FILES || total+f.size>MAX_TASK_FILE_SIZE){skipped++;continue;} accepted.push(f);count++;total+=f.size; }
             window.currentTaskDraftFiles.push(...accepted); renderStudentDrafts(); if(skipped) customAlert(`${skipped} file dilewati karena batas maksimal 5 file / 20 MB.`);
         });
-        document.getElementById('btn-student-add-url').addEventListener('click',async()=>{
+        document.getElementById('btn-student-add-url').addEventListener('click',()=>{
             if((window.currentTaskDraftUrls||[]).length>=5) return customAlert('Maksimal 5 URL.');
-            const val=prompt('Masukkan URL (http/https):','https://');
-            if(val===null) return; const u=val.trim();
-            try{const parsed=new URL(u); if(!/^https?:$/.test(parsed.protocol)) throw 0;}catch(e){return customAlert('URL tidak valid. Gunakan http:// atau https://');}
-            window.currentTaskDraftUrls.push(u); renderStudentDrafts();
+            document.getElementById('input-task-url').value='https://';
+            document.getElementById('task-url-modal-overlay').classList.remove('hidden');
+            setTimeout(()=>document.getElementById('input-task-url').focus(),80);
+        });
+        function closeTaskUrlModal(){ document.getElementById('task-url-modal-overlay').classList.add('hidden'); document.getElementById('input-task-url').value=''; }
+        document.getElementById('btn-close-task-url').addEventListener('click',closeTaskUrlModal);
+        document.getElementById('btn-cancel-task-url').addEventListener('click',closeTaskUrlModal);
+        document.getElementById('btn-save-task-url').addEventListener('click',()=>{
+            const val=document.getElementById('input-task-url').value.trim();
+            try{const parsed=new URL(val); if(!/^https?:$/.test(parsed.protocol)) throw 0;}catch(e){return customAlert('URL tidak valid. Gunakan http:// atau https://');}
+            if((window.currentTaskDraftUrls||[]).length>=5) return customAlert('Maksimal 5 URL.');
+            window.currentTaskDraftUrls.push(val); renderStudentDrafts(); closeTaskUrlModal();
         });
         document.getElementById('btn-close-task-submission').addEventListener('click',()=>{document.getElementById('task-submission-modal-overlay').classList.add('hidden');currentTaskIdForSubmission=null;});
         document.getElementById('btn-student-send-task').addEventListener('click',async()=>{
@@ -5714,9 +5748,24 @@
             box.innerHTML=entries.map(e=>{
                 const sub=e.sub, late=sub?taskIsLate(task,sub.submittedAt):false, submitted=sub?new Date(sub.submittedAt).toLocaleString('id-ID',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'Belum mengumpulkan';
                 const badge=sub?`<span class="task-status ${late?'late':'submitted'}">${late?'Terlambat':'Tepat waktu'}</span>`:'<span class="task-status pending">Belum dikumpulkan</span>';
-                return `<div class="task-student-row"><div class="task-student-row-header"><div><div class="task-student-name">${escapeHtml(e.user.username||e.user.name||'Siswa')}</div><div class="task-student-meta">${sub?`Dikirim ${submitted}`:'Belum ada pengumpulan'}${sub&&late?' • melewati deadline':''}</div></div>${badge}</div>${sub?`<div class="task-student-row-actions"><button class="task-action-btn task-view-btn" onclick="openTeacherSingleSubmission('${taskId}','${e.uid}')">👁️ Lihat pekerjaan</button></div>`:''}</div>`;
+                const grade = sub && Number.isFinite(Number(sub.grade)) ? Number(sub.grade) : null;
+                const gradeValue = grade===null ? '' : String(grade);
+                const gradeControl = sub ? `<div class="task-grade-wrap"><input class="task-grade-input" id="task-grade-${e.uid}" type="number" min="0" max="100" step="0.01" value="${escapeHtml(gradeValue)}" placeholder="0"><span class="task-grade-suffix">/100</span><button class="task-action-btn task-grade-btn" onclick="saveTaskGrade('${taskId}','${e.uid}')">Nilai</button></div>` : '';
+                return `<div class="task-student-row"><div class="task-student-row-header"><div><div class="task-student-name">${escapeHtml(e.user.username||e.user.name||'Siswa')}</div><div class="task-student-meta">${sub?`Dikirim ${submitted}`:'Belum ada pengumpulan'}${sub&&late?' • melewati deadline':''}</div></div>${badge}</div>${sub?`<div class="task-student-row-actions"><button class="task-action-btn task-view-btn" onclick="openTeacherSingleSubmission('${taskId}','${e.uid}')">👁️ Lihat pekerjaan</button>${gradeControl}</div>`:''}</div>`;
             }).join('');
         }
+        window.saveTaskGrade=async function(taskId,uid){
+            const input=document.getElementById(`task-grade-${uid}`); if(!input) return;
+            const raw=input.value.trim(), num=Number(raw);
+            if(raw==='' || !Number.isFinite(num) || num<0 || num>100) return customAlert('Nilai harus diisi antara 0 dan 100.');
+            const btn=input.parentElement.querySelector('.task-grade-btn'); if(btn){btn.disabled=true;btn.innerText='Menyimpan...';}
+            try{
+                await update(ref(db,`taskSubmissions/${currentViewedClassId}/${taskId}/${uid}`),{grade:num});
+                await renderTeacherSubmissions(taskId);
+                await customAlert(`Nilai ${num}/100 berhasil disimpan.`);
+            }catch(e){ customAlert('Gagal menyimpan nilai: '+(e.message||'Terjadi kesalahan.')); }
+        };
+
         window.openTeacherSingleSubmission=async function(taskId,uid){
             const task=currentTasksCache[taskId]; const snap=await get(ref(db,`taskSubmissions/${currentViewedClassId}/${taskId}/${uid}`)); if(!snap.exists()) return;
             const sub=snap.val(); currentTeacherSubmissionStudentId=uid;
