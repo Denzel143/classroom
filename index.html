@@ -363,7 +363,8 @@
             display: flex; align-items: center; justify-content: center; padding: 20px;
         }
         .media-lightbox-overlay.hidden { display: none; }
-        .media-lightbox-content { max-width: 90vw; max-height: 85vh; position: relative; overflow: hidden; }
+        .media-lightbox-content { max-width: 90vw; max-height: 85vh; position: relative; }
+        .media-lightbox-media-wrap { overflow: hidden; border-radius: 8px; max-width: 90vw; max-height: 85vh; }
         .media-lightbox-content img, .media-lightbox-content video { max-width: 90vw; max-height: 85vh; border-radius: 8px; display: block; }
         /* Foto di lightbox: satu-satunya elemen yang boleh di-zoom (pinch/scroll/double-tap),
            bukan lewat zoom sistem/browser (viewport sudah mengunci itu secara global). */
@@ -371,10 +372,11 @@
         .media-lightbox-content img.zoomed { cursor: grab; }
         .media-lightbox-content img.panning { cursor: grabbing; }
         .media-lightbox-close {
-            position: absolute; top: -18px; right: -18px; background: #fff; color: #111; border-radius: 50%;
+            position: absolute; top: -18px; right: -18px; background: var(--primary); color: #fff; border-radius: 12px;
             width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: 800;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3); cursor: pointer; font-size: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3); cursor: pointer; font-size: 16px; z-index: 1;
         }
+        .media-lightbox-close:hover { background: #1558B0; }
         
         /* Undangan Alert */
         .invitation-card { 
@@ -3720,13 +3722,13 @@
                 if (isImage) {
                     const overlay = document.getElementById('media-lightbox-overlay');
                     const content = document.getElementById('media-lightbox-content');
-                    content.innerHTML = `<div class="media-lightbox-close" onclick="closeMediaLightbox()">✕</div><img src="${url}" alt="${escapeHtml(name || '')}">`;
+                    content.innerHTML = `<div class="media-lightbox-close" onclick="closeMediaLightbox()">✕</div><div class="media-lightbox-media-wrap"><img src="${url}" alt="${escapeHtml(name || '')}"></div>`;
                     overlay.classList.remove('hidden');
                     initLightboxImageZoom(content.querySelector('img'));
                 } else if (isVideo) {
                     const overlay = document.getElementById('media-lightbox-overlay');
                     const content = document.getElementById('media-lightbox-content');
-                    content.innerHTML = `<div class="media-lightbox-close" onclick="closeMediaLightbox()">✕</div><video src="${url}" controls autoplay></video>`;
+                    content.innerHTML = `<div class="media-lightbox-close" onclick="closeMediaLightbox()">✕</div><div class="media-lightbox-media-wrap"><video src="${url}" controls autoplay></video></div>`;
                     overlay.classList.remove('hidden');
                 } else {
                     window.open(url, '_blank');
