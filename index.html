@@ -2026,7 +2026,7 @@
             hideEduAiTypingIndicatorDom();
         }
 
-        async function handleEduAiTrigger(rawText, classId, senderName) {
+        async function handleEduAiTrigger(rawText, classId, senderName, triggerMessageId) {
             const prompt = rawText.replace(new RegExp(EDUAI_TRIGGER, 'ig'), '').trim() || rawText;
             const history = buildEduAiHistory();
             showEduAiTypingIndicator();
@@ -2045,7 +2045,8 @@
                     senderId: EDUAI_SENDER_ID,
                     senderName: 'EduAI',
                     senderRole: 'ai',
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    triggerMessageId
                 });
             } catch (err) {
                 console.error('EduAI error:', err);
@@ -2054,7 +2055,8 @@
                     senderId: EDUAI_SENDER_ID,
                     senderName: 'EduAI',
                     senderRole: 'ai',
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    triggerMessageId
                 });
             } finally {
                 hideEduAiTypingIndicator();
@@ -2153,7 +2155,16 @@
             const payload = isSelf
                 ? { deleted: true, deletedBy: 'self', deletedByName: null }
                 : { deleted: true, deletedBy: 'teacher', deletedByName: currentUserData.username };
-            await update(ref(db, `chats/${currentViewedClassId}/${targetId}`), payload);
+
+            const updates = { [`chats/${currentViewedClassId}/${targetId}`]: payload };
+            // Kalau pesan yang dihapus ini mengandung "@EduAI" (pemicu), ikut hapus juga
+            // respons EduAI untuk pesan tersebut.
+            Object.entries(chatMessagesCache).forEach(([id, msg]) => {
+                if (!msg.deleted && msg.senderId === EDUAI_SENDER_ID && msg.triggerMessageId === targetId) {
+                    updates[`chats/${currentViewedClassId}/${id}`] = payload;
+                }
+            });
+            await update(ref(db), updates);
 
             if (editingChatMessageId === targetId) exitChatEditMode();
             if (chatReplyToId === targetId) cancelChatReply();
@@ -2337,12 +2348,12 @@
                 };
                 if (chatReplyToId) payload.replyTo = chatReplyToId;
                 if (chatAttachAnnouncementId) payload.attachedAnnouncementId = chatAttachAnnouncementId;
-                await push(ref(db, `chats/${currentViewedClassId}`), payload);
+                const newMsgRef = await push(ref(db, `chats/${currentViewedClassId}`), payload);
                 cancelChatReply();
                 cancelChatAttach();
                 input.value = '';
                 if (containsEduAiTrigger(text)) {
-                    handleEduAiTrigger(text, currentViewedClassId, currentUserData.username); // dijalankan async, tidak menunggu (tidak memblokir UI)
+                    handleEduAiTrigger(text, currentViewedClassId, currentUserData.username, newMsgRef.key); // dijalankan async, tidak menunggu (tidak memblokir UI)
                 }
             } finally {
                 btn.disabled = false;
@@ -3002,10 +3013,24 @@
         // ================= EDIT PENGUMUMAN =================
         let editClickCount = 0;
         let editClickTimer = null;
-        
+
+        // Guru bisa mengedit SEMUA materi (miliknya sendiri maupun materi siswa).
+        // Siswa hanya bisa mengedit materi miliknya sendiri, dan hanya selama dia masih
+        // diberi akses posting (canPost) — tidak pernah bisa mengedit materi orang lain
+        // (siswa lain maupun guru).
+        function canEditAnnouncement(data) {
+            if (!data) return false;
+            const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
+            if (isTeacherOwner) return true;
+            const isAuthorSelf = data.senderId === currentUserId;
+            const studentSelf = currentClassData && currentClassData.students && currentClassData.students[currentUserId];
+            const studentCanPost = (currentUserData.role === 'siswa' && studentSelf && studentSelf.canPost);
+            return isAuthorSelf && studentCanPost;
+        }
+
         window.handleAnnouncementClick = function(id, text) {
-            if(currentUserData.role !== 'guru') return;
-            
+            if (!canEditAnnouncement(currentAnnouncementsCache[id])) return;
+
             editClickCount++;
             if(editClickCount === 1) {
                 editClickTimer = setTimeout(() => { editClickCount = 0; }, 600);
@@ -3786,8 +3811,11 @@
                     const safeSender = escapeHtml(data.senderName || 'Pengguna');
                     const date = new Date(data.timestamp || Date.now()).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
                     const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData && currentClassData.teacherId === currentUserId);
-                    // Edit materi (klik 3x) tetap khusus guru, bukan siswa yang diizinkan posting
+                    // Hapus/sematkan/nonaktifkan-komentar tetap khusus guru pemilik kelas.
                     const isOwner = isTeacherOwner;
+                    // Edit materi (klik 3x): guru bisa edit semua materi; siswa hanya bisa edit
+                    // materi miliknya sendiri, selama masih diberi akses posting.
+                    const canEditThis = canEditAnnouncement(data);
                     const isPinned = !!data.pinned;
                     const commentsDisabled = !!data.commentsDisabled;
 
@@ -3797,8 +3825,8 @@
                     const pinBadge = isPinned ? `<span class="pin-badge">📌 Disematkan</span>` : '';
 
                     const rawTextForEdit = escapeForJsTemplate((data.text != null) ? String(data.text) : '');
-                    const clickAttr = isOwner ? `onclick="handleAnnouncementClick('${data.id}', \`${rawTextForEdit}\`)"` : '';
-                    const cursorStyle = isOwner ? `cursor:pointer;` : '';
+                    const clickAttr = canEditThis ? `onclick="handleAnnouncementClick('${data.id}', \`${rawTextForEdit}\`)"` : '';
+                    const cursorStyle = canEditThis ? `cursor:pointer;` : '';
 
                     // Pakai jumlah komentar terakhir yang diketahui (cache) sebagai nilai awal,
                     // bukan selalu 0. Jadi walau kartu ini di-render ulang (misal karena materi
