@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     res.status(500).json({
-      error: '_API_KEY belum diset di Environment Variables Vercel. Tambahkan di Project Settings > Environment Variables, lalu redeploy.'
+      error: 'GEMINI_API_KEY belum diset di Environment Variables Vercel. Tambahkan di Project Settings > Environment Variables, lalu redeploy.'
     });
     return;
   }
@@ -30,8 +30,10 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Batasi riwayat & panjang teks supaya payload tetap wajar
-  const trimmedHistory = Array.isArray(history) ? history.slice(-8) : [];
+  // Riwayat dari front-end sudah difilter: hanya pesan hari ini yang mengandung "@EduAI"
+  // beserta jawaban EduAI-nya. Batasi jumlah pesan yang diteruskan ke Gemini agar payload wajar,
+  // dan batasi panjang tiap pesan.
+  const trimmedHistory = Array.isArray(history) ? history.slice(-40) : [];
   const contents = [
     ...trimmedHistory.map(h => ({
       role: h.role === 'ai' ? 'model' : 'user',
@@ -49,7 +51,7 @@ export default async function handler(req, res) {
   };
 
   // Bisa dioverride lewat env var GEMINI_MODEL jika perlu ganti model tanpa ubah kode.
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 
   try {
     const geminiRes = await fetch(
