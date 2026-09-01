@@ -1751,6 +1751,7 @@
                 
                 let totalMembers = 1; 
                 if(currentClassData.students) totalMembers += Object.keys(currentClassData.students).length;
+                if(currentClassData.contributors) totalMembers += Object.keys(currentClassData.contributors).length;
                 document.getElementById('member-count-display').innerText = totalMembers;
                 
                 const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId);
@@ -2593,14 +2594,20 @@
                 
                 snapshot.forEach(child => {
                     const data = child.val();
-                    if (data.teacherId === currentUserId) {
+                    const isOwner = data.teacherId === currentUserId;
+                    const isContributor = !!(data.contributors && data.contributors[currentUserId]);
+                    if (isOwner || isContributor) {
                         hasClass = true;
                         window.cachedClasses.push({ id: child.key, name: data.className, teacher: data.teacherName });
                         
+                        const subtitle = isOwner
+                            ? `Dibuat: ${new Date(data.createdAt).toLocaleDateString('id-ID')}`
+                            : `Kontributor • Guru: <strong style="color: var(--text-main);">${data.teacherName}</strong>`;
+
                         container.innerHTML += `
                             <div class="class-card" onclick="masukKelas('${child.key}')">
                                 <h3>${data.className}</h3>
-                                <p>Dibuat: ${new Date(data.createdAt).toLocaleDateString('id-ID')}</p>
+                                <p>${subtitle}</p>
                                 <div style="margin-top: 24px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--primary);">
                                     Kelola Kelas <span>→</span>
                                 </div>
@@ -2673,10 +2680,12 @@
                     const cData = snap.val();
                     if(cData.teacherId === currentUserId) {
                         await customAlert("Anda adalah pembuat kelas ini!");
-                    } else if (cData.students && cData.students[currentUserId]) {
+                    } else if ((cData.students && cData.students[currentUserId]) || (cData.contributors && cData.contributors[currentUserId])) {
                         await customAlert("Anda sudah tergabung di kelas ini!");
                     } else {
-                        await set(ref(db, `classes/${code}/students/${currentUserId}`), {
+                        // Guru yang bergabung jadi kontributor (co-teacher), bukan siswa.
+                        const targetNode = currentUserData.role === 'guru' ? 'contributors' : 'students';
+                        await set(ref(db, `classes/${code}/${targetNode}/${currentUserId}`), {
                             username: currentUserData.username, joinedAt: Date.now()
                         });
                         document.getElementById('join-class-modal-overlay').classList.add('hidden');
@@ -2723,7 +2732,9 @@
         window.terimaUndangan = async function(inviteId, classId) {
             const snap = await get(ref(db, `classes/${classId}`));
             if(snap.exists()) {
-                await set(ref(db, `classes/${classId}/students/${currentUserId}`), {
+                // Guru yang diundang jadi kontributor (co-teacher), bukan siswa.
+                const targetNode = currentUserData.role === 'guru' ? 'contributors' : 'students';
+                await set(ref(db, `classes/${classId}/${targetNode}/${currentUserId}`), {
                     username: currentUserData.username, joinedAt: Date.now()
                 });
                 await remove(ref(db, `invitations/${currentUserId}/${inviteId}`));
@@ -2780,6 +2791,26 @@
                 </div>
             `;
             
+            c.innerHTML += `<div class="member-category" style="margin-top:30px;">Kontributor</div>`;
+            if(currentClassData.contributors && Object.keys(currentClassData.contributors).length > 0) {
+                const isTeacherOwnerForContrib = (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId);
+                Object.keys(currentClassData.contributors).forEach(cId => {
+                    const contributor = currentClassData.contributors[cId];
+                    let removeBtn = '';
+                    if(isTeacherOwnerForContrib) {
+                        removeBtn = `<button class="btn-hapus-announcement" style="padding:4px 8px;" onclick="keluarkanKontributor('${cId}', '${contributor.username}')">Keluarkan</button>`;
+                    }
+                    c.innerHTML += `
+                        <div class="result-item" style="cursor:default; border-radius: var(--radius-md); margin-bottom:5px;">
+                            <span style="font-size:15px; color:var(--text-main);">${contributor.username}</span>
+                            ${removeBtn}
+                        </div>
+                    `;
+                });
+            } else {
+                c.innerHTML += `<p style="color:var(--text-muted); text-align:center; padding: 20px;">Belum ada kontributor.</p>`;
+            }
+
             c.innerHTML += `<div class="member-category" style="margin-top:30px;">Siswa</div>`;
             if(currentClassData.students && Object.keys(currentClassData.students).length > 0) {
                 const isTeacherOwner = (currentUserData.role === 'guru' && currentClassData.teacherId === currentUserId);
@@ -2854,6 +2885,14 @@
             }
         }
 
+        window.keluarkanKontributor = async function(id, name) {
+            const c = await customConfirm(`Keluarkan ${name} dari kelas sebagai kontributor?`);
+            if(c) {
+                await remove(ref(db, `classes/${currentViewedClassId}/contributors/${id}`));
+                renderAnggotaList();
+            }
+        }
+
         window.batalUndang = async function(uid, uname) {
             const c = await customConfirm(`Batalkan undangan untuk ${uname}?`);
             if(c) {
@@ -2886,7 +2925,8 @@
             }
             
             const existingStudents = currentClassData.students || {};
-            const matches = allUsersDB.filter(u => u.username.toLowerCase().includes(query) && u.id !== currentClassData.teacherId && !existingStudents[u.id]);
+            const existingContributors = currentClassData.contributors || {};
+            const matches = allUsersDB.filter(u => u.username.toLowerCase().includes(query) && u.id !== currentClassData.teacherId && !existingStudents[u.id] && !existingContributors[u.id]);
             
             if(matches.length > 0) {
                 resultsBox.classList.remove('hidden');
