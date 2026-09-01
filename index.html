@@ -1323,6 +1323,7 @@
         const EDUAI_SENDER_ID = 'eduai-bot';
         const EDUAI_TRIGGER = '@EduAI';
         let eduAiIsTyping = false; // tetap true selama menunggu jawaban, walau sidebar chat ditutup lalu dibuka lagi
+        let eduAiStreamingMessageId = null; // id pesan EduAI yang teksnya sedang bertambah (streaming) saat ini, kalau ada
         let chatPausedReplyName = null;
         let chatPausedAttachId = null;
         let currentAnnShareMenuId = null; // id materi yang sedang dibuka menu titik-tiga "Bagikan ke Obrolan"-nya
@@ -1917,10 +1918,13 @@
                 const newCache = snap.exists() ? snap.val() : {};
                 const prevIds = new Set(Object.keys(chatMessagesCache));
                 const hasNewMessage = Object.keys(newCache).some(id => !prevIds.has(id));
+                // Ikut paksa scroll ke bawah selagi ada pesan EduAI yang sedang "mengalir" (streaming),
+                // supaya siapapun yang membuka obrolan tetap mengikuti teks yang terus bertambah.
+                const isStreamingNow = !!(eduAiStreamingMessageId && newCache[eduAiStreamingMessageId]);
                 chatMessagesCache = newCache;
                 updateChatUnreadBadge();
                 if (chatSidebarEl.classList.contains('open')) {
-                    renderChatMessages({ forceScrollBottom: hasNewMessage });
+                    renderChatMessages({ forceScrollBottom: hasNewMessage || isStreamingNow });
                     markChatAsRead();
                 }
             });
@@ -2288,35 +2292,88 @@
             }
             const history = buildEduAiHistory();
             showEduAiTypingIndicator();
+
+            // Siapkan dulu id pesan EduAI (belum ditulis ke Firebase) — baru benar-benar ditulis
+            // ("set") begitu potongan teks pertama dari stream tiba, supaya bubble jawaban tidak
+            // sempat muncul kosong. Setelah itu, teksnya di-"update" berulang kali sambil stream
+            // berjalan, sehingga SEMUA orang yang sedang membuka obrolan kelas ini (bukan cuma
+            // pengirim pertanyaan) ikut melihat efek mengetik yang mengalir secara realtime.
+            const aiMsgRef = push(ref(db, `chats/${classId}`));
+            let started = false;
+            let fullText = '';
+            let lastFlush = 0;
+            const FLUSH_INTERVAL_MS = 150; // jeda antar update Firebase, biar tidak nge-spam tiap huruf
+
+            const flush = (force) => {
+                const now = Date.now();
+                if (!force && now - lastFlush < FLUSH_INTERVAL_MS) return;
+                lastFlush = now;
+                update(ref(db, `chats/${classId}/${aiMsgRef.key}`), { text: fullText });
+            };
+
             try {
                 const res = await fetch('/api/eduai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: prompt, senderName, history, files: sessionFiles })
                 });
-                const data = await res.json().catch(() => ({}));
-                const answer = (res.ok && data.text)
-                    ? data.text
-                    : (data.error || 'Maaf, EduAI sedang mengalami gangguan. Coba lagi nanti.');
-                await push(ref(db, `chats/${classId}`), {
-                    text: answer,
-                    senderId: EDUAI_SENDER_ID,
-                    senderName: 'EduAI',
-                    senderRole: 'ai',
-                    timestamp: Date.now(),
-                    triggerMessageId
-                });
+
+                if (!res.ok || !res.body) {
+                    const data = await res.json().catch(() => ({}));
+                    const errText = data.error || 'Maaf, EduAI sedang mengalami gangguan. Coba lagi nanti.';
+                    await set(aiMsgRef, {
+                        text: errText, senderId: EDUAI_SENDER_ID, senderName: 'EduAI',
+                        senderRole: 'ai', timestamp: Date.now(), triggerMessageId
+                    });
+                    return;
+                }
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                eduAiStreamingMessageId = aiMsgRef.key;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    if (!chunk) continue;
+                    fullText += chunk;
+                    if (!started) {
+                        started = true;
+                        hideEduAiTypingIndicator();
+                        await set(aiMsgRef, {
+                            text: fullText, senderId: EDUAI_SENDER_ID, senderName: 'EduAI',
+                            senderRole: 'ai', timestamp: Date.now(), triggerMessageId
+                        });
+                        lastFlush = Date.now();
+                    } else {
+                        flush(false);
+                    }
+                }
+
+                if (!started) {
+                    // Stream selesai tapi tidak ada potongan teks sama sekali yang sempat masuk.
+                    fullText = 'Maaf, EduAI tidak bisa memberikan jawaban untuk pertanyaan ini.';
+                    await set(aiMsgRef, {
+                        text: fullText, senderId: EDUAI_SENDER_ID, senderName: 'EduAI',
+                        senderRole: 'ai', timestamp: Date.now(), triggerMessageId
+                    });
+                } else {
+                    flush(true); // pastikan versi akhir yang paling lengkap tersimpan
+                }
             } catch (err) {
                 console.error('EduAI error:', err);
-                await push(ref(db, `chats/${classId}`), {
-                    text: 'Maaf, EduAI tidak dapat merespons saat ini. Periksa koneksi internet dan coba lagi.',
-                    senderId: EDUAI_SENDER_ID,
-                    senderName: 'EduAI',
-                    senderRole: 'ai',
-                    timestamp: Date.now(),
-                    triggerMessageId
-                });
+                if (!started) {
+                    await set(aiMsgRef, {
+                        text: 'Maaf, EduAI tidak dapat merespons saat ini. Periksa koneksi internet dan coba lagi.',
+                        senderId: EDUAI_SENDER_ID, senderName: 'EduAI', senderRole: 'ai',
+                        timestamp: Date.now(), triggerMessageId
+                    });
+                } else {
+                    flush(true);
+                }
             } finally {
+                eduAiStreamingMessageId = null;
                 hideEduAiTypingIndicator();
             }
         }
