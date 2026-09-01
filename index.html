@@ -1971,12 +1971,23 @@
             return typeof text === 'string' && text.toLowerCase().includes(EDUAI_TRIGGER.toLowerCase());
         }
 
+        function isSameLocalDay(ts1, ts2) {
+            const d1 = new Date(ts1);
+            const d2 = new Date(ts2);
+            return d1.getFullYear() === d2.getFullYear()
+                && d1.getMonth() === d2.getMonth()
+                && d1.getDate() === d2.getDate();
+        }
+
         function buildEduAiHistory() {
-            // Ambil beberapa pesan teks terakhir (bukan yang dihapus) sebagai konteks percakapan untuk EduAI
+            // Memori sesi EduAI: hanya pesan HARI INI yang mengandung "@EduAI" (dari siapa pun)
+            // beserta jawaban EduAI untuk pesan-pesan itu.
+            const now = Date.now();
             return Object.values(chatMessagesCache)
                 .filter(m => !m.deleted && m.text && String(m.text).trim())
+                .filter(m => isSameLocalDay(m.timestamp, now))
+                .filter(m => m.senderId === EDUAI_SENDER_ID || containsEduAiTrigger(m.text))
                 .sort((a, b) => a.timestamp - b.timestamp)
-                .slice(-8)
                 .map(m => ({
                     role: m.senderId === EDUAI_SENDER_ID ? 'ai' : 'user',
                     text: m.senderId === EDUAI_SENDER_ID ? m.text : `${m.senderName}: ${m.text}`
