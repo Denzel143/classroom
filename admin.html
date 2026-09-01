@@ -12,7 +12,7 @@
         
         .login-container { max-width: 400px; margin: 100px auto; }
         
-        /* CSS Tambahan untuk UI Loading Screen */
+        /* UI Loading Screen */
         .loading-container {
             display: flex;
             flex-direction: column;
@@ -95,18 +95,21 @@
                 flex: 1;
                 text-align: center;
             }
+            .sort-controls {
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- 1. TAMPILAN LOADING (Muncul pertama kali saat reload/cek status) -->
+    <!-- 1. TAMPILAN LOADING -->
     <div id="loading-section" class="container loading-container">
         <div class="spinner"></div>
         <p style="font-size: 15px; color: #5f6368; font-weight: 500;">Memeriksa status akun...</p>
     </div>
 
-    <!-- 2. TAMPILAN LOGIN (Sembunyi secara default) -->
+    <!-- 2. TAMPILAN LOGIN -->
     <div id="login-section" class="container login-container hidden">
         <div class="form-box">
             <h2 style="text-align: center; margin-bottom: 20px;">🔒 Login Admin (Guru)</h2>
@@ -120,7 +123,7 @@
         </div>
     </div>
 
-    <!-- 3. TAMPILAN ADMIN (Sembunyi secara default) -->
+    <!-- 3. TAMPILAN ADMIN -->
     <div id="admin-section" class="container hidden">
         <header>
             <h2 style="margin: 0;">⚙️ Admin Panel - EduClass</h2>
@@ -156,6 +159,13 @@
 
         <h3>Daftar Pengguna Sistem</h3>
         
+        <!-- === TAMBAHAN KONTROL URUTAN === -->
+        <div class="sort-controls" style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 14px; font-weight: bold; margin-right: 5px;">Urutkan:</span>
+            <button id="btn-sort-name" class="icon-btn">Nama ↕️</button>
+            <button id="btn-sort-email" class="icon-btn">Email ↕️</button>
+        </div>
+
         <div class="tab-buttons">
             <button class="tab-btn active" id="btn-tab-siswa">Siswa</button>
             <button class="tab-btn" id="btn-tab-guru">Guru</button>
@@ -223,11 +233,9 @@
         const db = getDatabase(app);
         
         const mainAuth = getAuth(app); 
-        
         const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
         const secondaryAuth = getAuth(secondaryApp);
 
-        // Referensi UI
         const loadingSection = document.getElementById('loading-section');
         const loginSection = document.getElementById('login-section');
         const adminSection = document.getElementById('admin-section');
@@ -237,25 +245,24 @@
         let searchSiswaQuery = '';
         let searchGuruQuery = '';
         let dbListenerUnsubscribe = null;
-
-        // ================= FITUR AUTENTIKASI & CHECKER =================
         
-        // Listener status login
+        // State untuk fitur Sorting
+        let sortKey = 'username'; 
+        let sortOrder = 'asc'; 
+
+        // ================= FITUR AUTENTIKASI =================
         onAuthStateChanged(mainAuth, async (user) => {
             if (user) {
                 try {
-                    // User terdeteksi login, cek role di Realtime Database
                     const userRef = dbRef(db, 'users/' + user.uid);
                     const snapshot = await get(userRef);
                     
                     if (snapshot.exists() && snapshot.val().role === 'guru') {
-                        // Jika terverifikasi sebagai Guru -> Langsung ke Admin Panel
                         loadingSection.classList.add('hidden');
                         loginSection.classList.add('hidden');
                         adminSection.classList.remove('hidden');
                         loadAdminData();
                     } else {
-                        // Jika bukan Guru -> Logout & arahkan ke Form Login
                         await signOut(mainAuth);
                         alert("Akses Ditolak! Hanya akun dengan role Guru yang dapat mengakses Panel Admin.");
                         showLogin();
@@ -265,12 +272,10 @@
                     showLogin();
                 }
             } else {
-                // Belum/tidak login -> Tampilkan Form Login
                 showLogin();
             }
         });
 
-        // Fungsi untuk menampilkan Form Login dan menyembunyikan Loading/Admin
         function showLogin() {
             loadingSection.classList.add('hidden');
             adminSection.classList.add('hidden');
@@ -278,7 +283,6 @@
             if(dbListenerUnsubscribe) dbListenerUnsubscribe();
         }
 
-        // Fungsi Tombol Login
         document.getElementById('btn-login').addEventListener('click', async () => {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -296,7 +300,6 @@
 
             try {
                 await signInWithEmailAndPassword(mainAuth, email, password);
-                // onAuthStateChanged akan otomatis menangani perpindahan ke Admin Panel
             } catch (error) {
                 loginMsg.innerText = "Gagal login: Periksa kembali email dan password.";
                 loginMsg.style.display = "block";
@@ -305,14 +308,11 @@
             }
         });
 
-        // Fungsi Tombol Logout
         document.getElementById('btn-logout').addEventListener('click', async () => {
             const confirmLogout = confirm("Apakah Anda yakin ingin keluar dari Panel Admin?");
             if (confirmLogout) {
-                // Tampilkan loading sebentar saat proses logout
                 loadingSection.classList.remove('hidden');
                 adminSection.classList.add('hidden');
-                
                 await signOut(mainAuth);
                 document.getElementById('login-email').value = '';
                 document.getElementById('login-password').value = '';
@@ -321,6 +321,47 @@
             }
         });
 
+        // ================= FITUR URUTKAN (SORTING) =================
+        const btnSortName = document.getElementById('btn-sort-name');
+        const btnSortEmail = document.getElementById('btn-sort-email');
+
+        function updateSortUI() {
+            // Update teks dan ikon tombol Nama
+            btnSortName.innerText = `Nama ${sortKey === 'username' ? (sortOrder === 'asc' ? '(A-Z) ⬇️' : '(Z-A) ⬆️') : '↕️'}`;
+            btnSortName.style.backgroundColor = sortKey === 'username' ? '#e8f0fe' : '#f1f3f4';
+            btnSortName.style.color = sortKey === 'username' ? '#1a73e8' : '#333';
+            btnSortName.style.borderColor = sortKey === 'username' ? '#1a73e8' : 'var(--border)';
+
+            // Update teks dan ikon tombol Email
+            btnSortEmail.innerText = `Email ${sortKey === 'email' ? (sortOrder === 'asc' ? '(A-Z) ⬇️' : '(Z-A) ⬆️') : '↕️'}`;
+            btnSortEmail.style.backgroundColor = sortKey === 'email' ? '#e8f0fe' : '#f1f3f4';
+            btnSortEmail.style.color = sortKey === 'email' ? '#1a73e8' : '#333';
+            btnSortEmail.style.borderColor = sortKey === 'email' ? '#1a73e8' : 'var(--border)';
+        }
+
+        btnSortName.addEventListener('click', () => {
+            if(sortKey === 'username') {
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; // Toggle jika sudah aktif
+            } else {
+                sortKey = 'username';
+                sortOrder = 'asc'; // Default ke Ascending saat baru dipilih
+            }
+            updateSortUI();
+            renderTables();
+        });
+
+        btnSortEmail.addEventListener('click', () => {
+            if(sortKey === 'email') {
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortKey = 'email';
+                sortOrder = 'asc';
+            }
+            updateSortUI();
+            renderTables();
+        });
+
+        updateSortUI(); // Set UI default saat dimuat
 
         // ================= FITUR LOGIKA TAB =================
         const btnTabSiswa = document.getElementById('btn-tab-siswa');
@@ -423,9 +464,23 @@
             const tableSiswa = document.getElementById('table-siswa');
             const tableGuru = document.getElementById('table-guru');
 
-            const siswaFiltered = allUsers.filter(u => u.role === 'siswa' && (u.username || '').toLowerCase().includes(searchSiswaQuery));
-            const guruFiltered = allUsers.filter(u => u.role === 'guru' && (u.username || '').toLowerCase().includes(searchGuruQuery));
+            let siswaFiltered = allUsers.filter(u => u.role === 'siswa' && (u.username || '').toLowerCase().includes(searchSiswaQuery));
+            let guruFiltered = allUsers.filter(u => u.role === 'guru' && (u.username || '').toLowerCase().includes(searchGuruQuery));
 
+            // Logika Pengurutan
+            const sortFn = (a, b) => {
+                let valA = (a[sortKey] || '').toLowerCase();
+                let valB = (b[sortKey] || '').toLowerCase();
+                
+                if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            };
+
+            siswaFiltered.sort(sortFn);
+            guruFiltered.sort(sortFn);
+
+            // Render Tabel Siswa
             tableSiswa.innerHTML = '';
             if (siswaFiltered.length === 0) {
                 tableSiswa.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada data siswa ditemukan.</td></tr>';
@@ -433,6 +488,7 @@
                 siswaFiltered.forEach(data => tableSiswa.appendChild(createRowHTML(data)));
             }
 
+            // Render Tabel Guru
             tableGuru.innerHTML = '';
             if (guruFiltered.length === 0) {
                 tableGuru.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada data guru ditemukan.</td></tr>';
