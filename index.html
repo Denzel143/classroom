@@ -871,7 +871,8 @@
         .calendar-task-item.no-deadline { border-left-color:#94A3B8; }
         .calendar-task-name { font-size:13px; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .calendar-task-meta { font-size:11px; color:var(--text-muted); margin-top:3px; }
-        .calendar-badge { position:absolute; top:-7px; left:-7px; min-width:20px; height:20px; padding:0 5px; border-radius:99px; background:var(--danger); color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+        .calendar-handle-icon-wrap { display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+        .calendar-badge { position:absolute; top:-7px; right:-10px; min-width:20px; height:20px; padding:0 5px; border-radius:99px; background:var(--danger); color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.2); }
         .task-student-row { border:1px solid var(--border); border-radius:14px; padding:13px; margin-bottom:10px; background:#FAFBFC; }
         .task-student-row-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
         .task-student-name { font-weight:800; font-size:14px; }
@@ -995,9 +996,9 @@
 
     <div id="calendar-sidebar" class="hidden">
         <div id="calendar-sidebar-handle" title="Buka/Tutup Kalender">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="calendar-handle-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
-            </svg><span id="calendar-task-badge" class="calendar-badge hidden">0</span>
+            </svg></div><span id="calendar-task-badge" class="calendar-badge hidden">0</span>
         </div>
         <div class="calendar-sidebar-inner">
             <div class="calendar-sidebar-header">
@@ -1357,9 +1358,12 @@
                         <label>Jam deadline</label>
                         <input type="time" id="input-edit-task-deadline-time">
                     </div>
-                    <div class="modal-actions">
-                        <button id="btn-batal-edit-task" class="btn-batal">Batal</button>
-                        <button id="btn-simpan-edit-task" class="btn-buat">Simpan</button>
+                    <div class="modal-actions" style="justify-content:space-between;">
+                        <button id="btn-hapus-task" class="btn-bahaya">Hapus Tugas</button>
+                        <div style="display:flex; gap:12px;">
+                            <button id="btn-batal-edit-task" class="btn-batal">Batal</button>
+                            <button id="btn-simpan-edit-task" class="btn-buat">Simpan</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1391,6 +1395,7 @@
                     <div id="student-task-viewonly-panel" class="hidden">
                         <div id="student-task-existing-files" class="task-file-preview-list"></div>
                         <div id="student-task-existing-urls" class="task-url-preview-list"></div>
+                        <div class="modal-actions" id="student-task-viewonly-actions"></div>
                     </div>
                     <div id="teacher-task-submissions-panel" class="hidden">
                         <div id="teacher-task-submissions-list"></div>
@@ -3258,6 +3263,7 @@
         document.getElementById('btn-hapus-kelas').addEventListener('click', async () => {
             const confirm = await customConfirm("Anda yakin ingin menghapus kelas ini secara permanen? Semua data pengumuman dan anggota akan hilang.");
             if(confirm) {
+                await deleteClassUploadedFilesFromStorj(currentViewedClassId);
                 await remove(ref(db, `classes/${currentViewedClassId}`));
                 await remove(ref(db, `announcements/${currentViewedClassId}`));
                 await remove(ref(db, `tasks/${currentViewedClassId}`));
@@ -4187,7 +4193,7 @@
 
                 // Hapus file lampiran (original + thumbnail) dari Storj. Ini dilakukan setelah data
                 // Firebase berhasil dihapus, dan kegagalannya tidak membatalkan penghapusan materi.
-                deleteAnnouncementFilesFromStorj(filesToDelete);
+                await deleteAnnouncementFilesFromStorj(filesToDelete);
 
                 // Bersihkan listener jumlah komentar & cache yang terkait, dan tutup modal komentar jika sedang membuka materi ini
                 if (commentCountListeners[id]) {
@@ -5592,7 +5598,7 @@
             const fileHtml=files.length?`<div style="margin-top:12px;">${files.map(fd=>`<div style="font-size:12.5px;color:var(--text-muted);margin-top:5px;">📎 ${escapeHtml(fd.name||'File')}</div>`).join('')}</div>`:'';
             let actions='';
             if(!teacher){
-                if(submission){ actions+=`<button class="task-action-btn task-view-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','view')">👁️ Lihat unggahan</button>`; if(taskCanSubmit(data,submission.submittedAt)) actions+=`<button class="task-action-btn task-submit-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','edit')">✏️ Ubah unggahan</button>`; }
+                if(submission){ actions+=`<button class="task-action-btn task-view-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','view')">👁️ Lihat pekerjaan</button>`; }
                 else if(taskCanSubmit(data,null)) actions+=`<button class="task-action-btn task-submit-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','new')">➕ Tambahkan unggahan</button>`;
                 else actions+=`<span class="task-status late">🔒 Pengumpulan ditutup</span>`;
             } else {
@@ -5617,14 +5623,26 @@
         };
         function resetStudentDraft(){ window.currentTaskDraftFiles=[]; window.currentTaskDraftUrls=[]; }
         function renderStudentSubmissionPanel(taskId,task,sub,mode){
+            const viewPanel=document.getElementById('student-task-viewonly-panel');
+            const uploadPanel=document.getElementById('student-task-upload-panel');
+            const viewActions=document.getElementById('student-task-viewonly-actions');
+            viewActions.innerHTML='';
             if(mode==='view' && sub){
-                document.getElementById('student-task-viewonly-panel').classList.remove('hidden');
+                viewPanel.classList.remove('hidden');
+                const canEdit=taskCanSubmit(task,sub.submittedAt);
+                viewActions.innerHTML=canEdit ? `<button class="btn-buat" style="width:100%;" onclick="openTaskSubmission('${taskId}','edit')">✏️ Edit Pekerjaan</button>` : `<div style="width:100%;font-size:12px;color:var(--text-muted);text-align:center;">Pengeditan sudah ditutup setelah masa toleransi deadline.</div>`;
                 renderExistingSubmissionReadOnly(sub); return;
             }
-            if(!taskCanSubmit(task,sub&&sub.submittedAt)){ document.getElementById('student-task-viewonly-panel').classList.remove('hidden'); renderExistingSubmissionReadOnly(sub||{locked:true}); return; }
-            document.getElementById('student-task-upload-panel').classList.remove('hidden');
+            if(!taskCanSubmit(task,sub&&sub.submittedAt)){
+                viewPanel.classList.remove('hidden');
+                renderExistingSubmissionReadOnly(sub||{locked:true});
+                viewActions.innerHTML=sub ? `<div style="width:100%;font-size:12px;color:var(--text-muted);text-align:center;">Pengeditan sudah ditutup setelah masa toleransi deadline.</div>` : '';
+                return;
+            }
+            uploadPanel.classList.remove('hidden');
             resetStudentDraft();
             if(sub){ window.currentTaskDraftFiles=(sub.files||[]).slice(); window.currentTaskDraftUrls=(sub.urls||[]).slice(); }
+            document.getElementById('btn-student-send-task').innerText=sub ? 'Simpan' : 'Kirim';
             renderStudentDrafts();
         }
         function renderExistingSubmissionReadOnly(sub){
@@ -5672,11 +5690,12 @@
                 const oldFiles=(old&&old.files)||[];
                 const finalFiles=[...keepExisting,...uploaded];
                 if(finalFiles.length>MAX_TASK_FILES||sumFileSizes(finalFiles)>MAX_TASK_FILE_SIZE) throw new Error('Kuota unggahan melebihi batas.');
-                await set(ref(db,`taskSubmissions/${currentViewedClassId}/${currentTaskIdForSubmission}/${currentUserId}`),{studentId:currentUserId,studentName:currentUserData.username,submittedAt:correctedNow(),files:finalFiles.length?finalFiles:null,urls:urls.length?urls:null});
+                const submittedAt=old&&old.submittedAt ? Number(old.submittedAt) : correctedNow();
+                await set(ref(db,`taskSubmissions/${currentViewedClassId}/${currentTaskIdForSubmission}/${currentUserId}`),{studentId:currentUserId,studentName:currentUserData.username,submittedAt,files:finalFiles.length?finalFiles:null,urls:urls.length?urls:null});
                 const retainedKeys=new Set(finalFiles.map(f=>getObjectKeyOf(f,'key','url')).filter(Boolean));
                 const removedOld=oldFiles.filter(f=>{const k=getObjectKeyOf(f,'key','url'); return k && !retainedKeys.has(k);});
-                if(removedOld.length) deleteAnnouncementFilesFromStorj(removedOld);
-                document.getElementById('task-submission-modal-overlay').classList.add('hidden'); refreshTaskCalendarData();
+                if(removedOld.length) await deleteAnnouncementFilesFromStorj(removedOld);
+                document.getElementById('task-submission-modal-overlay').classList.add('hidden'); refreshTaskCalendarData(); renderClassTasks(currentViewedClassId);
             }catch(e){
                 console.error(e);
                 if(newly.length) { try { /* uploaded objects cannot be identified if the RTDB write failed midway */ } catch(_) {} }
@@ -5737,12 +5756,31 @@
         document.getElementById('btn-edit-task-attach-file').addEventListener('click',()=>document.getElementById('input-edit-task-file').click());
         document.getElementById('input-edit-task-file').addEventListener('change',e=>{const files=Array.from(e.target.files||[]);e.target.value='';const q=taskQuotaFilter(files,editTaskExistingFiles.length+editTaskNewFiles.length,sumFileSizes(editTaskExistingFiles)+sumFileSizes(editTaskNewFiles));editTaskNewFiles.push(...q.accepted);renderEditTaskFiles();if(q.skipped)customAlert(`${q.skipped} file dilewati karena batas maksimal 5 file / 20 MB.`);});
         document.getElementById('btn-batal-edit-task').addEventListener('click',()=>document.getElementById('task-edit-modal-overlay').classList.add('hidden'));
+        document.getElementById('btn-hapus-task').addEventListener('click',async()=>{
+            const id=window.editingTaskId, data=currentTasksCache[id];
+            if(!canEditTask(data)) return;
+            const ok=await customConfirm('Hapus tugas ini beserta seluruh pekerjaan siswa yang sudah dikumpulkan? File terkait juga akan dihapus dari Storj.');
+            if(!ok) return;
+            const btn=document.getElementById('btn-hapus-task'); btn.disabled=true; btn.innerText='Menghapus...';
+            try{
+                const subSnap=await get(ref(db,`taskSubmissions/${currentViewedClassId}/${id}`));
+                const filesToDelete=[...taskFilesArray(data)];
+                if(subSnap.exists()) Object.values(subSnap.val()||{}).forEach(sub=>(sub&&sub.files||[]).forEach(fd=>filesToDelete.push(fd)));
+                await update(ref(db),{[`tasks/${currentViewedClassId}/${id}`]:null,[`taskSubmissions/${currentViewedClassId}/${id}`]:null});
+                if(filesToDelete.length) await deleteAnnouncementFilesFromStorj(filesToDelete);
+                document.getElementById('task-edit-modal-overlay').classList.add('hidden');
+                delete currentTasksCache[id];
+                await renderClassTasks(currentViewedClassId);
+                refreshTaskCalendarData();
+            }catch(e){ customAlert('Gagal menghapus tugas: '+(e.message||'Terjadi kesalahan.')); }
+            finally{ btn.disabled=false; btn.innerText='Hapus Tugas'; }
+        });
         document.getElementById('btn-simpan-edit-task').addEventListener('click',async()=>{
             const id=window.editingTaskId,data=currentTasksCache[id];if(!canEditTask(data))return;
             const text=document.getElementById('input-edit-task-description').value.trim();if(!text)return customAlert('Deskripsi tugas tidak boleh kosong.');
             let deadlineAt=null;try{deadlineAt=validateTaskDeadline(document.getElementById('edit-task-deadline-toggle').checked,document.getElementById('input-edit-task-deadline-date').value,document.getElementById('input-edit-task-deadline-time').value);}catch(e){return customAlert(e.message);}
             const btn=document.getElementById('btn-simpan-edit-task');btn.disabled=true;btn.innerText='Menyimpan...';let uploaded=[];
-            try{if(editTaskNewFiles.length)uploaded=await uploadTaskFiles(editTaskNewFiles,id,()=>{});const finalFiles=[...editTaskExistingFiles,...uploaded];await update(ref(db,`tasks/${currentViewedClassId}/${id}`),{text,deadlineEnabled:document.getElementById('edit-task-deadline-toggle').checked,deadlineAt,files:finalFiles.length?finalFiles:null});if(editTaskRemovedFiles.length)deleteAnnouncementFilesFromStorj(editTaskRemovedFiles);document.getElementById('task-edit-modal-overlay').classList.add('hidden');refreshTaskCalendarData();}catch(e){if(uploaded.length)deleteAnnouncementFilesFromStorj(uploaded);customAlert('Gagal menyimpan tugas: '+e.message);}finally{btn.disabled=false;btn.innerText='Simpan';}
+            try{if(editTaskNewFiles.length)uploaded=await uploadTaskFiles(editTaskNewFiles,id,()=>{});const finalFiles=[...editTaskExistingFiles,...uploaded];await update(ref(db,`tasks/${currentViewedClassId}/${id}`),{text,deadlineEnabled:document.getElementById('edit-task-deadline-toggle').checked,deadlineAt,files:finalFiles.length?finalFiles:null});if(editTaskRemovedFiles.length)await deleteAnnouncementFilesFromStorj(editTaskRemovedFiles);document.getElementById('task-edit-modal-overlay').classList.add('hidden');await renderClassTasks(currentViewedClassId);refreshTaskCalendarData();}catch(e){if(uploaded.length)deleteAnnouncementFilesFromStorj(uploaded);customAlert('Gagal menyimpan tugas: '+e.message);}finally{btn.disabled=false;btn.innerText='Simpan';}
         });
 
         async function renderClassTasks(classId,existingAnnouncements=[]){
@@ -5812,7 +5850,19 @@
         taskForumInsert();
         new MutationObserver(taskForumInsert).observe(document.getElementById('announcement-list').parentElement,{childList:true});
 
-        // Saat kelas dihapus, hapus juga tugas & pengumpulan.
+        // Saat kelas dihapus, bersihkan semua object Storj yang terkait materi, tugas, dan pekerjaan siswa.
+        async function deleteClassUploadedFilesFromStorj(classId){
+            const files=[];
+            const [annSnap,taskSnap,subSnap]=await Promise.all([
+                get(ref(db,`announcements/${classId}`)),
+                get(ref(db,`tasks/${classId}`)),
+                get(ref(db,`taskSubmissions/${classId}`))
+            ]);
+            if(annSnap.exists()) Object.values(annSnap.val()||{}).forEach(d=>(d.files|| (d.file?[d.file]:[])).forEach(fd=>files.push(fd)));
+            if(taskSnap.exists()) Object.values(taskSnap.val()||{}).forEach(d=>taskFilesArray(d).forEach(fd=>files.push(fd)));
+            if(subSnap.exists()) Object.values(subSnap.val()||{}).forEach(byStudent=>Object.values(byStudent||{}).forEach(sub=>(sub.files||[]).forEach(fd=>files.push(fd))));
+            if(files.length) await deleteAnnouncementFilesFromStorj(files);
+        }
         const _deleteClassBtnHandlerInstalled = !!document.getElementById('btn-hapus-kelas');
 
 
