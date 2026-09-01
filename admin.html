@@ -12,6 +12,28 @@
         
         .login-container { max-width: 400px; margin: 100px auto; }
         
+        /* CSS Tambahan untuk UI Loading Screen */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+        }
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 4px solid #e8eaed;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         header { background: var(--card-bg); padding: 15px 20px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-radius: 8px;}
         h1, h2, h3 { margin-top: 0; }
         
@@ -24,9 +46,9 @@
         button.icon-btn { padding: 6px 10px; font-size: 14px; margin-left: 5px; background-color: #f1f3f4; color: #333; border: 1px solid var(--border); border-radius: 4px; }
         button.icon-btn:hover { background-color: #e8eaed; }
         
-        /* Modifikasi untuk Wrapper Tabel Responsif */
+        /* Wrapper Tabel Responsif */
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; background: white; white-space: nowrap; /* Mencegah teks tabel turun ke bawah jika layar sempit */ }
+        table { width: 100%; border-collapse: collapse; background: white; white-space: nowrap; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
         th { background-color: #f1f3f4; font-weight: bold; }
         
@@ -45,13 +67,12 @@
         
         .hidden { display: none !important; }
 
-        /* Class baru untuk Form Input */
         .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
 
-        /* Media Query khusus untuk HP (Mobile Responsiveness) */
+        /* Media Query untuk HP */
         @media screen and (max-width: 768px) {
             .form-grid {
-                grid-template-columns: 1fr; /* Mengubah 4 kolom menjadi 1 kolom tumpuk ke bawah */
+                grid-template-columns: 1fr;
                 gap: 5px;
             }
             .container {
@@ -68,10 +89,10 @@
                 padding: 15px;
             }
             .tab-buttons {
-                flex-wrap: wrap; /* Agar tombol tab rapi jika layarnya sangat sempit */
+                flex-wrap: wrap;
             }
             .tab-btn {
-                flex: 1; /* Membuat tombol tab membagi ruang sama rata */
+                flex: 1;
                 text-align: center;
             }
         }
@@ -79,7 +100,14 @@
 </head>
 <body>
 
-    <div id="login-section" class="container login-container">
+    <!-- 1. TAMPILAN LOADING (Muncul pertama kali saat reload/cek status) -->
+    <div id="loading-section" class="container loading-container">
+        <div class="spinner"></div>
+        <p style="font-size: 15px; color: #5f6368; font-weight: 500;">Memeriksa status akun...</p>
+    </div>
+
+    <!-- 2. TAMPILAN LOGIN (Sembunyi secara default) -->
+    <div id="login-section" class="container login-container hidden">
         <div class="form-box">
             <h2 style="text-align: center; margin-bottom: 20px;">🔒 Login Admin (Guru)</h2>
             <label>Email Pengguna</label>
@@ -92,6 +120,7 @@
         </div>
     </div>
 
+    <!-- 3. TAMPILAN ADMIN (Sembunyi secara default) -->
     <div id="admin-section" class="container hidden">
         <header>
             <h2 style="margin: 0;">⚙️ Admin Panel - EduClass</h2>
@@ -198,6 +227,8 @@
         const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
         const secondaryAuth = getAuth(secondaryApp);
 
+        // Referensi UI
+        const loadingSection = document.getElementById('loading-section');
         const loginSection = document.getElementById('login-section');
         const adminSection = document.getElementById('admin-section');
         const loginMsg = document.getElementById('login-msg');
@@ -206,32 +237,48 @@
         let searchSiswaQuery = '';
         let searchGuruQuery = '';
         let dbListenerUnsubscribe = null;
+
+        // ================= FITUR AUTENTIKASI & CHECKER =================
         
+        // Listener status login
         onAuthStateChanged(mainAuth, async (user) => {
             if (user) {
-                const userRef = dbRef(db, 'users/' + user.uid);
-                const snapshot = await get(userRef);
-                
-                if (snapshot.exists() && snapshot.val().role === 'guru') {
-                    loginSection.classList.add('hidden');
-                    adminSection.classList.remove('hidden');
-                    loadAdminData();
-                } else {
-                    await signOut(mainAuth);
-                    alert("Akses Ditolak! Hanya akun dengan role Guru yang dapat mengakses Panel Admin.");
+                try {
+                    // User terdeteksi login, cek role di Realtime Database
+                    const userRef = dbRef(db, 'users/' + user.uid);
+                    const snapshot = await get(userRef);
+                    
+                    if (snapshot.exists() && snapshot.val().role === 'guru') {
+                        // Jika terverifikasi sebagai Guru -> Langsung ke Admin Panel
+                        loadingSection.classList.add('hidden');
+                        loginSection.classList.add('hidden');
+                        adminSection.classList.remove('hidden');
+                        loadAdminData();
+                    } else {
+                        // Jika bukan Guru -> Logout & arahkan ke Form Login
+                        await signOut(mainAuth);
+                        alert("Akses Ditolak! Hanya akun dengan role Guru yang dapat mengakses Panel Admin.");
+                        showLogin();
+                    }
+                } catch (error) {
+                    console.error("Gagal memeriksa role user:", error);
                     showLogin();
                 }
             } else {
+                // Belum/tidak login -> Tampilkan Form Login
                 showLogin();
             }
         });
 
+        // Fungsi untuk menampilkan Form Login dan menyembunyikan Loading/Admin
         function showLogin() {
-            loginSection.classList.remove('hidden');
+            loadingSection.classList.add('hidden');
             adminSection.classList.add('hidden');
-            if(dbListenerUnsubscribe) dbListenerUnsubscribe(); 
+            loginSection.classList.remove('hidden');
+            if(dbListenerUnsubscribe) dbListenerUnsubscribe();
         }
 
+        // Fungsi Tombol Login
         document.getElementById('btn-login').addEventListener('click', async () => {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -249,6 +296,7 @@
 
             try {
                 await signInWithEmailAndPassword(mainAuth, email, password);
+                // onAuthStateChanged akan otomatis menangani perpindahan ke Admin Panel
             } catch (error) {
                 loginMsg.innerText = "Gagal login: Periksa kembali email dan password.";
                 loginMsg.style.display = "block";
@@ -257,9 +305,14 @@
             }
         });
 
+        // Fungsi Tombol Logout
         document.getElementById('btn-logout').addEventListener('click', async () => {
             const confirmLogout = confirm("Apakah Anda yakin ingin keluar dari Panel Admin?");
             if (confirmLogout) {
+                // Tampilkan loading sebentar saat proses logout
+                loadingSection.classList.remove('hidden');
+                adminSection.classList.add('hidden');
+                
                 await signOut(mainAuth);
                 document.getElementById('login-email').value = '';
                 document.getElementById('login-password').value = '';
@@ -268,6 +321,8 @@
             }
         });
 
+
+        // ================= FITUR LOGIKA TAB =================
         const btnTabSiswa = document.getElementById('btn-tab-siswa');
         const btnTabGuru = document.getElementById('btn-tab-guru');
         const contentSiswa = document.getElementById('tab-siswa');
@@ -287,6 +342,7 @@
             contentSiswa.classList.remove('active');
         });
 
+        // ================= FITUR PENCARIAN REAL-TIME =================
         document.getElementById('search-siswa').addEventListener('input', (e) => {
             searchSiswaQuery = e.target.value.toLowerCase();
             renderTables();
@@ -297,6 +353,7 @@
             renderTables();
         });
 
+        // ================= FITUR BUAT AKUN =================
         const btnCreate = document.getElementById('btn-create-user');
         const msgBox = document.getElementById('admin-msg');
 
@@ -346,6 +403,7 @@
             }
         });
 
+        // ================= FITUR AMBIL DATA & RENDER =================
         function loadAdminData() {
             dbListenerUnsubscribe = onValue(dbRef(db, 'users'), (snapshot) => {
                 allUsers = [];
@@ -400,6 +458,7 @@
             return tr;
         }
 
+        // ================= FITUR LIHAT PASSWORD & HAPUS AKUN =================
         window.togglePassword = function(uid) {
             const pwdElement = document.getElementById(`pwd-${uid}`);
             const realPassword = pwdElement.getAttribute('data-pw');
