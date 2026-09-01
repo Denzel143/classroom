@@ -172,6 +172,20 @@
         
         /* Custom Alert & Confirm */
         #custom-alert-overlay, #custom-confirm-overlay { z-index: 2000; }
+
+        /* Notifikasi singkat (toast) - tidak seperti custom-alert, ini muncul sebentar lalu hilang sendiri */
+        #toast-container {
+            position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+            z-index: 4000; display: flex; flex-direction: column; align-items: center; gap: 8px;
+            pointer-events: none; width: 100%; padding: 0 20px;
+        }
+        .toast-item {
+            background: rgba(32,33,36,0.94); color: #fff; padding: 12px 20px; border-radius: 99px;
+            font-size: 14px; font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            max-width: 420px; text-align: center; opacity: 0; transform: translateY(10px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .toast-item.show { opacity: 1; transform: translateY(0); }
         .alert-card { max-width: 400px; text-align: center; }
         .alert-card h3 { margin-top: 0; font-size: 1.5rem;}
         .alert-card p { margin-bottom: 24px; font-size: 16px; line-height: 1.6; color: var(--text-muted);}
@@ -756,6 +770,9 @@
         .chat-attach-picker-item-header { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px; }
         .chat-attach-picker-item-header strong { color: var(--text-main); font-size: 13.5px; }
         .chat-attach-picker-item-snippet { font-size: 13.5px; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .chat-attach-picker-item-disabled { opacity: 0.5; cursor: not-allowed; }
+        .chat-attach-picker-item-disabled:hover { background: #F8F9FA; border-color: transparent; }
+        .chat-attach-picker-item-locked { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--danger); }
 
         .ann-share-menu-btn {
             background: transparent; color: var(--text-muted); padding: 6px 10px; font-size: 15px;
@@ -801,6 +818,8 @@
             </div>
         </div>
     </div>
+
+    <div id="toast-container" aria-live="polite"></div>
 
     <div id="login-section" class="hidden">
         <h2>EduClass</h2>
@@ -1355,6 +1374,21 @@
         
         // Cache array kelas untuk quick switcher
         window.cachedClasses = [];
+
+        // Notifikasi singkat (auto-hilang, tidak seperti customAlert yang harus di-klik OK)
+        window.showToast = function(message, durationMs = 2800) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const el = document.createElement('div');
+            el.className = 'toast-item';
+            el.innerText = message;
+            container.appendChild(el);
+            requestAnimationFrame(() => el.classList.add('show'));
+            setTimeout(() => {
+                el.classList.remove('show');
+                setTimeout(() => el.remove(), 300);
+            }, durationMs);
+        };
 
         // ================= SISTEM CUSTOM ALERT & CONFIRM =================
         window.customAlert = function(message) {
@@ -2002,6 +2036,19 @@
             return typeof text === 'string' && text.toLowerCase().includes(EDUAI_TRIGGER.toLowerCase());
         }
 
+        // Materi/pengumuman dengan toggle "Izinkan AI" dimatikan oleh guru (pembuat/kontributor).
+        function isAnnouncementAiBlocked(annId) {
+            const ann = annId ? currentAnnouncementsCache[annId] : null;
+            return !!(ann && ann.aiDisabled);
+        }
+
+        // Larangan ini HANYA berlaku untuk siswa. Guru (pemilik maupun kontributor) selalu boleh
+        // menanyakan materi apapun ke EduAI, karena merekalah yang mengatur toggle-nya.
+        function isAiRestrictedForCurrentUser(annId) {
+            if (!currentUserData || currentUserData.role !== 'siswa') return false;
+            return isAnnouncementAiBlocked(annId);
+        }
+
         function isSameLocalDay(ts1, ts2) {
             const d1 = new Date(ts1);
             const d2 = new Date(ts2);
@@ -2054,8 +2101,39 @@
             hideEduAiTypingIndicatorDom();
         }
 
-        async function handleEduAiTrigger(rawText, classId, senderName, triggerMessageId) {
-            const prompt = rawText.replace(new RegExp(EDUAI_TRIGGER, 'ig'), '').trim() || rawText;
+        // Bangun blok konteks berisi isi materi/pengumuman + daftar file lampirannya (kalau ada),
+        // supaya EduAI tahu materi apa yang sedang ditanyakan lewat mention di obrolan.
+        async function buildAnnouncementAiContext(annId) {
+            const ann = annId ? currentAnnouncementsCache[annId] : null;
+            if (!ann) return null;
+            const lines = [];
+            lines.push(`[Materi/pengumuman terlampir dari ${ann.senderName || 'Pengguna'}]`);
+            if (ann.text) lines.push(`Isi materi: ${ann.text}`);
+
+            const filesArr = ann.files || (ann.file ? [ann.file] : []);
+            if (filesArr.length > 0) {
+                const fileLines = await Promise.all(filesArr.map(async (fd) => {
+                    const label = `${fd.name || 'File'}${fd.ext ? ' (' + String(fd.ext).toUpperCase() + ')' : ''}`;
+                    try {
+                        const key = getObjectKeyOf(fd, 'key', 'url');
+                        const url = key ? await getPresignedGetUrl(key, 3600) : null;
+                        return url ? `- ${label}: ${url}` : `- ${label}`;
+                    } catch (e) {
+                        return `- ${label}`;
+                    }
+                }));
+                lines.push(`File lampiran materi:\n${fileLines.join('\n')}`);
+            }
+            return lines.join('\n');
+        }
+
+        async function handleEduAiTrigger(rawText, classId, senderName, triggerMessageId, attachedAnnouncementId) {
+            const question = rawText.replace(new RegExp(EDUAI_TRIGGER, 'ig'), '').trim() || rawText;
+            let prompt = question;
+            if (attachedAnnouncementId) {
+                const context = await buildAnnouncementAiContext(attachedAnnouncementId);
+                if (context) prompt = `${context}\n\nPertanyaan: ${question}`;
+            }
             const history = buildEduAiHistory();
             showEduAiTypingIndicator();
             try {
@@ -2242,6 +2320,18 @@
             if (box) { box.classList.add('hidden'); box.innerHTML = ''; }
         }
 
+        // Skenario: materi dilampirkan DULU, baru siswa mengetik "@EduAI". Kalau materi yang
+        // terlampir itu ditandai tidak boleh ditanyakan ke AI, lepas otomatis lampirannya dan
+        // beri tahu lewat notifikasi singkat (bukan modal, supaya tidak mengganggu ketikan).
+        function checkChatAttachAiRestriction() {
+            if (!chatAttachAnnouncementId) return;
+            const input = document.getElementById('input-chat');
+            if (containsEduAiTrigger(input.value) && isAiRestrictedForCurrentUser(chatAttachAnnouncementId)) {
+                cancelChatAttach();
+                showToast('Materi ini tidak diizinkan untuk ditanyakan ke EduAI. Lampiran dibatalkan.');
+            }
+        }
+
         document.getElementById('chat-attach-preview').addEventListener('click', (e) => {
             if (e.target.closest('#btn-cancel-chat-attach')) {
                 cancelChatAttach();
@@ -2255,10 +2345,17 @@
             const rawText = (ann.text != null) ? String(ann.text) : '';
             const preview = rawText.length > 90 ? rawText.slice(0, 90) + '…' : rawText;
             const date = new Date(ann.timestamp || Date.now()).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            // Kalau siswa sudah mengetik "@EduAI" dulu, materi yang dilarang untuk AI tidak bisa dipilih.
+            const inputVal = document.getElementById('input-chat').value;
+            const isBlocked = containsEduAiTrigger(inputVal) && isAiRestrictedForCurrentUser(annId);
+            const blockedClass = isBlocked ? ' chat-attach-picker-item-disabled' : '';
+            const blockedAttr = isBlocked ? 'data-ai-blocked="true"' : '';
+            const lockNote = isBlocked ? `<div class="chat-attach-picker-item-locked">🚫 Tidak bisa ditanyakan ke EduAI</div>` : '';
             return `
-                <div class="chat-attach-picker-item" data-ann="${annId}">
+                <div class="chat-attach-picker-item${blockedClass}" data-ann="${annId}" ${blockedAttr}>
                     <div class="chat-attach-picker-item-header"><strong>${escapeHtml(ann.senderName || 'Pengguna')}</strong><span>${date}</span></div>
                     <div class="chat-attach-picker-item-snippet">${escapeHtml(preview || '(Tanpa teks, ada lampiran file)')}</div>
+                    ${lockNote}
                 </div>
             `;
         }
@@ -2284,6 +2381,10 @@
         document.getElementById('chat-attach-picker-list').addEventListener('click', (e) => {
             const item = e.target.closest('.chat-attach-picker-item');
             if (!item) return;
+            if (item.dataset.aiBlocked === 'true') {
+                showToast('Materi ini tidak diizinkan untuk ditanyakan ke EduAI.');
+                return;
+            }
             chatAttachAnnouncementId = item.dataset.ann;
             showChatAttachPreview();
             document.getElementById('chat-attach-picker-overlay').classList.add('hidden');
@@ -2294,11 +2395,19 @@
         // memasang lampiran materi tersebut ke kolom obrolan (belum dikirim, menunggu tombol Kirim).
         function shareAnnouncementToChat(annId) {
             if (editingChatMessageId) exitChatEditMode();
+            const inputEl = document.getElementById('input-chat');
+            // Jalur akal-akalan: sudah ketik "@EduAI" dulu, lalu coba bagikan materi yang dilarang
+            // lewat daftar materi (melewati picker). Jangan pasang lampirannya, jangan munculkan
+            // preview-nya di atas kolom input, cukup beri tahu lewat notifikasi singkat.
+            if (containsEduAiTrigger(inputEl.value) && isAiRestrictedForCurrentUser(annId)) {
+                showToast('Materi ini tidak diizinkan untuk ditanyakan ke EduAI.');
+                return;
+            }
             chatAttachAnnouncementId = annId;
             chatSidebarEl.classList.add('open');
             openChatSidebarNow();
             showChatAttachPreview();
-            document.getElementById('input-chat').focus();
+            inputEl.focus();
         }
 
         // ========= MODE EDIT PESAN OBROLAN (menunda dulu balasan/lampiran yang sedang disiapkan) =========
@@ -2380,12 +2489,13 @@
                 };
                 if (chatReplyToId) payload.replyTo = chatReplyToId;
                 if (chatAttachAnnouncementId) payload.attachedAnnouncementId = chatAttachAnnouncementId;
+                const attachedAnnIdForAi = chatAttachAnnouncementId; // simpan dulu, sebelum cancelChatAttach() mengosongkannya
                 const newMsgRef = await push(ref(db, `chats/${currentViewedClassId}`), payload);
                 cancelChatReply();
                 cancelChatAttach();
                 input.value = '';
                 if (containsEduAiTrigger(text)) {
-                    handleEduAiTrigger(text, currentViewedClassId, currentUserData.username, newMsgRef.key); // dijalankan async, tidak menunggu (tidak memblokir UI)
+                    handleEduAiTrigger(text, currentViewedClassId, currentUserData.username, newMsgRef.key, attachedAnnIdForAi); // dijalankan async, tidak menunggu (tidak memblokir UI)
                 }
             } finally {
                 btn.disabled = false;
@@ -2444,9 +2554,11 @@
             eduAiSuggestPopup.classList.add('hidden');
             eduAiSuggestRange = null;
             input.focus();
+            checkChatAttachAiRestriction();
         }
 
         document.getElementById('input-chat').addEventListener('input', updateEduAiSuggestion);
+        document.getElementById('input-chat').addEventListener('input', checkChatAttachAiRestriction);
         document.getElementById('input-chat').addEventListener('click', updateEduAiSuggestion);
         document.getElementById('input-chat').addEventListener('keyup', (e) => {
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') updateEduAiSuggestion();
@@ -3963,6 +4075,15 @@
             await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { commentsDisabled: !current });
         }
 
+        // ================= IZINKAN/LARANG MATERI DITANYAKAN KE EduAI =================
+        // Kalau dinonaktifkan, siswa tidak boleh menanyakan materi ini ke EduAI (guru/kontributor
+        // pemilik akses tetap boleh, karena merekalah yang mengatur toggle ini).
+        window.toggleAiDisabled = async function(id, current) {
+            const data = currentAnnouncementsCache[id];
+            if (!data || !canGuruManageTarget(data.senderId, data.senderRole)) return;
+            await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { aiDisabled: !current });
+        }
+
         function loadAnnouncements(classId) {
             const annRef = ref(db, `announcements/${classId}`);
             if (announcementListener) announcementListener();
@@ -4015,10 +4136,12 @@
                     const canEditThis = canEditAnnouncement(data);
                     const isPinned = !!data.pinned;
                     const commentsDisabled = !!data.commentsDisabled;
+                    const aiDisabled = !!data.aiDisabled;
 
                     const btnHapus = canManageThisAnn ? `<button class="btn-hapus-announcement" onclick="hapusPengumuman('${data.id}')">Hapus</button>` : '';
                     const btnPin = canManageThisAnn ? `<button class="btn-pin-announcement ${isPinned ? 'is-pinned' : ''}" onclick="togglePinAnnouncement('${data.id}', ${isPinned})">📌 ${isPinned ? 'Lepas Sematkan' : 'Sematkan'}</button>` : '';
                     const btnToggleComments = canManageThisAnn ? `<button class="btn-toggle-mini ${commentsDisabled ? 'danger-active' : ''}" onclick="toggleCommentsDisabled('${data.id}', ${commentsDisabled})">${commentsDisabled ? '🔒 Komentar Nonaktif' : '💬 Nonaktifkan Komentar'}</button>` : '';
+                    const btnToggleAi = canManageThisAnn ? `<button class="btn-toggle-mini ${aiDisabled ? 'danger-active' : ''}" title="Izinkan/larang materi ini ditanyakan siswa ke EduAI" onclick="toggleAiDisabled('${data.id}', ${aiDisabled})">${aiDisabled ? '🤖🚫 AI Nonaktif' : '🤖 Izinkan AI'}</button>` : '';
                     const pinBadge = isPinned ? `<span class="pin-badge">📌 Disematkan</span>` : '';
 
                     const rawTextForEdit = escapeForJsTemplate((data.text != null) ? String(data.text) : '');
@@ -4037,7 +4160,7 @@
                         <div class="announcement-card ${isPinned ? 'pinned' : ''}" data-ann-id="${data.id}">
                             <div class="announcement-header">
                                 <div class="announcement-time">${pinBadge}<strong>${safeSender}</strong> • ${date}</div>
-                                <div class="announcement-header-actions">${btnPin}${btnToggleComments}${btnHapus}<button class="ann-share-menu-btn" data-ann="${data.id}" title="Opsi lainnya">⋮</button></div>
+                                <div class="announcement-header-actions">${btnPin}${btnToggleComments}${btnToggleAi}${btnHapus}<button class="ann-share-menu-btn" data-ann="${data.id}" title="Opsi lainnya">⋮</button></div>
                             </div>
                             <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${safeText}</div>
                             ${fileHtml}
