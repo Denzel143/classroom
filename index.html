@@ -352,7 +352,7 @@
         @media (hover: hover) and (pointer: fine) { .btn-pin-announcement:hover { background: var(--accent); color: #000; } }
         .btn-pin-announcement.is-pinned { background: var(--accent); color: #000; }
 
-        .announcement-card.pinned {
+        .announcement-card.pinned, .task-card.pinned {
             border: 2px solid var(--accent);
             background: linear-gradient(180deg, #FFFDF3 0%, var(--surface) 60%);
         }
@@ -2263,6 +2263,7 @@
             currentClassData = null;
             currentAnnouncementsCache = {};
             currentTasksCache = {};
+            currentTaskSubsCache = {};
 
             // ---- Bersihkan state & modal fitur guru (team generator & random picker) ----
             document.getElementById('teacher-fab-choice-modal').classList.add('hidden');
@@ -2302,10 +2303,6 @@
         function showClassRoomLoadingSkeleton() {
             const annList = document.getElementById('announcement-list');
             if (annList) annList.innerHTML = classRoomSkeletonCardsHTML(3);
-            // task-list adalah elemen yang disisipkan secara dinamis sebelum announcement-list,
-            // jadi mungkin belum ada di render pertama sebelum kelas pertama kali dibuka.
-            const taskList = document.getElementById('task-list');
-            if (taskList) taskList.innerHTML = '';
         }
 
         function setupClassRoom(classId) {
@@ -5124,27 +5121,37 @@
         }
 
         // ================= SEMATKAN MATERI (MAKS 3) =================
-        window.togglePinAnnouncement = async function(id, isPinned) {
-            const data = currentAnnouncementsCache[id];
-            if (!data || !canGuruManageTarget(data.senderId, data.senderRole)) return;
+        // Sematkan berlaku untuk materi/pengumuman MAUPUN tugas, karena keduanya sekarang
+        // tampil bersamaan dalam satu forum kelas yang sama (diurutkan berdasarkan waktu
+        // posting), dan hanya item yang disematkan yang boleh naik ke atas.
+        window.togglePinItem = async function(type, id, isPinned) {
+            const isTask = type === 'task';
+            const data = (isTask ? currentTasksCache : currentAnnouncementsCache)[id];
+            const canManage = isTask ? canManageTask(data) : canGuruManageTarget(data && data.senderId, data && data.senderRole);
+            if (!data || !canManage) return;
+            const path = `${isTask ? 'tasks' : 'announcements'}/${currentViewedClassId}/${id}`;
 
             if (isPinned) {
-                await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { pinned: false, pinnedAt: null });
+                await update(ref(db, path), { pinned: false, pinnedAt: null });
                 return;
             }
 
-            const snap = await get(ref(db, `announcements/${currentViewedClassId}`));
+            const [annSnap, taskSnap] = await Promise.all([
+                get(ref(db, `announcements/${currentViewedClassId}`)),
+                get(ref(db, `tasks/${currentViewedClassId}`))
+            ]);
             let pinnedCount = 0;
-            if (snap.exists()) {
-                const all = snap.val();
-                pinnedCount = Object.values(all).filter(a => a.pinned).length;
-            }
+            if (annSnap.exists()) pinnedCount += Object.values(annSnap.val()).filter(a => a.pinned).length;
+            if (taskSnap.exists()) pinnedCount += Object.values(taskSnap.val()).filter(a => a.pinned).length;
             if (pinnedCount >= 3) {
-                await customAlert("Maksimal 3 materi yang bisa disematkan. Lepas salah satu dulu sebelum menyematkan yang baru.");
+                await customAlert("Maksimal 3 unggahan (materi atau tugas) yang bisa disematkan. Lepas salah satu dulu sebelum menyematkan yang baru.");
                 return;
             }
-            await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { pinned: true, pinnedAt: Date.now() });
+            await update(ref(db, path), { pinned: true, pinnedAt: Date.now() });
         }
+        // Nama lama tetap dipertahankan (dipakai tombol pin di kartu materi) sebagai alias.
+        window.togglePinAnnouncement = function(id, isPinned) { return window.togglePinItem('announcement', id, isPinned); }
+        window.togglePinTask = function(id, isPinned) { return window.togglePinItem('task', id, isPinned); }
 
         // ================= NONAKTIFKAN KOMENTAR PER MATERI =================
         window.toggleCommentsDisabled = async function(id, current) {
@@ -5162,98 +5169,118 @@
             await update(ref(db, `announcements/${currentViewedClassId}/${id}`), { aiDisabled: !current });
         }
 
+        // Bangun HTML satu kartu materi/pengumuman. Dipisah dari loadAnnouncements supaya
+        // bisa dipakai bersama renderCombinedFeed (yang menggabungkan materi & tugas).
+        async function buildAnnouncementCardHtml(data) {
+          try {
+            const safeText = linkifyText((data.text != null) ? String(data.text) : '');
+            const safeSender = escapeHtml(data.senderName || 'Pengguna');
+            const date = new Date(data.timestamp || Date.now()).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
+            // Hapus/sematkan/nonaktifkan-komentar: pemilik kelas bisa untuk semua materi;
+            // kontributor cuma bisa untuk materi miliknya sendiri atau materi siswa
+            // (tidak bisa untuk materi guru lain).
+            const canManageThisAnn = canGuruManageTarget(data.senderId, data.senderRole);
+            // Edit materi (klik 3x): guru bisa edit semua materi; siswa hanya bisa edit
+            // materi miliknya sendiri, selama masih diberi akses posting.
+            const canEditThis = canEditAnnouncement(data);
+            const isPinned = !!data.pinned;
+            const commentsDisabled = !!data.commentsDisabled;
+            const aiDisabled = !!data.aiDisabled;
+
+            const btnHapus = canManageThisAnn ? `<button class="btn-hapus-announcement" onclick="hapusPengumuman('${data.id}')">Hapus</button>` : '';
+            const btnPin = canManageThisAnn ? `<button class="btn-pin-announcement ${isPinned ? 'is-pinned' : ''}" onclick="togglePinItem('announcement', '${data.id}', ${isPinned})">📌 ${isPinned ? 'Lepas Sematkan' : 'Sematkan'}</button>` : '';
+            const btnToggleComments = canManageThisAnn ? `<button class="btn-toggle-mini ${commentsDisabled ? 'danger-active' : ''}" onclick="toggleCommentsDisabled('${data.id}', ${commentsDisabled})">${commentsDisabled ? '🔒 Komentar Nonaktif' : '💬 Nonaktifkan Komentar'}</button>` : '';
+            const btnToggleAi = canManageThisAnn ? `<button class="btn-toggle-mini ${aiDisabled ? 'danger-active' : ''}" title="Izinkan/larang materi ini ditanyakan siswa ke EduAI" onclick="toggleAiDisabled('${data.id}', ${aiDisabled})">${aiDisabled ? '🤖🚫 AI Nonaktif' : '🤖 Izinkan AI'}</button>` : '';
+            const pinBadge = isPinned ? `<span class="pin-badge">📌 Disematkan</span>` : '';
+
+            const rawTextForEdit = escapeForJsTemplate((data.text != null) ? String(data.text) : '');
+            const clickAttr = canEditThis ? `onclick="handleAnnouncementClick('${data.id}', \`${rawTextForEdit}\`)"` : '';
+            const cursorStyle = canEditThis ? `cursor:pointer;` : '';
+
+            // Pakai jumlah komentar terakhir yang diketahui (cache) sebagai nilai awal,
+            // bukan selalu 0. Jadi walau kartu ini di-render ulang (misal karena materi
+            // lain diedit), badge jumlah komentar tidak "reset" ke 0 lagi.
+            const knownCount = commentCounts[data.id] || 0;
+
+            const filesArr = data.files || (data.file ? [data.file] : []);
+            const fileHtml = await renderFileAttachmentsHtml(filesArr);
+
+            return `
+                <div class="announcement-card ${isPinned ? 'pinned' : ''}" data-ann-id="${data.id}">
+                    <div class="announcement-header">
+                        <div class="announcement-time">${pinBadge}<strong>${safeSender}</strong> • ${date}</div>
+                        <div class="announcement-header-actions">${btnPin}${btnToggleComments}${btnToggleAi}${btnHapus}<button class="ann-share-menu-btn" data-ann="${data.id}" title="Opsi lainnya">⋮</button></div>
+                    </div>
+                    <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${safeText}</div>
+                    ${fileHtml}
+                    <div class="announcement-actions">
+                        <button class="btn-comment" data-ann="${data.id}">💬 Komentar (<span id="comment-count-${data.id}">${knownCount}</span>)</button>
+                    </div>
+                </div>
+            `;
+          } catch (err) {
+            console.error('Gagal merender satu item forum, dilewati agar item lain tetap tampil:', data && data.id, err);
+            return '';
+          }
+        }
+
+        // Gabungkan materi/pengumuman & tugas ke dalam SATU forum kelas yang berurutan
+        // berdasarkan waktu posting (terbaru di atas). Tugas TIDAK lagi punya blok
+        // khusus tersendiri di posisi teratas — dia berbaur seperti materi/pengumuman
+        // lain. Satu-satunya yang boleh naik ke atas adalah item yang disematkan
+        // (materi maupun tugas), diurutkan berdasarkan waktu penyematan.
+        async function renderCombinedFeed() {
+            const list = document.getElementById('announcement-list');
+            if (!list) return;
+            const annArr = Object.values(currentAnnouncementsCache || {});
+            const taskArr = Object.values(currentTasksCache || {});
+
+            if (annArr.length === 0 && taskArr.length === 0) {
+                list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 40px; background:var(--surface); border-radius:var(--radius-lg);">Belum ada forum, materi, atau tugas. Disini tempat guru memberikan tugas atau sapaan.</p>';
+                return;
+            }
+
+            const combined = [
+                ...annArr.map(item => ({ item, kind: 'ann' })),
+                ...taskArr.map(item => ({ item, kind: 'task' }))
+            ].sort((x, y) => {
+                const a = x.item, b = y.item;
+                const ap = a.pinned ? 1 : 0, bp = b.pinned ? 1 : 0;
+                if (ap !== bp) return bp - ap;
+                if (ap && bp) return (b.pinnedAt||0) - (a.pinnedAt||0);
+                return (b.timestamp||0) - (a.timestamp||0);
+            });
+
+            // Bangun semua kartu ke dalam array dulu, baru gabungkan & pasang SEKALI ke DOM.
+            // (Sebelumnya pakai list.innerHTML += di dalam loop, dan teks pengumuman ditampilkan
+            // TANPA di-escape. Kalau teksnya kebetulan mengandung karakter seperti "<...>",
+            // browser akan menganggapnya sebagai tag HTML yang belum ditutup, sehingga
+            // "menelan" kartu-kartu berikutnya dalam DOM dan membuatnya seperti hilang / tidak
+            // muncul. Makanya munculnya cuma satu, dan kalau yang bermasalah itu dihapus,
+            // materi berikutnya baru kelihatan.)
+            const cardsHtml = await Promise.all(combined.map(({item, kind}) => {
+                if (kind === 'task') return renderTaskCard(item.id, item, currentTaskSubsCache[item.id]);
+                return buildAnnouncementCardHtml(item);
+            }));
+
+            list.innerHTML = cardsHtml.join('');
+        }
+
         function loadAnnouncements(classId) {
             const annRef = ref(db, `announcements/${classId}`);
             if (announcementListener) announcementListener();
             
             announcementListener = onValue(annRef, async (snapshot) => {
               try {
-                const list = document.getElementById('announcement-list');
                 const arr = [];
                 snapshot.forEach(c => { arr.push({ id: c.key, ...c.val() }); });
-
-                if(arr.length === 0) {
-                    list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 40px; background:var(--surface); border-radius:var(--radius-lg);">Belum ada forum / materi. Disini tempat guru memberikan tugas atau sapaan.</p>';
-                    Object.keys(commentCountListeners).forEach(id => commentCountListeners[id]());
-                    commentCountListeners = {};
-                    commentCounts = {};
-                    currentAnnouncementsCache = {};
-                    if (currentCommentAnnouncementId) updateCommentInputState();
-                    return;
-                }
 
                 // Cache data pengumuman aktif (dipakai untuk cek status pin & nonaktif-komentar)
                 currentAnnouncementsCache = {};
                 arr.forEach(a => { currentAnnouncementsCache[a.id] = a; });
                 if (currentCommentAnnouncementId) updateCommentInputState();
 
-                // Bangun semua kartu ke dalam array dulu, baru gabungkan & pasang SEKALI ke DOM.
-                // (Sebelumnya pakai list.innerHTML += di dalam loop, dan teks pengumuman ditampilkan
-                // TANPA di-escape. Kalau teksnya kebetulan mengandung karakter seperti "<...>",
-                // browser akan menganggapnya sebagai tag HTML yang belum ditutup, sehingga
-                // "menelan" kartu-kartu berikutnya dalam DOM dan membuatnya seperti hilang / tidak
-                // muncul. Makanya munculnya cuma satu, dan kalau yang bermasalah itu dihapus,
-                // materi berikutnya baru kelihatan.)
-                const cardsHtml = await Promise.all(arr.sort((a,b) => {
-                    // Materi yang disematkan selalu tampil di atas
-                    const ap = a.pinned ? 1 : 0, bp = b.pinned ? 1 : 0;
-                    if (ap !== bp) return bp - ap;
-                    if (ap && bp) return (b.pinnedAt||0) - (a.pinnedAt||0);
-                    return (b.timestamp||0) - (a.timestamp||0);
-                }).map(async data => {
-                  try {
-                    const safeText = linkifyText((data.text != null) ? String(data.text) : '');
-                    const safeSender = escapeHtml(data.senderName || 'Pengguna');
-                    const date = new Date(data.timestamp || Date.now()).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'});
-                    // Hapus/sematkan/nonaktifkan-komentar: pemilik kelas bisa untuk semua materi;
-                    // kontributor cuma bisa untuk materi miliknya sendiri atau materi siswa
-                    // (tidak bisa untuk materi guru lain).
-                    const canManageThisAnn = canGuruManageTarget(data.senderId, data.senderRole);
-                    // Edit materi (klik 3x): guru bisa edit semua materi; siswa hanya bisa edit
-                    // materi miliknya sendiri, selama masih diberi akses posting.
-                    const canEditThis = canEditAnnouncement(data);
-                    const isPinned = !!data.pinned;
-                    const commentsDisabled = !!data.commentsDisabled;
-                    const aiDisabled = !!data.aiDisabled;
-
-                    const btnHapus = canManageThisAnn ? `<button class="btn-hapus-announcement" onclick="hapusPengumuman('${data.id}')">Hapus</button>` : '';
-                    const btnPin = canManageThisAnn ? `<button class="btn-pin-announcement ${isPinned ? 'is-pinned' : ''}" onclick="togglePinAnnouncement('${data.id}', ${isPinned})">📌 ${isPinned ? 'Lepas Sematkan' : 'Sematkan'}</button>` : '';
-                    const btnToggleComments = canManageThisAnn ? `<button class="btn-toggle-mini ${commentsDisabled ? 'danger-active' : ''}" onclick="toggleCommentsDisabled('${data.id}', ${commentsDisabled})">${commentsDisabled ? '🔒 Komentar Nonaktif' : '💬 Nonaktifkan Komentar'}</button>` : '';
-                    const btnToggleAi = canManageThisAnn ? `<button class="btn-toggle-mini ${aiDisabled ? 'danger-active' : ''}" title="Izinkan/larang materi ini ditanyakan siswa ke EduAI" onclick="toggleAiDisabled('${data.id}', ${aiDisabled})">${aiDisabled ? '🤖🚫 AI Nonaktif' : '🤖 Izinkan AI'}</button>` : '';
-                    const pinBadge = isPinned ? `<span class="pin-badge">📌 Disematkan</span>` : '';
-
-                    const rawTextForEdit = escapeForJsTemplate((data.text != null) ? String(data.text) : '');
-                    const clickAttr = canEditThis ? `onclick="handleAnnouncementClick('${data.id}', \`${rawTextForEdit}\`)"` : '';
-                    const cursorStyle = canEditThis ? `cursor:pointer;` : '';
-
-                    // Pakai jumlah komentar terakhir yang diketahui (cache) sebagai nilai awal,
-                    // bukan selalu 0. Jadi walau kartu ini di-render ulang (misal karena materi
-                    // lain diedit), badge jumlah komentar tidak "reset" ke 0 lagi.
-                    const knownCount = commentCounts[data.id] || 0;
-
-                    const filesArr = data.files || (data.file ? [data.file] : []);
-                    const fileHtml = await renderFileAttachmentsHtml(filesArr);
-
-                    return `
-                        <div class="announcement-card ${isPinned ? 'pinned' : ''}" data-ann-id="${data.id}">
-                            <div class="announcement-header">
-                                <div class="announcement-time">${pinBadge}<strong>${safeSender}</strong> • ${date}</div>
-                                <div class="announcement-header-actions">${btnPin}${btnToggleComments}${btnToggleAi}${btnHapus}<button class="ann-share-menu-btn" data-ann="${data.id}" title="Opsi lainnya">⋮</button></div>
-                            </div>
-                            <div class="announcement-text" ${clickAttr} style="${cursorStyle}">${safeText}</div>
-                            ${fileHtml}
-                            <div class="announcement-actions">
-                                <button class="btn-comment" data-ann="${data.id}">💬 Komentar (<span id="comment-count-${data.id}">${knownCount}</span>)</button>
-                            </div>
-                        </div>
-                    `;
-                  } catch (err) {
-                    console.error('Gagal merender satu item forum, dilewati agar item lain tetap tampil:', data && data.id, err);
-                    return '';
-                  }
-                }));
-
-                list.innerHTML = cardsHtml.join('');
+                await renderCombinedFeed();
 
                 // Kelola listener jumlah komentar realtime untuk tiap pengumuman
                 const activeAnnIds = arr.map(a => a.id);
@@ -5733,6 +5760,7 @@
         const MAX_TASK_FILE_SIZE = 20 * 1024 * 1024;
         let taskListener = null;
         let currentTasksCache = {};
+        let currentTaskSubsCache = {};
         let selectedTaskFiles = [];
         let editTaskExistingFiles = [];
         let editTaskRemovedFiles = [];
@@ -5870,6 +5898,7 @@
             const status=teacher?'':(submission ? (taskIsLate(data,submission.submittedAt)?'Terlambat':'Sudah dikirim') : ((deadline&&correctedNow()>taskGraceEnd(data))?'Terkunci':'Belum dikirim'));
             const statusClass=status==='Sudah dikirim'?'submitted':status==='Terlambat'?'late':status==='Terkunci'?'late':'pending';
             const canEdit=canManageTask(data);
+            const isPinned=!!data.pinned;
             const body=linkifyText(String(data.text||''));
             const fileHtml=files.length?`<div style="margin-top:12px;">${files.map(fd=>`<div style="font-size:12.5px;color:var(--text-muted);margin-top:5px;">📎 ${escapeHtml(fd.name||'File')}</div>`).join('')}</div>`:'';
             let actions='';
@@ -5879,10 +5908,15 @@
                 else actions+=`<span class="task-status late">🔒 Pengumpulan ditutup</span>`;
             } else {
                 actions=`<button class="task-action-btn task-view-btn" onclick="event.stopPropagation();openTaskSubmission('${id}','teacher')">👥 Lihat pengumpulan</button>`;
+                // Sematkan tugas ini opsional untuk guru — tugas sendiri sudah bisa dipantau
+                // lewat kalender di sidebar, jadi ini cuma untuk tugas yang memang mau
+                // ditonjolkan di forum kelas.
+                actions+=`<button class="task-action-btn btn-pin-announcement ${isPinned?'is-pinned':''}" onclick="event.stopPropagation();togglePinItem('task','${id}',${isPinned})">📌 ${isPinned?'Lepas Sematkan':'Sematkan'}</button>`;
             }
+            const pinBadge=isPinned?`<span class="pin-badge">📌 Disematkan</span>`:'';
             const title=`${teacher?'':'📝 '}<span class="task-title-badge ${deadline?'deadline':''}">📝 TUGAS${deadline?' • DEADLINE':''}</span>`;
             const click=teacher?`onclick="handleTaskClick('${id}')" style="cursor:pointer;"`:'';
-            return `<div class="task-card ${deadline?'deadline':''}" data-task-id="${id}" ${click}><div class="task-card-header"><div>${title}<div class="announcement-time" style="margin-top:8px;"><strong>${escapeHtml(data.senderName||'Guru')}</strong> • ${new Date(data.timestamp||Date.now()).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>${!teacher?`<span class="task-status ${statusClass}">${escapeHtml(status)}</span>`:''}</div><div class="announcement-text">${body}</div>${deadline?`<div class="task-deadline">⏰ Deadline: <strong>${formatTaskDeadline(deadline)}</strong><br><span style="font-size:11.5px;">Toleransi terlambat maksimal 15 menit setelah deadline.</span></div>`:'<div class="task-deadline">◻️ Tidak ada deadline</div>'}${fileHtml}<div class="task-actions">${actions}</div></div>`;
+            return `<div class="task-card ${deadline?'deadline':''} ${isPinned?'pinned':''}" data-task-id="${id}" ${click}><div class="task-card-header"><div>${title}<div class="announcement-time" style="margin-top:8px;">${pinBadge}<strong>${escapeHtml(data.senderName||'Guru')}</strong> • ${new Date(data.timestamp||Date.now()).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>${!teacher?`<span class="task-status ${statusClass}">${escapeHtml(status)}</span>`:''}</div><div class="announcement-text">${body}</div>${deadline?`<div class="task-deadline">⏰ Deadline: <strong>${formatTaskDeadline(deadline)}</strong><br><span style="font-size:11.5px;">Toleransi terlambat maksimal 15 menit setelah deadline.</span></div>`:'<div class="task-deadline">◻️ Tidak ada deadline</div>'}${fileHtml}<div class="task-actions">${actions}</div></div>`;
         }
 
         window.openTaskSubmission=async function(taskId,mode){
@@ -6086,13 +6120,15 @@
             try{if(editTaskNewFiles.length)uploaded=await uploadTaskFiles(editTaskNewFiles,id,()=>{});const finalFiles=[...editTaskExistingFiles,...uploaded];await update(ref(db,`tasks/${currentViewedClassId}/${id}`),{text,deadlineEnabled:document.getElementById('edit-task-deadline-toggle').checked,deadlineAt,files:finalFiles.length?finalFiles:null});if(editTaskRemovedFiles.length)await deleteAnnouncementFilesFromStorj(editTaskRemovedFiles);document.getElementById('task-edit-modal-overlay').classList.add('hidden');await renderClassTasks(currentViewedClassId);refreshTaskCalendarData();}catch(e){if(uploaded.length)deleteAnnouncementFilesFromStorj(uploaded);customAlert('Gagal menyimpan tugas: '+e.message);}finally{btn.disabled=false;btn.innerText='Simpan';}
         });
 
-        async function renderClassTasks(classId,existingAnnouncements=[]){
-            const taskBox=document.getElementById('task-list'); if(!taskBox)return;
+        // Catatan: tugas TIDAK lagi dirender ke kontainer sendiri di atas forum. Tugas
+        // di-cache di sini, lalu digabung dengan materi/pengumuman oleh renderCombinedFeed
+        // sehingga urut sesuai waktu posting bersama item lain di forum kelas.
+        async function renderClassTasks(classId){
             const snap=await get(ref(db,`tasks/${classId}`)); currentTasksCache={};
             const tasks=[]; if(snap.exists()) snap.forEach(c=>{const d={id:c.key,...c.val()};currentTasksCache[d.id]=d;tasks.push(d);});
-            tasks.sort((a,b)=>{const ad=taskDeadlineTs(a),bd=taskDeadlineTs(b);if(ad&&bd)return ad-bd;if(ad)return -1;if(bd)return 1;return (b.timestamp||0)-(a.timestamp||0);});
             let subs={}; if(!isTaskTeacher() && tasks.length){const vals=await Promise.all(tasks.map(t=>get(ref(db,`taskSubmissions/${classId}/${t.id}/${currentUserId}`))));tasks.forEach((t,i)=>{subs[t.id]=vals[i].exists()?vals[i].val():null;});}
-            taskBox.innerHTML=tasks.length?tasks.map(t=>renderTaskCard(t.id,t,subs[t.id])).join(''):'<p style="color:var(--text-muted); text-align:center; padding:10px 0 25px;">Belum ada tugas di kelas ini.</p>';
+            currentTaskSubsCache=subs;
+            await renderCombinedFeed();
         }
         function setupTaskListener(classId){
             if(taskListener) taskListener();
@@ -6144,14 +6180,6 @@
         if(taskCalendarRefreshTimer) clearInterval(taskCalendarRefreshTimer);
         taskCalendarRefreshTimer=setInterval(refreshTaskCalendarData,60000);
         setTimeout(refreshTaskCalendarData,1000);
-
-        // Sisipkan container tugas tepat sebelum forum pengumuman.
-        const taskForumInsert = () => {
-            const list=document.getElementById('announcement-list'); if(!list || document.getElementById('task-list')) return;
-            const wrap=document.createElement('div'); wrap.id='task-list'; wrap.style.marginBottom='20px'; list.parentNode.insertBefore(wrap,list);
-        };
-        taskForumInsert();
-        new MutationObserver(taskForumInsert).observe(document.getElementById('announcement-list').parentElement,{childList:true});
 
         // Saat kelas dihapus, bersihkan semua object Storj yang terkait materi, tugas, dan pekerjaan siswa.
         async function deleteClassUploadedFilesFromStorj(classId){
