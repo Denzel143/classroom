@@ -972,12 +972,12 @@
         .task-grade-display strong { color:var(--primary); font-size:1.15rem; }
         .task-submission-empty { padding:18px; background:#F8F9FA; border-radius:12px; text-align:center; color:var(--text-muted); font-size:13px; }
 
-        /* ================= KOLOM INPUT "COMPOSER" SEKUNDER (overlay terpisah, naik di atas keyboard) =====
-           #kb-composer-overlay adalah SURFACE BARU yang terpisah dari layout halaman. Saat aktif,
-           field yang sedang diketik (atau barisnya kalau ada tombol di sampingnya) dipindah masuk ke
-           dalam overlay ini, lalu dikembalikan ke posisi asalnya begitu selesai. Hanya muncul kalau
-           viewport benar-benar menyusut (keyboard virtual sungguh terbuka) — pakai keyboard eksternal
-           atau di komputer, overlay ini tidak pernah muncul sama sekali. */
+        /* ================= KOLOM INPUT "COMPOSER" SEKUNDER (bersih, terhubung ke field asli) =========
+           #kb-composer-overlay adalah SURFACE BARU yang terpisah dari field aslinya. Field asli TIDAK
+           dipindah/diapa-apakan sama sekali (boleh saja tertutup keyboard). Overlay ini cuma berisi
+           SATU kolom input/textarea polos (tanpa tombol apa pun) yang isinya disinkronkan ke field asli.
+           Hanya muncul kalau viewport benar-benar menyusut (keyboard virtual sungguh terbuka) — pakai
+           keyboard eksternal atau di komputer, overlay ini tidak pernah muncul sama sekali. */
         .kb-composer-scrim {
             position: fixed; inset: 0;
             background: rgba(15, 23, 42, 0.55); /* gelap solid, TANPA blur */
@@ -6234,24 +6234,27 @@
 
     </script>
     <script>
-        // ================= KOLOM INPUT "COMPOSER" SEKUNDER (overlay terpisah di atas keyboard virtual) =====
+        // ================= KOLOM INPUT "COMPOSER" SEKUNDER (bersih, terhubung ke field asli) =========
         // Berlaku untuk SEMUA <input>/<textarea> di halaman ini, KECUALI yang ada di dalam #login-section.
         // Prinsip kerja:
-        //  - #kb-composer-overlay adalah SURFACE/CONTAINER BARU yang terpisah, tersembunyi secara default.
-        //  - Field TIDAK langsung dianggap composer begitu difokus. JS menunggu event resize dari
-        //    window.visualViewport untuk memastikan tinggi layar yang terlihat BENAR-BENAR menyusut
-        //    banyak (artinya keyboard virtual sungguh terbuka). Kalau memakai keyboard eksternal atau
-        //    membuka halaman ini di komputer, viewport tidak menyusut -> overlay sekunder ini tidak
-        //    pernah dimunculkan, field tetap di tempatnya & berperilaku normal seperti biasa.
-        //  - Begitu keyboard virtual terbuka: field itu (atau baris yang membungkusnya bila field itu
-        //    berdampingan dengan tombol, mis. kolom obrolan & komentar) DIPINDAHKAN masuk ke dalam
-        //    #kb-composer-overlay yang lalu menempel tepat di atas keyboard, dan latar belakang
-        //    digelapkan (tanpa blur) serta tidak bisa diklik/disentuh sama sekali selagi composer aktif.
-        //  - Kalau keyboard virtual ditutup (mis. user menekan tombol "selesai") TAPI field itu masih
-        //    fokus (composer belum benar-benar ditutup), overlay TIDAK ikut ditutup — dia hanya turun
-        //    menempel rapat ke dasar layar (tidak menggantung di tengah).
-        //  - Overlay baru benar-benar ditutup (field dikembalikan lagi ke posisi ASLINYA di halaman)
-        //    kalau field itu kehilangan fokus sungguhan (blur ke tempat lain / tap ke area gelap).
+        //  - Field ASLI TIDAK dipindah dan TIDAK diapa-apakan posisinya sama sekali — kalau sampai
+        //    tertutup/terpotong oleh keyboard virtual, itu tidak masalah, dibiarkan saja.
+        //  - #kb-composer-overlay adalah surface baru yang bersih, isinya CUMA satu kolom input/textarea
+        //    polos (tanpa tombol kirim/lampirkan apa pun), yang tipe elemennya menyesuaikan field asli
+        //    (textarea tetap textarea, input text tetap input text, dst).
+        //  - Overlay ini TERHUBUNG dua arah dengan field asli: ketik di overlay -> isi & event (input,
+        //    keydown, keyup, click) diteruskan ke field asli supaya semua logic yang sudah ada di app
+        //    (autocomplete @EduAI, kirim pesan pakai Enter, dsb) tetap jalan seperti biasa. Kalau kode
+        //    lain di app mengubah value field asli lalu memanggil .focus() lagi, overlay ikut menyegarkan
+        //    isinya dan fokus ditarik balik ke overlay.
+        //  - Composer baru dianggap "tampil" (overlay + latar gelap muncul) begitu viewport BENAR-BENAR
+        //    menyusut banyak (artinya keyboard virtual sungguh terbuka). Pakai keyboard eksternal atau di
+        //    komputer -> viewport tidak menyusut -> overlay ini tidak pernah muncul sama sekali, field
+        //    asli tetap dipakai apa adanya.
+        //  - Kalau keyboard virtual ditutup tapi field masih fokus (composer belum ditutup sungguhan),
+        //    overlay TIDAK ikut hilang — cuma turun menempel rapat ke dasar layar (tidak menggantung di
+        //    tengah). Overlay baru benar-benar ditutup kalau fokus keluar sungguhan dari sistem composer
+        //    ini (tap ke latar gelap, atau pindah ke elemen lain di luar overlay/field asli).
         (function initKeyboardComposer() {
             const KB_SHRINK_THRESHOLD = 120; // px, ambang dianggap "keyboard virtual terbuka"
             const vv = window.visualViewport;
@@ -6266,14 +6269,12 @@
             document.body.appendChild(overlay);
 
             // Latar gelap cuma untuk menampung interaksi terkait keyboard virtual; tap di situ = tutup composer.
-            scrim.addEventListener('click', () => { if (activeField) activeField.blur(); });
+            scrim.addEventListener('click', () => { if (overlayField) overlayField.blur(); });
 
-            let activeField = null;      // <input>/<textarea> asli yang sedang fokus
-            let activeTarget = null;     // node yang benar-benar dipindah ke overlay (field itu sendiri, atau barisnya)
-            let originalParent = null;   // parent asli target, untuk dikembalikan lagi nanti
-            let originalNextSibling = null; // posisi asli target di antara saudara-saudaranya
-            let composerOpen = false;    // true kalau overlay sedang tampil (field masih fokus, keyboard boleh sudah tertutup)
-            let keyboardOpen = false;    // true kalau keyboard virtual sedang benar-benar terbuka saat ini
+            let activeField = null;    // field ASLI, tetap di posisinya, tidak pernah dipindah
+            let overlayField = null;   // elemen bersih di dalam overlay, disinkron dengan activeField
+            let composerOpen = false;
+            let keyboardOpen = false;
             let lastKbHeight = 0;
             let blurTimer = null;
 
@@ -6290,49 +6291,75 @@
                 return false;
             }
 
-            // Kalau field itu berdampingan langsung dengan tombol lain dalam satu baris flex
-            // (contoh: kolom obrolan/komentar + tombol kirim), pindahkan seluruh barisnya sekalian
-            // supaya tombol kirimnya ikut naik & tetap bisa dipakai.
-            function resolveComposerTarget(field) {
-                const parent = field.parentElement;
-                if (parent && parent.children.length > 1) {
-                    const cs = window.getComputedStyle(parent);
-                    if (cs.display === 'flex' || cs.display === 'inline-flex') return parent;
+            // Bikin field overlay yang tipenya menyesuaikan field asli, tapi benar-benar bersih
+            // (tanpa class/style bawaan field asli, tanpa tombol apa pun di sekitarnya).
+            function buildOverlayField(source) {
+                let el;
+                if (source.tagName === 'TEXTAREA') {
+                    el = document.createElement('textarea');
+                    el.rows = source.rows || 3;
+                } else {
+                    el = document.createElement('input');
+                    el.type = source.type || 'text';
+                    if (source.inputMode) el.inputMode = source.inputMode;
+                    if (source.hasAttribute('maxlength')) el.maxLength = source.maxLength;
                 }
-                return field;
+                el.placeholder = source.placeholder || '';
+                el.autocomplete = 'off';
+                el.spellcheck = source.spellcheck;
+                el.value = source.value;
+                return el;
+            }
+
+            // Teruskan event dari overlay ke field asli supaya semua listener yang sudah ada di app
+            // (Enter untuk kirim pesan, autocomplete @EduAI, dsb) tetap berjalan normal.
+            function wireOverlayField(el, source) {
+                const forwardKeyEvent = (type) => (e) => {
+                    const ev = new KeyboardEvent(type, {
+                        key: e.key, code: e.code, shiftKey: e.shiftKey,
+                        ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey,
+                        bubbles: true, cancelable: true
+                    });
+                    source.dispatchEvent(ev);
+                    if (ev.defaultPrevented) e.preventDefault(); // mis. Enter dipakai utk kirim, bukan baris baru
+                };
+                el.addEventListener('keydown', forwardKeyEvent('keydown'));
+                el.addEventListener('keyup', forwardKeyEvent('keyup'));
+                el.addEventListener('input', () => {
+                    source.value = el.value;
+                    source.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+                el.addEventListener('click', () => {
+                    source.dispatchEvent(new Event('click', { bubbles: true }));
+                });
             }
 
             function setOverlayBottom(px) {
                 overlay.style.setProperty('--kb-bottom', Math.max(0, Math.round(px)) + 'px');
             }
 
-            function moveTargetBack() {
-                if (activeTarget && originalParent) {
-                    originalParent.insertBefore(activeTarget, originalNextSibling);
-                }
-                activeTarget = null;
-                originalParent = null;
-                originalNextSibling = null;
-            }
-
             function activateComposer(field) {
-                if (activeTarget) moveTargetBack(); // pindahkan target lama ke tempat asalnya dulu kalau ada
-                const target = resolveComposerTarget(field);
-                activeTarget = target;
-                originalParent = target.parentNode;
-                originalNextSibling = target.nextSibling;
-                overlay.appendChild(target); // <- field/baris SUNGGUHAN pindah ke dalam overlay sekunder
+                overlay.innerHTML = '';
+                const el = buildOverlayField(field);
+                overlay.appendChild(el);
+                overlayField = el;
+                wireOverlayField(el, field);
                 overlay.classList.add('active');
                 scrim.classList.add('active');
                 composerOpen = true;
-                if (document.activeElement !== field) field.focus({ preventScroll: true });
+                el.focus({ preventScroll: true }); // fokus SUNGGUHAN pindah ke overlay -> keyboard ikut ke sini
+                if (typeof el.selectionStart === 'number') {
+                    const len = el.value.length;
+                    el.setSelectionRange(len, len);
+                }
             }
 
             function deactivateComposer() {
-                moveTargetBack(); // field dikembalikan lagi ke posisi asalnya di halaman
                 overlay.classList.remove('active');
                 scrim.classList.remove('active');
                 overlay.style.removeProperty('--kb-bottom');
+                overlay.innerHTML = '';
+                overlayField = null;
                 composerOpen = false;
                 keyboardOpen = false;
                 activeField = null;
@@ -6345,39 +6372,45 @@
                 lastKbHeight = kbHeight;
 
                 if (keyboardOpen && !composerOpen) {
-                    // Keyboard virtual sungguh terbuka -> baru sekarang overlay sekunder dimunculkan.
+                    // Keyboard virtual sungguh terbuka -> baru sekarang overlay bersih dimunculkan.
                     activateComposer(activeField);
                 }
                 if (composerOpen) {
-                    // Kalau keyboard sudah ditutup lagi tapi field masih fokus, overlay TIDAK ditutup,
-                    // cukup turun menempel ke dasar layar (bottom: 0).
+                    // Keyboard sudah ditutup lagi tapi field masih fokus -> overlay TIDAK ditutup,
+                    // cukup turun menempel ke dasar layar (bottom: 0), tidak menggantung di tengah.
                     setOverlayBottom(keyboardOpen ? kbHeight : 0);
                 }
             }
 
             document.addEventListener('focusin', (e) => {
                 const el = e.target;
+                if (el === overlayField) return; // fokus di dalam overlay sendiri, bukan pemicu baru
                 if (!isEligibleField(el)) return;
                 clearTimeout(blurTimer);
-                activeField = el;
 
-                if (composerOpen) {
-                    // Berpindah fokus antar field composer (mis. dari satu kolom komentar ke lainnya)
-                    // sementara overlay masih terbuka -> lanjutkan langsung tanpa berkedip.
-                    activateComposer(activeField);
-                    setOverlayBottom(keyboardOpen ? lastKbHeight : 0);
+                if (composerOpen && activeField === el) {
+                    // Field yang sama difokus ulang secara programatik oleh kode lain di app
+                    // (mis. setelah value-nya diubah) -> segarkan isi overlay & tarik fokus balik ke overlay.
+                    if (overlayField) {
+                        overlayField.value = el.value;
+                        overlayField.focus({ preventScroll: true });
+                    }
+                } else {
+                    activeField = el;
+                    if (composerOpen) activateComposer(el); // pindah ke field composer lain
                 }
 
-                // visualViewport butuh sedikit waktu untuk melaporkan ukuran barunya setelah fokus.
                 requestAnimationFrame(onViewportChange);
                 setTimeout(onViewportChange, 350);
             });
 
             document.addEventListener('focusout', (e) => {
-                if (!isEligibleField(e.target)) return;
+                const leaving = e.target;
+                if (leaving !== activeField && leaving !== overlayField) return;
                 blurTimer = setTimeout(() => {
-                    const stillOnComposerField = document.activeElement && isEligibleField(document.activeElement);
-                    if (!stillOnComposerField) deactivateComposer();
+                    const cur = document.activeElement;
+                    const stillInComposer = cur === overlayField || isEligibleField(cur);
+                    if (!stillInComposer) deactivateComposer();
                 }, 120);
             });
 
@@ -6386,7 +6419,7 @@
                 vv.addEventListener('scroll', onViewportChange);
             }
             // Kalau visualViewport tidak didukung sama sekali (browser lama), overlay tidak pernah
-            // diaktifkan -> field berperilaku normal seperti sebelum perubahan ini (aman, tidak rusak).
+            // diaktifkan -> field asli berperilaku normal seperti sebelum perubahan ini (aman, tidak rusak).
         })();
     </script>
 </body>
