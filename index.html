@@ -2034,6 +2034,15 @@
         const bottomPanelHandle = document.getElementById('bottom-panel-handle');
         const bottomPanel = document.getElementById('bottom-panel');
 
+        // Saat kursor hover di atas panel, scroll roda mouse (vertikal) diarahkan jadi
+        // scroll horizontal, karena panel ini hanya bisa digeser ke samping dan tidak
+        // punya scrollbar yang terlihat.
+        document.getElementById('bottom-panel-list').addEventListener('wheel', (e) => {
+            if (e.deltaY === 0) return;
+            e.preventDefault();
+            e.currentTarget.scrollLeft += e.deltaY;
+        }, { passive: false });
+
         bottomPanelHandle.addEventListener('click', () => {
             if (bottomPanel.classList.contains('open')) {
                 bottomPanel.classList.remove('open');
