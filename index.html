@@ -1847,6 +1847,15 @@
             
             document.getElementById(sectionId).classList.remove('hidden');
             
+            // Judul tab browser mengikuti laman yang sedang aktif. Untuk di dalam kelas,
+            // judulnya diatur belakangan (lihat listener currentClassData) begitu nama
+            // kelas sudah diketahui.
+            if (sectionId === 'login-section') {
+                document.title = 'EduClass - Login';
+            } else if (sectionId === 'dashboard-section') {
+                document.title = 'EduClass - Dashboard';
+            }
+            
             const calendarSidebar = document.getElementById('calendar-sidebar');
             if (sectionId !== 'login-section' && currentUserId) {
                 mainHeader.classList.remove('hidden');
@@ -2192,6 +2201,7 @@
                 currentClassData = snapshot.val();
                 document.getElementById('room-class-name').innerText = currentClassData.className;
                 document.getElementById('room-class-teacher').innerText = `Guru: ${currentClassData.teacherName}`;
+                document.title = `EduClass - ${currentClassData.className}`;
                 
                 let totalMembers = 1; 
                 if(currentClassData.students) totalMembers += Object.keys(currentClassData.students).length;
