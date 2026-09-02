@@ -184,6 +184,8 @@
             display: flex; flex-direction: column;
             transform: translateY(30px) scale(0.95); opacity: 0;
             animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            -webkit-overflow-scrolling: touch;
+            will-change: transform, opacity;
         }
         @keyframes slideUp { to { transform: translateY(0) scale(1); opacity: 1; } }
         
@@ -305,6 +307,29 @@
             user-select: none; transition: box-shadow 0.2s;
         }
         @media (hover: hover) and (pointer: fine) { .announcement-card:hover { box-shadow: var(--shadow-md); } }
+
+        /* Skeleton loading (kartu placeholder berkedip) — tampil sesaat saat kelas baru dibuka,
+           menggantikan materi/tugas kelas sebelumnya supaya tidak sempat "kelihatan" dulu */
+        .skeleton-card {
+            background: var(--surface); border-radius: var(--radius-md);
+            padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow-sm);
+        }
+        .skeleton-line {
+            height: 13px; border-radius: 8px; background: #EBEDF1;
+            margin-bottom: 12px; overflow: hidden; position: relative;
+        }
+        .skeleton-line:last-child { margin-bottom: 0; }
+        .skeleton-line.h-title { height: 17px; width: 40%; }
+        .skeleton-line.w-70 { width: 70%; }
+        .skeleton-line.w-100 { width: 100%; }
+        .skeleton-line::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+            transform: translateX(-100%);
+            animation: skeletonShimmer 1.3s ease-in-out infinite;
+        }
+        @keyframes skeletonShimmer { 100% { transform: translateX(100%); } }
+
         .announcement-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .announcement-time { font-size: 13px; color: var(--text-muted); }
         .announcement-time strong { color: var(--text-main); font-size: 15px;}
@@ -474,6 +499,7 @@
                "bocor" ke laman utama di belakangnya — hanya scroll menyamping (horizontal-list) yang diizinkan */
             touch-action: pan-x;
             overscroll-behavior: contain;
+            will-change: transform;
         }
         #bottom-panel.open {
             transform: translateY(0);
@@ -531,6 +557,7 @@
             -ms-overflow-style: none;
             touch-action: pan-x;
             overscroll-behavior-x: contain;
+            -webkit-overflow-scrolling: touch;
         }
         .horizontal-list::-webkit-scrollbar { display: none; }
 
@@ -553,6 +580,7 @@
             /* overflow-y dipindah ke .calendar-sidebar-inner supaya handle (yang menjorok
                keluar via right:-28px) tidak ikut ter-clip oleh overflow container ini */
             overscroll-behavior-y: contain;
+            will-change: transform;
         }
         #calendar-sidebar.open {
             transform: translateX(0);
@@ -595,6 +623,7 @@
             /* Saat jari/kursor ada di dalam sidebar ini, scroll hanya berlaku di sini,
                tidak akan diteruskan/"chaining" ke laman utama di baliknya */
             overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
         .calendar-sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
         .calendar-sidebar-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
@@ -727,6 +756,7 @@
             display: flex; flex-direction: column;
             /* Saat jari/kursor ada di dalam sidebar ini, scroll tidak diteruskan ke laman utama */
             overscroll-behavior-y: contain;
+            will-change: transform;
         }
         #chat-sidebar.open { transform: translateX(0); }
         #chat-sidebar-handle {
@@ -788,6 +818,7 @@
             flex-grow: 1; overflow-y: auto; padding: 16px 16px 4px 16px;
             display: flex; flex-direction: column; gap: 10px;
             overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
         #chat-messages-container::-webkit-scrollbar { width: 6px; }
         #chat-messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
@@ -1589,17 +1620,21 @@
         });
 
         // ========= KUNCI SCROLL & INTERAKSI LAMAN UTAMA SAAT OVERLAY/MODAL TERBUKA =========
-        // Semua overlay di aplikasi ini id-nya diakhiri "-overlay" (modal-overlay, media-lightbox-overlay, dst).
-        // Begitu salah satu di antaranya terlihat (class "hidden" dilepas), body dikunci total:
+        // Semua overlay di aplikasi ini id-nya diakhiri "-overlay" (modal-overlay, media-lightbox-overlay, dst)
+        // dan semuanya sudah ada di HTML sejak awal (cuma di-toggle class "hidden", tidak pernah dibuat
+        // ulang lewat JS) — jadi cukup dipantau sekali saat load, tanpa observer berat ke seluruh <body>
+        // yang bisa bikin lag karena ikut kepicu setiap ada perubahan DOM lain (chat, materi, dst).
+        // Begitu salah satu overlay terlihat (class "hidden" dilepas), body dikunci total:
         // tidak bisa discroll maupun berinteraksi. Ditutup lagi -> otomatis dibuka kuncinya.
         (function () {
             let savedScrollY = 0;
+            const overlayEls = Array.from(document.querySelectorAll('[id$="-overlay"]'));
 
             function isOverlayVisible(el) {
                 return !!el && !el.classList.contains('hidden');
             }
             function anyOverlayOpen() {
-                return Array.from(document.querySelectorAll('[id$="-overlay"]')).some(isOverlayVisible);
+                return overlayEls.some(isOverlayVisible);
             }
             function lockBackgroundScroll() {
                 if (document.body.classList.contains('bg-scroll-locked')) return;
@@ -1618,25 +1653,9 @@
             }
 
             const classObserver = new MutationObserver(syncBackgroundScrollLock);
-            function observeOverlay(el) {
-                if (el.dataset.scrollLockObserved) return;
-                el.dataset.scrollLockObserved = '1';
+            overlayEls.forEach((el) => {
                 classObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
-            }
-            document.querySelectorAll('[id$="-overlay"]').forEach(observeOverlay);
-
-            // Jaga-jaga bila ada overlay baru yang disisipkan ke DOM setelah halaman dimuat.
-            new MutationObserver((mutations) => {
-                let needSync = false;
-                mutations.forEach((m) => {
-                    m.addedNodes && m.addedNodes.forEach((node) => {
-                        if (node.nodeType !== 1) return;
-                        if (node.id && node.id.endsWith('-overlay')) { observeOverlay(node); needSync = true; }
-                        node.querySelectorAll && node.querySelectorAll('[id$="-overlay"]').forEach((el) => { observeOverlay(el); needSync = true; });
-                    });
-                });
-                if (needSync) syncBackgroundScrollLock();
-            }).observe(document.body, { childList: true, subtree: true });
+            });
 
             syncBackgroundScrollLock();
         })();
@@ -2242,6 +2261,8 @@
             
             currentViewedClassId = null;
             currentClassData = null;
+            currentAnnouncementsCache = {};
+            currentTasksCache = {};
 
             // ---- Bersihkan state & modal fitur guru (team generator & random picker) ----
             document.getElementById('teacher-fab-choice-modal').classList.add('hidden');
@@ -2264,6 +2285,29 @@
             navigateTo(`/classroom/dashboard/${classId}`);
         }
 
+        // Skeleton loading (kartu placeholder berkedip) yang ditampilkan sesaat sebelum data
+        // materi/tugas kelas yang baru dibuka selesai dimuat dari server.
+        function classRoomSkeletonCardsHTML(count) {
+            let html = '';
+            for (let i = 0; i < count; i++) {
+                html += `
+                    <div class="skeleton-card">
+                        <div class="skeleton-line h-title w-40"></div>
+                        <div class="skeleton-line w-100"></div>
+                        <div class="skeleton-line w-70"></div>
+                    </div>`;
+            }
+            return html;
+        }
+        function showClassRoomLoadingSkeleton() {
+            const annList = document.getElementById('announcement-list');
+            if (annList) annList.innerHTML = classRoomSkeletonCardsHTML(3);
+            // task-list adalah elemen yang disisipkan secara dinamis sebelum announcement-list,
+            // jadi mungkin belum ada di render pertama sebelum kelas pertama kali dibuka.
+            const taskList = document.getElementById('task-list');
+            if (taskList) taskList.innerHTML = '';
+        }
+
         function setupClassRoom(classId) {
             if (currentViewedClassId === classId) return;
             cleanupClassRoom();
@@ -2271,6 +2315,12 @@
             currentViewedClassId = classId;
             document.getElementById('room-class-name').innerText = "Memuat data...";
             document.getElementById('room-class-teacher').innerText = "Guru: ...";
+
+            // Penting: kosongkan & ganti dengan skeleton loading SEBELUM listener data kelas baru
+            // dipasang. Kalau tidak, materi/tugas dari kelas yang tadi dibuka masih nempel di DOM
+            // dan sempat kelihatan sesaat (atau lama kalau koneksi internet lambat) sebelum
+            // akhirnya tertimpa data kelas yang baru.
+            showClassRoomLoadingSkeleton();
             
             bottomPanel.classList.remove('hidden');
             document.getElementById('chat-sidebar').classList.remove('hidden');
