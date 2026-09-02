@@ -51,6 +51,93 @@
             touch-action: pan-y;
         }
 
+        /* ================= WEBVIEW KEYBOARD AVOIDANCE ================= */
+        :root {
+            --app-vv-height: 100vh;
+            --app-vv-top: 0px;
+            --keyboard-height: 0px;
+        }
+        html, body { min-height: 100%; }
+        body { min-height: var(--app-vv-height, 100vh); }
+
+        /* Fixed surfaces must occupy the visual viewport itself. Do NOT combine
+           visual-viewport height with bottom: keyboard-height, because that applies
+           the keyboard offset twice on WebView implementations that shrink VV. */
+        #chat-sidebar,
+        #calendar-sidebar {
+            top: var(--app-vv-top, 0px);
+            bottom: auto;
+            height: var(--app-vv-height, 100vh);
+        }
+        #bottom-panel {
+            bottom: var(--keyboard-height, 0px);
+        }
+        .fab-btn {
+            bottom: calc(40px + var(--keyboard-height));
+        }
+        #toast-container {
+            bottom: calc(90px + var(--keyboard-height));
+        }
+        .modal-overlay {
+            top: var(--app-vv-top, 0px);
+            bottom: auto;
+            height: var(--app-vv-height, 100vh);
+            min-height: 0;
+        }
+        .modal-overlay .modal-card {
+            max-height: calc(var(--app-vv-height, 100vh) - 24px);
+            min-height: 0;
+        }
+        #comment-modal-overlay .modal-card {
+            height: min(82vh, calc(var(--app-vv-height, 100vh) - 24px)) !important;
+            max-height: calc(var(--app-vv-height, 100vh) - 24px);
+        }
+        #chat-attach-picker-overlay .modal-card {
+            height: min(70vh, calc(var(--app-vv-height, 100vh) - 24px)) !important;
+        }
+
+        /* When the keyboard is visible, keep fixed composers at the visual viewport
+           edge. The composer itself remains inside the resized panel/modal and all
+           controls above it move together naturally. */
+        html.webview-keyboard-open #chat-sidebar,
+        html.webview-keyboard-open #calendar-sidebar {
+            top: var(--app-vv-top, 0px);
+            height: var(--app-vv-height, 100vh);
+        }
+        html.webview-keyboard-open #bottom-panel {
+            bottom: var(--keyboard-height, 0px);
+        }
+        html.webview-keyboard-open .modal-overlay {
+            top: var(--app-vv-top, 0px);
+            height: var(--app-vv-height, 100vh);
+        }
+        html.webview-keyboard-open .modal-overlay .modal-card {
+            max-height: calc(var(--app-vv-height, 100vh) - 24px);
+        }
+        .chat-input-area,
+        #comment-modal-overlay > .modal-card > div:last-child {
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+        html.webview-keyboard-open textarea:focus,
+        html.webview-keyboard-open input:focus {
+            scroll-margin-top: 24px;
+            scroll-margin-bottom: calc(var(--keyboard-height) + 32px);
+        }
+        /* The focused field is never allowed to be hidden behind the IME. */
+        html.webview-keyboard-open .modal-card,
+        html.webview-keyboard-open #chat-sidebar {
+            min-height: 0;
+        }
+        @media (max-width: 520px) {
+            #chat-sidebar {
+                width: 100%;
+                max-width: 100vw;
+                border-radius: 0;
+            }
+            .modal-overlay { padding: 12px; }
+            .modal-card { width: 100%; }
+        }
+
         /* Kunci scroll & interaksi laman utama saat ada overlay/modal card yang terbuka */
         body.bg-scroll-locked {
             position: fixed;
@@ -159,7 +246,7 @@
 
         /* FAB Button */
         .fab-btn { 
-            position: fixed; bottom: 40px; right: 40px; 
+            position: fixed; bottom: calc(40px + var(--keyboard-height)); right: 40px; 
             background: var(--accent); color: #000; font-size: 28px; 
             width: 65px; height: 65px; border-radius: 22px; 
             box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4); 
@@ -484,7 +571,7 @@
         /* Bottom Sheet Quick Switch Class */
         #bottom-panel {
             position: fixed;
-            bottom: 0;
+            bottom: var(--keyboard-height);
             left: 0;
             width: 100%;
             background: rgba(255, 255, 255, 0.95);
@@ -747,7 +834,7 @@
 
         /* ================= Sidebar Kanan - Obrolan Kelas ================= */
         #chat-sidebar {
-            position: fixed; top: 0; right: 0; height: 100%; width: 360px; max-width: 88vw;
+            position: fixed; top: 0; right: 0; bottom: var(--keyboard-height); height: var(--app-vv-height, 100vh); width: 360px; max-width: 88vw;
             background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(10px);
             box-shadow: -8px 0 30px rgba(0,0,0,0.15); z-index: 900;
             border-radius: var(--radius-xl) 0 0 var(--radius-xl);
@@ -1557,20 +1644,12 @@
     </div>
 
     <script type="module">
+        import { APP_CONFIG } from "./config.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getDatabase, ref, get, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        const firebaseConfig = {
-          apiKey: "AIzaSyDJr-6PSzrDEC7J9XfI38g3C_r65x9OlLA",
-          authDomain: "public-database-e58ab.firebaseapp.com",
-          databaseURL: "https://public-database-e58ab-default-rtdb.firebaseio.com",
-          projectId: "public-database-e58ab",
-          storageBucket: "public-database-e58ab.firebasestorage.app",
-          messagingSenderId: "595860953738",
-          appId: "1:595860953738:web:d0ad19f96351191137ab73",
-          measurementId: "G-QCYP5Y72J8"
-        };
+        const firebaseConfig = APP_CONFIG.firebase;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -1591,11 +1670,11 @@
         // WAJIB: key ini butuh izin PutObject (untuk upload) DAN GetObject (untuk menampilkan
         // thumbnail/membuka file, karena bucket Storj defaultnya privat — key yang hanya
         // punya izin upload/PutObject saja TIDAK akan bisa menampilkan file sama sekali).
-        const STORJ_ACCESS_KEY = "jug7ovmaijdhyk6g3rhbz5ekjsbq";
-        const STORJ_SECRET_KEY = "jy2nilecdpvurkaum2x4gtpshb2e6nadluaro7ngibzsgosw25jps";
-        const STORJ_ENDPOINT   = "https://gateway.storjshare.io"; // sesuaikan dengan endpoint gateway Storj Anda
-        const STORJ_BUCKET     = "my-educlass-bucket";
-        const STORJ_REGION     = "us-east-1"; // Storj tidak memakai region AWS asli, biarkan default ini kecuali diarahkan lain oleh dokumentasi akun Storj Anda
+        const STORJ_ACCESS_KEY = APP_CONFIG.storj.accessKey;
+        const STORJ_SECRET_KEY = APP_CONFIG.storj.secretKey;
+        const STORJ_ENDPOINT   = APP_CONFIG.storj.endpoint;
+        const STORJ_BUCKET     = APP_CONFIG.storj.bucket;
+        const STORJ_REGION     = APP_CONFIG.storj.region;
 
         // ================= GLOBAL LISTENER UNTUK BLOKIR ZOOM & RELOAD =================
         // Cegah Zoom dengan Ctrl + Scroll (Mouse Wheel)
@@ -1618,6 +1697,191 @@
                 e.preventDefault();
             }
         });
+
+
+        // ==================== NATIVE WEBVIEW KEYBOARD CONTROLLER ====================
+        (function setupWebViewKeyboardController() {
+            const root = document.documentElement;
+            let rafId = 0;
+            let lastKeyboardOpen = false;
+            let lastFocused = null;
+
+            function getViewport() {
+                const vv = window.visualViewport;
+                if (vv) {
+                    return {
+                        height: Math.max(1, vv.height),
+                        top: Math.max(0, vv.offsetTop || 0),
+                        left: Math.max(0, vv.offsetLeft || 0)
+                    };
+                }
+                return { height: Math.max(1, window.innerHeight), top: 0, left: 0 };
+            }
+
+            function getFocusedEditable() {
+                const el = document.activeElement;
+                if (!el) return null;
+                if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && !el.disabled && !el.readOnly) return el;
+                return null;
+            }
+
+            function isVisibleEditable(el) {
+                if (!el || !el.isConnected) return false;
+                const style = getComputedStyle(el);
+                return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+            }
+
+            function getFixedSurface(field) {
+                if (!field) return null;
+                const modal = field.closest('.modal-card');
+                if (modal) return modal;
+                const chat = field.closest('#chat-sidebar');
+                if (chat) return chat;
+                const bottom = field.closest('#bottom-panel');
+                if (bottom) return bottom;
+                const overlay = field.closest('.modal-overlay');
+                if (overlay) return overlay;
+                return null;
+            }
+
+            function ensureEditableAboveKeyboard(field, animate) {
+                if (!field || !isVisibleEditable(field)) return;
+                const vp = getViewport();
+                const margin = Math.max(18, Math.min(40, Math.round(vp.height * 0.035)));
+                const rect = field.getBoundingClientRect();
+                const safeTop = vp.top + margin;
+                const safeBottom = vp.top + vp.height - margin;
+                const surface = getFixedSurface(field);
+
+                // Most importantly, resize/re-anchor the containing fixed surface first.
+                // This is what makes the entire composer + reply indicator + AI popup move together.
+                if (surface) {
+                    surface.style.setProperty('--field-safe-bottom', `${Math.max(0, safeBottom - surface.getBoundingClientRect().top)}px`);
+                }
+
+                requestAnimationFrame(() => {
+                    const r = field.getBoundingClientRect();
+                    const currentVp = getViewport();
+                    const bottom = currentVp.top + currentVp.height - margin;
+                    const top = currentVp.top + margin;
+                    let delta = 0;
+                    if (r.bottom > bottom) delta = bottom - r.bottom;
+                    else if (r.top < top) delta = top - r.top;
+
+                    if (Math.abs(delta) > 1 && !surface) {
+                        // Normal document field: let the browser scroll the page.
+                        try {
+                            field.scrollIntoView({
+                                block: 'center',
+                                inline: 'nearest',
+                                behavior: animate ? 'smooth' : 'auto'
+                            });
+                        } catch (_) {
+                            try { field.scrollIntoView(false); } catch (_) {}
+                        }
+                    }
+
+                    // Chat is a fixed flex column whose height now matches the visual viewport.
+                    // Scroll messages to the newest position after keyboard resize.
+                    const chat = field.closest('#chat-sidebar');
+                    if (chat) {
+                        const messages = chat.querySelector('#chat-messages-container');
+                        if (messages) {
+                            requestAnimationFrame(() => { messages.scrollTop = messages.scrollHeight; });
+                        }
+                    }
+                });
+            }
+
+            function syncViewportVars() {
+                rafId = 0;
+                const vp = getViewport();
+                const layoutHeight = Math.max(1, window.innerHeight || vp.height);
+                const rawKeyboardHeight = Math.max(0, layoutHeight - vp.height - vp.top);
+                // Android/iOS WebView variants differ: when the viewport is resized,
+                // keyboard height can be inferred from the visual/layout delta. Do not
+                // use it to size fixed panels; it is only for floating affordances.
+                const keyboardHeight = Math.max(0, Math.min(rawKeyboardHeight, layoutHeight * 0.8));
+                const keyboardOpen = keyboardHeight > 60 || (lastFocused && document.activeElement === lastFocused && vp.height < layoutHeight - 60);
+
+                root.style.setProperty('--app-vv-height', `${Math.round(vp.height)}px`);
+                root.style.setProperty('--app-vv-top', `${Math.round(vp.top)}px`);
+                root.style.setProperty('--app-vv-left', `${Math.round(vp.left)}px`);
+                root.style.setProperty('--keyboard-height', `${Math.round(keyboardHeight)}px`);
+                root.classList.toggle('webview-keyboard-open', !!keyboardOpen);
+
+                window.__EDUCLASS_VV = {
+                    height: vp.height,
+                    top: vp.top,
+                    left: vp.left,
+                    keyboardHeight,
+                    keyboardOpen: !!keyboardOpen
+                };
+
+                if (!!keyboardOpen !== lastKeyboardOpen) {
+                    lastKeyboardOpen = !!keyboardOpen;
+                    root.dispatchEvent(new CustomEvent(
+                        keyboardOpen ? 'educlasskeyboardopen' : 'educlasskeyboardclose',
+                        { detail: window.__EDUCLASS_VV }
+                    ));
+                }
+
+                const field = getFocusedEditable();
+                if (keyboardOpen && field) ensureEditableAboveKeyboard(field, false);
+            }
+
+            function scheduleSync() {
+                if (rafId) return;
+                rafId = requestAnimationFrame(syncViewportVars);
+            }
+
+            function focusRepair() {
+                const field = getFocusedEditable();
+                if (!field) return;
+                lastFocused = field;
+                scheduleSync();
+                // WebView keyboard animation changes VV over several frames.
+                [0, 40, 100, 180, 300, 500, 800].forEach(ms => {
+                    setTimeout(() => {
+                        scheduleSync();
+                        ensureEditableAboveKeyboard(field, ms === 0 || ms === 40);
+                    }, ms);
+                });
+            }
+
+            const vv = window.visualViewport;
+            if (vv) {
+                vv.addEventListener('resize', scheduleSync, { passive: true });
+                vv.addEventListener('scroll', scheduleSync, { passive: true });
+            }
+            window.addEventListener('resize', scheduleSync, { passive: true });
+            window.addEventListener('orientationchange', () => setTimeout(scheduleSync, 100), { passive: true });
+
+            document.addEventListener('focusin', (e) => {
+                if (!e.target || !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+                focusRepair();
+            }, true);
+            document.addEventListener('focusout', () => {
+                setTimeout(() => {
+                    lastFocused = null;
+                    scheduleSync();
+                }, 120);
+            }, true);
+
+            window.eduClassSyncKeyboard = scheduleSync;
+            window.eduClassRepairFocusedInput = focusRepair;
+            root.keepFocusedFieldVisible = (animate = false) => {
+                const field = getFocusedEditable();
+                if (field) ensureEditableAboveKeyboard(field, animate);
+            };
+
+            // Re-run once after fonts/layout finish; native hosts sometimes report the
+            // initial WebView size before the DOM has reached its final layout.
+            syncViewportVars();
+            setTimeout(scheduleSync, 50);
+            setTimeout(scheduleSync, 250);
+            setTimeout(scheduleSync, 600);
+        })();
 
         // ========= KUNCI SCROLL & INTERAKSI LAMAN UTAMA SAAT OVERLAY/MODAL TERBUKA =========
         // Semua overlay di aplikasi ini id-nya diakhiri "-overlay" (modal-overlay, media-lightbox-overlay, dst)
@@ -1912,15 +2176,6 @@
             });
         };
 
-        // Native Alert jika user tidak sengaja memencet tombol "Reload/Refresh" di address bar Browser
-        window.addEventListener('beforeunload', (e) => {
-            if (currentUserId) { // Hanya aktif jika sudah login
-                e.preventDefault();
-                e.returnValue = ''; 
-            }
-        });
-
-
         // ================= SISTEM ROUTING SPA (HISTORY API) & EXIT TRAP =================
         window.navigateTo = function(path) {
             if (window.location.pathname !== path) {
@@ -1930,20 +2185,7 @@
         }
 
         window.addEventListener('popstate', async (e) => {
-            // Mengecek apakah user terjebak di trap dashboard
-            if (e.state && e.state.trap) {
-                // Restore state dashboard agar tidak merusak history jika user Batal keluar
-                history.pushState({ path: '/classroom/dashboard' }, '', '/classroom/dashboard');
-                
-                // Munculkan konfirmasi keluar
-                const confirmExit = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi EduClass?");
-                if (confirmExit) {
-                    // Paksa browser back 2 kali (melewati trap) agar benar-benar keluar web
-                    history.go(-2); 
-                }
-            } else {
-                resolveRoute();
-            }
+            resolveRoute();
         });
 
         // Klik logo EduClass untuk balik ke Beranda/Dashboard
@@ -2776,11 +3018,9 @@
             hideEduAiTypingIndicatorDom();
         }
 
-        // Bangun blok konteks berisi isi materi/pengumuman + daftar file lampirannya (kalau ada),
-        // supaya EduAI tahu materi apa yang sedang ditanyakan lewat mention di obrolan.
-        // Mengembalikan { text, files }: `files` berisi URL presigned tiap file, dikirim TERPISAH
-        // ke backend supaya backend bisa mengunduh & melampirkan ISI file-nya ke Gemini (bukan
-        // cuma link-nya sebagai teks, yang tidak bisa "dibuka" sendiri oleh model).
+        // Bangun blok konteks berisi isi materi/pengumuman + URL presigned file.
+        // Mode direct membaca file di WebView dan mengirimnya sebagai inlineData ke Gemini;
+        // mode proxy meneruskan metadata file ke /api/eduai.
         async function buildAnnouncementAiContext(annId) {
             const ann = annId ? currentAnnouncementsCache[annId] : null;
             if (!ann) return null;
@@ -2803,6 +3043,208 @@
                 }));
             }
             return { text: lines.join('\n'), files };
+        }
+
+
+        // ==================== EduAI TRANSPORT ====================
+        const EDUAI_CONFIG = APP_CONFIG.eduai || {};
+        const EDUAI_SUPPORTED_MIME_BY_EXT = {
+            pdf: 'application/pdf',
+            txt: 'text/plain',
+            csv: 'text/csv',
+            md: 'text/markdown',
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            webp: 'image/webp',
+            gif: 'image/gif'
+        };
+        const EDUAI_MAX_FILE_BYTES = 8 * 1024 * 1024;
+        const EDUAI_MAX_TOTAL_BYTES = 15 * 1024 * 1024;
+
+        function eduAiGuessMime(name, ext) {
+            const cleanExt = String(ext || (name || '').split('.').pop() || '').toLowerCase().trim();
+            return EDUAI_SUPPORTED_MIME_BY_EXT[cleanExt] || null;
+        }
+
+        async function eduAiFileToInlinePart(file, remainingBytes) {
+            if (!file || !file.url || remainingBytes <= 0) return null;
+            const mimeType = eduAiGuessMime(file.name, file.ext);
+            if (!mimeType) return null;
+            try {
+                const response = await fetch(file.url);
+                if (!response.ok) return null;
+
+                const contentLength = Number(response.headers.get('content-length') || 0);
+                if (contentLength && contentLength > EDUAI_MAX_FILE_BYTES) return null;
+
+                const buffer = await response.arrayBuffer();
+                if (buffer.byteLength > EDUAI_MAX_FILE_BYTES || buffer.byteLength > remainingBytes) return null;
+
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const chunkSize = 0x8000;
+                for (let i = 0; i < bytes.length; i += chunkSize) {
+                    binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+                }
+                return {
+                    bytesUsed: buffer.byteLength,
+                    part: { inlineData: { mimeType, data: btoa(binary) } }
+                };
+            } catch (err) {
+                console.warn('EduAI: file gagal dibaca dari Storj', file?.name, err);
+                return null;
+            }
+        }
+
+        function eduAiBuildSystemInstruction() {
+            return 'You are EduAI, a friendly and concise learning assistant embedded inside the EduClass classroom app. ' +
+                'Each user message is prefixed with "Name: " to indicate who is asking — use that name to address them ' +
+                'personally when it feels natural, but never repeat that "Name: " prefix format in your own reply. ' +
+                'When study material or attached files are provided, treat them as their primary source of truth before ' +
+                'relying on general knowledge, and clearly say so if a file could not be read. ' +
+                'Always reply in the same language the user used in their most recent message — not necessarily the ' +
+                'language of earlier messages in the conversation. ' +
+                'Help explain lessons, answer questions, and give example problems or exercises when asked. Keep answers ' +
+                'clear, warm, and appropriately concise for both students and teachers.';
+        }
+
+        async function fetchEduAiResponse(prompt, senderName, history, files) {
+            const mode = EDUAI_CONFIG.mode || 'direct';
+
+            if (mode === 'proxy') {
+                return fetch(EDUAI_CONFIG.proxyEndpoint || '/api/eduai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: prompt, senderName, history, files })
+                });
+            }
+
+            const apiKey = String(EDUAI_CONFIG.apiKey || '').trim();
+            if (!apiKey || apiKey === 'ISI_GEMINI_API_KEY_DI_SINI') {
+                throw new Error('GEMINI_API_KEY belum diisi di config.js.');
+            }
+
+            const contentParts = [{
+                text: `${senderName || 'Pengguna'}: ${String(prompt || '').slice(0, 12000)}`
+            }];
+
+            const fileList = Array.isArray(files) ? files.slice(0, 10) : [];
+            let usedBytes = 0;
+            const skipped = [];
+
+            for (const file of fileList) {
+                const result = await eduAiFileToInlinePart(file, EDUAI_MAX_TOTAL_BYTES - usedBytes);
+                if (result) {
+                    contentParts.push(result.part);
+                    usedBytes += result.bytesUsed;
+                } else if (file?.name) {
+                    skipped.push(file.name);
+                }
+            }
+
+            if (skipped.length) {
+                contentParts.push({
+                    text: `[Catatan sistem: file berikut tidak dapat dibaca langsung oleh AI: ${skipped.join(', ')}]`
+                });
+            }
+
+            const contents = [
+                ...(Array.isArray(history) ? history.slice(-40) : []).map(h => ({
+                    role: h.role === 'ai' ? 'model' : 'user',
+                    parts: [{ text: String(h.text || '').slice(0, 2000) }]
+                })),
+                { role: 'user', parts: contentParts }
+            ];
+
+            const endpoint = String(EDUAI_CONFIG.endpoint || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/$/, '');
+            const model = EDUAI_CONFIG.model || 'gemini-flash-lite-latest';
+            const url = `${endpoint}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+
+            const upstreamResponse = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
+                },
+                body: JSON.stringify({
+                    contents,
+                    systemInstruction: { parts: [{ text: eduAiBuildSystemInstruction() }] },
+                    generationConfig: {
+                        temperature: Number(EDUAI_CONFIG.temperature ?? 0.7),
+                        maxOutputTokens: Number(EDUAI_CONFIG.maxOutputTokens ?? 1024)
+                    }
+                })
+            });
+
+            if (!upstreamResponse.ok || !upstreamResponse.body) return upstreamResponse;
+
+            const upstreamReader = upstreamResponse.body.getReader();
+            const decoder = new TextDecoder();
+            const encoder = new TextEncoder();
+            let buffer = '';
+
+            const stream = new ReadableStream({
+                async pull(controller) {
+                    try {
+                        while (true) {
+                            const { done, value } = await upstreamReader.read();
+                            if (done) {
+                                const trailing = buffer.trim();
+                                if (trailing) {
+                                    for (const line of trailing.split(/\r?\n/)) {
+                                        const t = line.trim();
+                                        if (!t.startsWith('data:')) continue;
+                                        const jsonStr = t.slice(5).trim();
+                                        if (!jsonStr || jsonStr === '[DONE]') continue;
+                                        try {
+                                            const parsed = JSON.parse(jsonStr);
+                                            const delta = parsed?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+                                            if (delta) controller.enqueue(encoder.encode(delta));
+                                        } catch (_) {}
+                                    }
+                                }
+                                controller.close();
+                                return;
+                            }
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split(/\r?\n/);
+                            buffer = lines.pop() || '';
+                            let emitted = false;
+
+                            for (const line of lines) {
+                                const t = line.trim();
+                                if (!t.startsWith('data:')) continue;
+                                const jsonStr = t.slice(5).trim();
+                                if (!jsonStr || jsonStr === '[DONE]') continue;
+                                try {
+                                    const parsed = JSON.parse(jsonStr);
+                                    const delta = parsed?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+                                    if (delta) {
+                                        controller.enqueue(encoder.encode(delta));
+                                        emitted = true;
+                                    }
+                                } catch (_) {
+                                    // JSON may be split across network chunks; wait for next chunk.
+                                }
+                            }
+
+                            if (emitted) return;
+                        }
+                    } catch (err) {
+                        controller.error(err);
+                    }
+                },
+                cancel() {
+                    try { upstreamReader.cancel(); } catch (_) {}
+                }
+            });
+
+            return new Response(stream, {
+                status: 200,
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+            });
         }
 
         async function handleEduAiTrigger(rawText, classId, senderName, triggerMessageId, attachedAnnouncementId) {
@@ -2848,11 +3290,7 @@
             };
 
             try {
-                const res = await fetch('/api/eduai', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: prompt, senderName, history, files: sessionFiles })
-                });
+                const res = await fetchEduAiResponse(prompt, senderName, history, sessionFiles);
 
                 if (!res.ok || !res.body) {
                     const data = await res.json().catch(() => ({}));
@@ -5441,6 +5879,9 @@
             document.getElementById('input-comment').value = '';
             document.getElementById('comment-modal-overlay').classList.remove('hidden');
             updateCommentInputState();
+            if (document.documentElement.keepFocusedFieldVisible) {
+                setTimeout(() => document.documentElement.keepFocusedFieldVisible(true), 80);
+            }
 
             if (commentsThreadListener) commentsThreadListener();
             const cRef = ref(db, `comments/${currentViewedClassId}/${annId}`);
