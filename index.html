@@ -3853,8 +3853,16 @@
 
         function getClassStudentEntries() {
             // Guru (pemilik maupun kontributor) tidak pernah dimasukkan ke dalam kelompok — hanya siswa.
-            const students = (currentClassData && currentClassData.students) || {};
-            return Object.keys(students).map(sid => ({ id: sid, username: students[sid].username }));
+            // Filter defensif: buang juga id yang kebetulan sama dengan teacherId atau ada di
+            // node contributors, untuk berjaga-jaga kalau ada data lama/tidak konsisten di
+            // node "students" (mis. dari versi lama sebelum pemisahan node guru/siswa).
+            if (!currentClassData) return [];
+            const students = currentClassData.students || {};
+            const teacherId = currentClassData.teacherId;
+            const contributors = currentClassData.contributors || {};
+            return Object.keys(students)
+                .filter(sid => sid !== teacherId && !contributors[sid])
+                .map(sid => ({ id: sid, username: students[sid].username }));
         }
 
         function runTeamGeneration() {
