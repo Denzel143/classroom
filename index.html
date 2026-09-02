@@ -793,10 +793,14 @@
             text-align: center;
         }
 
-        /* ---- Timer sesi EduAI (pojok kanan atas sidebar obrolan) ---- */
+        /* ---- Timer sesi EduAI ----
+           Sebelumnya position:absolute nempel di pojok kanan-atas header, yang bikin dia
+           ketiban/menutupi tombol "Matikan obrolan sementara" (guru) kalau dua-duanya
+           kebetulan sama-sama tampil. Sekarang jadi baris biasa di bawah header-row/banner
+           obrolan-dimatikan, jadi tidak pernah bertumpuk dengan tombol lain. */
         #eduai-session-timer {
-            position: absolute; top: 14px; right: 18px;
-            display: flex; align-items: center; gap: 6px;
+            margin-top: 10px;
+            display: inline-flex; align-items: center; gap: 6px;
             background: #F7F1FB; border: 1px solid #8E24AA33; color: #6A1B9A;
             font-size: 11.5px; font-weight: 700; padding: 5px 10px 5px 8px;
             border-radius: 99px; box-shadow: var(--shadow-sm);
