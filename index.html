@@ -1007,6 +1007,14 @@
         }
         .kb-composer-overlay.active { display: block; }
         .kb-composer-overlay > * { margin: 0 !important; }
+        /* Saat popup saran "@EduAI" (#eduai-suggest-popup) dipindah sementara ke dalam composer
+           overlay ini (lihat initKeyboardComposer di script bawah), render sebagai baris biasa
+           di atas kolom teks, bukan position:absolute mengambang relatif ke .chat-input-area asli
+           (yang saat itu tertutup keyboard virtual / berada di belakang overlay). */
+        #kb-composer-overlay #eduai-suggest-popup {
+            position: static; left: auto; right: auto; bottom: auto;
+            margin: 0 0 10px 0 !important;
+        }
     </style>
     <!-- pdf.js: dipakai untuk membuat thumbnail halaman pertama dari file PDF yang diunggah -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -1663,13 +1671,25 @@
         // tidak bisa discroll maupun berinteraksi. Ditutup lagi -> otomatis dibuka kuncinya.
         (function () {
             let savedScrollY = 0;
-            const overlayEls = Array.from(document.querySelectorAll('[id$="-overlay"]'));
 
+            // Diambil ULANG tiap kali dibutuhkan (bukan cuma sekali di awal) supaya overlay yang
+            // baru ditambahkan ke DOM setelah load (mis. lewat innerHTML re-render) tetap ikut
+            // terpantau, bukan cuma 20-an overlay yang sudah ada persis saat skrip ini pertama jalan.
+            function getOverlayEls() {
+                return Array.from(document.querySelectorAll('[id$="-overlay"]'));
+            }
+
+            // Cek dari CSS yang benar-benar dipakai browser (bukan cuma keberadaan class "hidden"),
+            // supaya kalau suatu saat ada kode lain yang menyembunyikan overlay lewat cara selain
+            // classList (mis. style.display), status kunci scroll TETAP ikut kebaca benar dan tidak
+            // nyangkut di keadaan "terkunci".
             function isOverlayVisible(el) {
-                return !!el && !el.classList.contains('hidden');
+                if (!el || el.classList.contains('hidden')) return false;
+                const style = window.getComputedStyle(el);
+                return style.display !== 'none' && style.visibility !== 'hidden';
             }
             function anyOverlayOpen() {
-                return overlayEls.some(isOverlayVisible);
+                return getOverlayEls().some(isOverlayVisible);
             }
             function lockBackgroundScroll() {
                 if (document.body.classList.contains('bg-scroll-locked')) return;
@@ -1687,10 +1707,21 @@
                 if (anyOverlayOpen()) lockBackgroundScroll(); else unlockBackgroundScroll();
             }
 
+            // Pantau perubahan class pada SEMUA elemen "*-overlay" (termasuk yang baru muncul di
+            // DOM belakangan) lewat satu MutationObserver di <body> dengan subtree:true, bukan cuma
+            // 20-an node yang di-snapshot sekali di awal - supaya observer ini tidak pernah jadi basi.
             const classObserver = new MutationObserver(syncBackgroundScrollLock);
-            overlayEls.forEach((el) => {
-                classObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
+            classObserver.observe(document.body, {
+                attributes: true, attributeFilter: ['class', 'style'], subtree: true
             });
+
+            // JARING PENGAMAN: kalau karena sebab apa pun status kunci sempat tidak sinkron dengan
+            // keadaan overlay yang sebenarnya (race condition, overlay yang ditutup lewat jalur di
+            // luar dugaan, dll), body TIDAK PERNAH bisa nyangkut terkunci selamanya - status selalu
+            // dicek ulang & dibetulkan sendiri secara berkala dan setiap ada tap/klik di layar.
+            document.addEventListener('pointerdown', syncBackgroundScrollLock, { capture: true, passive: true });
+            document.addEventListener('touchstart', syncBackgroundScrollLock, { capture: true, passive: true });
+            setInterval(syncBackgroundScrollLock, 800);
 
             syncBackgroundScrollLock();
         })();
@@ -6278,6 +6309,35 @@
             let lastKbHeight = 0;
             let blurTimer = null;
 
+            // ---- Popup saran "@EduAI" (lihat #eduai-suggest-popup di kolom obrolan) ----
+            // Popup ini normalnya position:absolute nempel ke .chat-input-area asli. Kalau composer
+            // overlay ini aktif, .chat-input-area asli ada di belakang latar gelap (scrim, z-index
+            // lebih tinggi) sehingga popup jadi tidak kelihatan sama sekali walau class "hidden"-nya
+            // sudah dilepas oleh logic aslinya di kolom obrolan. Makanya elemen popup-nya (BUKAN
+            // dibuat ulang/duplikat, cukup dipindah sementara) diangkat ke dalam overlay ini supaya
+            // muncul di atas kolom teks composer, lalu dikembalikan lagi ke tempat asalnya begitu
+            // composer ditutup. Semua logic saran (deteksi "@Edu...", pilih saran, dsb) tetap dari
+            // kode chat asli - di sini cuma soal DI MANA popup itu tampil.
+            let eduAiPopupHome = null; // { parent, nextSibling } lokasi asli popup, sebelum dipindah
+
+            function liftEduAiSuggestPopupIntoComposer() {
+                const popup = document.getElementById('eduai-suggest-popup');
+                if (!popup || popup.parentElement === overlay) return;
+                eduAiPopupHome = { parent: popup.parentElement, nextSibling: popup.nextSibling };
+                overlay.insertBefore(popup, overlay.firstChild);
+            }
+
+            function restoreEduAiSuggestPopup() {
+                const popup = document.getElementById('eduai-suggest-popup');
+                if (!popup || !eduAiPopupHome || popup.parentElement !== overlay) { eduAiPopupHome = null; return; }
+                if (eduAiPopupHome.nextSibling && eduAiPopupHome.nextSibling.parentElement === eduAiPopupHome.parent) {
+                    eduAiPopupHome.parent.insertBefore(popup, eduAiPopupHome.nextSibling);
+                } else {
+                    eduAiPopupHome.parent.appendChild(popup);
+                }
+                eduAiPopupHome = null;
+            }
+
             function isEligibleField(el) {
                 if (!el || !(el instanceof HTMLElement)) return false;
                 if (el.closest('#login-section')) return false; // dikecualikan sesuai permintaan
@@ -6339,11 +6399,13 @@
             }
 
             function activateComposer(field) {
+                restoreEduAiSuggestPopup(); // kalau sebelumnya nempel di overlay field lain, balikin dulu
                 overlay.innerHTML = '';
                 const el = buildOverlayField(field);
                 overlay.appendChild(el);
                 overlayField = el;
                 wireOverlayField(el, field);
+                if (field.id === 'input-chat') liftEduAiSuggestPopupIntoComposer();
                 overlay.classList.add('active');
                 scrim.classList.add('active');
                 composerOpen = true;
@@ -6355,6 +6417,7 @@
             }
 
             function deactivateComposer() {
+                restoreEduAiSuggestPopup();
                 overlay.classList.remove('active');
                 scrim.classList.remove('active');
                 overlay.style.removeProperty('--kb-bottom');
