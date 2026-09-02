@@ -33,7 +33,12 @@
             --shadow-floating: 0 12px 32px rgba(0,0,0,0.12);
         }
         
-        * { box-sizing: border-box; font-family: 'Inter', 'Segoe UI', sans-serif; }
+        * {
+            box-sizing: border-box; font-family: 'Inter', 'Segoe UI', sans-serif;
+            /* Hilangkan kotak highlight biru/abu bawaan browser saat elemen (tombol, card, link, dll) ditekan di HP */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
         
         body { 
             margin: 0; 
@@ -45,7 +50,17 @@
             /* Mencegah pinch zoom tapi tetap izinkan scroll atas-bawah */
             touch-action: pan-y;
         }
-        
+
+        /* Kunci scroll & interaksi laman utama saat ada overlay/modal card yang terbuka */
+        body.bg-scroll-locked {
+            position: fixed;
+            left: 0;
+            right: 0;
+            width: 100%;
+            overflow: hidden;
+            touch-action: none;
+        }
+
         /* Utility */
         .hidden { display: none !important; }
         .container { max-width: 860px; margin: 0 auto; padding: 24px; padding-bottom: 100px;}
@@ -87,9 +102,9 @@
             border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         header h2 { margin: 0; color: var(--primary); font-size: 1.5rem; transition: transform 0.2s; }
-        header h2:hover { transform: scale(1.02); }
+        @media (hover: hover) and (pointer: fine) { header h2:hover { transform: scale(1.02); } }
         #btn-logout { background: var(--danger-light); color: var(--danger); padding: 10px 20px; border-radius: 99px;}
-        #btn-logout:hover { background: var(--danger); color: white; }
+        @media (hover: hover) and (pointer: fine) { #btn-logout:hover { background: var(--danger); color: white; } }
 
         /* Loading Layar Penuh */
         #global-loading { 
@@ -112,7 +127,7 @@
         }
         #login-section h2 { text-align: center; color: var(--primary); margin-bottom: 30px; font-size: 2rem;}
         #login-btn { background: var(--accent); color: #000; width: 100%; padding: 16px; font-size: 1.1rem; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);}
-        #login-btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
+        @media (hover: hover) and (pointer: fine) { #login-btn:hover { background: var(--accent-hover); transform: translateY(-2px); } }
 
         /* Dashboard Global */
         .welcome-text { 
@@ -134,8 +149,10 @@
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
             background: linear-gradient(90deg, var(--primary), var(--accent));
         }
+        @media (hover: hover) and (pointer: fine) {
         .class-card:hover { 
             box-shadow: var(--shadow-md); transform: translateY(-5px) scale(1.02); 
+        }
         }
         .class-card h3 { margin: 0 0 12px 0; color: var(--text-main); font-size: 1.3rem;}
         .class-card p { margin:0; font-size:14px; color: var(--text-muted); }
@@ -149,7 +166,7 @@
             display: flex; justify-content: center; align-items: center; 
             padding: 0; z-index: 99; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        .fab-btn:hover { transform: translateY(-5px) scale(1.05); background: var(--accent-hover); box-shadow: 0 12px 25px rgba(255, 193, 7, 0.5);}
+        @media (hover: hover) and (pointer: fine) { .fab-btn:hover { transform: translateY(-5px) scale(1.05); background: var(--accent-hover); box-shadow: 0 12px 25px rgba(255, 193, 7, 0.5);} }
 
         /* Overlay / Modal */
         .modal-overlay { 
@@ -202,7 +219,7 @@
             display: flex; justify-content: space-between; align-items: center;
             transition: background 0.2s;
         }
-        .result-item:hover { background: var(--primary-light); }
+        @media (hover: hover) and (pointer: fine) { .result-item:hover { background: var(--primary-light); } }
         .selected-box { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
         .student-badge { 
             background: var(--primary-light); color: var(--primary); 
@@ -215,13 +232,13 @@
         .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: auto; padding-top: 20px;}
         .modal-actions.center { justify-content: center; }
         .btn-batal { background: #F1F3F4; color: var(--text-main); }
-        .btn-batal:hover { background: #E2E4E7; }
+        @media (hover: hover) and (pointer: fine) { .btn-batal:hover { background: #E2E4E7; } }
         .btn-buat { background: var(--primary); color: white; }
-        .btn-buat:hover { background: #1557B0; box-shadow: 0 4px 10px rgba(26,115,232,0.3);}
+        @media (hover: hover) and (pointer: fine) { .btn-buat:hover { background: #1557B0; box-shadow: 0 4px 10px rgba(26,115,232,0.3);} }
         .btn-bahaya { background: var(--danger); color: white;}
-        .btn-bahaya:hover { background: #C5221F; box-shadow: 0 4px 10px rgba(234,67,53,0.3);}
+        @media (hover: hover) and (pointer: fine) { .btn-bahaya:hover { background: #C5221F; box-shadow: 0 4px 10px rgba(234,67,53,0.3);} }
         .btn-outline { border: 2px solid var(--primary); color: var(--primary); background: transparent; }
-        .btn-outline:hover { background: var(--primary-light); }
+        @media (hover: hover) and (pointer: fine) { .btn-outline:hover { background: var(--primary-light); } }
 
         /* ===== Random Team Generator & Random Picker ===== */
         .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F8F9FA; border-radius: var(--radius-md); padding: 14px 18px; margin: 8px 0 20px 0; }
@@ -246,7 +263,7 @@
         #picker-wheel-svg { width: 100%; height: 100%; border-radius: 50%; box-shadow: var(--shadow-md); }
         #picker-wheel-pointer { position: absolute; top: -4px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 13px solid transparent; border-right: 13px solid transparent; border-top: 22px solid var(--text-main); z-index: 5; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25)); }
         #btn-spin-wheel { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 74px; height: 74px; border-radius: 50%; background: var(--accent); color: #000; font-weight: 800; font-size: 13px; letter-spacing: 0.02em; box-shadow: 0 8px 18px rgba(0,0,0,0.25); z-index: 4; padding: 0; }
-        #btn-spin-wheel:hover { background: var(--accent-hover); }
+        @media (hover: hover) and (pointer: fine) { #btn-spin-wheel:hover { background: var(--accent-hover); } }
         #btn-spin-wheel:disabled { opacity: 0.6; cursor: default; transform: translate(-50%,-50%) scale(1); }
         #picker-wheel-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; color: var(--text-muted); font-size: 12.5px; font-weight: 600; background: rgba(255,255,255,0.9); border-radius: 50%; line-height: 1.5; }
         #input-picker-list { flex-grow: 1; min-height: 180px; resize: vertical; }
@@ -275,11 +292,11 @@
         .header-actions { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; z-index: 1;}
         .btn-header-action { padding: 10px 18px; font-size: 14px; border-radius: var(--radius-md); font-weight: 600;}
         #btn-bagikan-kelas { background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
-        #btn-bagikan-kelas:hover { background: var(--accent-hover); transform: translateY(-2px);}
+        @media (hover: hover) and (pointer: fine) { #btn-bagikan-kelas:hover { background: var(--accent-hover); transform: translateY(-2px);} }
         #btn-edit-kelas { background: rgba(255,255,255,0.9); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-        #btn-edit-kelas:hover { background: #FFFFFF; transform: translateY(-2px); }
+        @media (hover: hover) and (pointer: fine) { #btn-edit-kelas:hover { background: #FFFFFF; transform: translateY(-2px); } }
         #btn-hapus-kelas { background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(4px); }
-        #btn-hapus-kelas:hover { background: var(--danger); color: white; }
+        @media (hover: hover) and (pointer: fine) { #btn-hapus-kelas:hover { background: var(--danger); color: white; } }
         
         /* Tampilan Pengumuman */
         .announcement-card { 
@@ -287,19 +304,19 @@
             padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow-sm); 
             user-select: none; transition: box-shadow 0.2s;
         }
-        .announcement-card:hover { box-shadow: var(--shadow-md); }
+        @media (hover: hover) and (pointer: fine) { .announcement-card:hover { box-shadow: var(--shadow-md); } }
         .announcement-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .announcement-time { font-size: 13px; color: var(--text-muted); }
         .announcement-time strong { color: var(--text-main); font-size: 15px;}
         .announcement-text { white-space: pre-wrap; margin: 0; line-height: 1.6; font-size: 15px; user-select: text;}
         .msg-link { color: var(--primary); text-decoration: none; font-weight: 600; word-break: break-all; }
-        .msg-link:hover { text-decoration: underline; }
+        @media (hover: hover) and (pointer: fine) { .msg-link:hover { text-decoration: underline; } }
         
         .btn-hapus-announcement { 
             background: var(--danger-light); color: var(--danger); 
             padding: 6px 12px; font-size: 12px; border-radius: 99px; z-index: 10; position: relative;
         }
-        .btn-hapus-announcement:hover { background: var(--danger); color: white;}
+        @media (hover: hover) and (pointer: fine) { .btn-hapus-announcement:hover { background: var(--danger); color: white;} }
 
         /* ================= FITUR SEMATKAN / TOGGLE GURU ================= */
         .announcement-header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; z-index: 10; position: relative; }
@@ -307,7 +324,7 @@
             background: #FFF8E1; color: #946200; padding: 6px 12px; font-size: 12px;
             border-radius: 99px; font-weight: 700; z-index: 10; position: relative;
         }
-        .btn-pin-announcement:hover { background: var(--accent); color: #000; }
+        @media (hover: hover) and (pointer: fine) { .btn-pin-announcement:hover { background: var(--accent); color: #000; } }
         .btn-pin-announcement.is-pinned { background: var(--accent); color: #000; }
 
         .announcement-card.pinned {
@@ -325,13 +342,13 @@
             vertical-align: middle; display: inline-block;
         }
         .comment-bubble.pinned-comment { background: #FFF8E1; border: 1.5px solid var(--accent); }
-        .comment-bubble.pinned-comment:hover { background: #FFF3D6; }
+        @media (hover: hover) and (pointer: fine) { .comment-bubble.pinned-comment:hover { background: #FFF3D6; } }
 
         .btn-toggle-mini {
             background: #F1F3F4; color: var(--text-muted); padding: 6px 12px; font-size: 12px;
             border-radius: 99px; font-weight: 700; white-space: nowrap;
         }
-        .btn-toggle-mini:hover { background: #E2E4E7; }
+        @media (hover: hover) and (pointer: fine) { .btn-toggle-mini:hover { background: #E2E4E7; } }
         .btn-toggle-mini.active { background: var(--primary-light); color: var(--primary); }
         .btn-toggle-mini.danger-active { background: var(--danger-light); color: var(--danger); }
         .member-row-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
@@ -341,7 +358,7 @@
             background: #F1F3F4; color: var(--text-main); padding: 8px 16px; font-size: 13px;
             border-radius: 99px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
         }
-        .btn-attach-file:hover { background: #E2E4E7; }
+        @media (hover: hover) and (pointer: fine) { .btn-attach-file:hover { background: #E2E4E7; } }
         .attach-file-list {
             margin-top: 10px; display: flex; flex-direction: column; gap: 8px;
         }
@@ -378,7 +395,7 @@
             background: #F7F8FA; border-radius: var(--radius-md); border: 1px solid var(--border);
             cursor: pointer; position: relative; z-index: 10; max-width: 420px;
         }
-        .announcement-file-card:hover { background: #EFF1F4; }
+        @media (hover: hover) and (pointer: fine) { .announcement-file-card:hover { background: #EFF1F4; } }
         .file-thumb-wrap {
             width: 56px; height: 56px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; background: #E2E4E7;
@@ -419,7 +436,7 @@
             width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: 800;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3); cursor: pointer; font-size: 16px; z-index: 1;
         }
-        .media-lightbox-close:hover { background: #1558B0; }
+        @media (hover: hover) and (pointer: fine) { .media-lightbox-close:hover { background: #1558B0; } }
         
         /* Undangan Alert */
         .invitation-card { 
@@ -453,6 +470,10 @@
             border-radius: var(--radius-xl) var(--radius-xl) 0 0;
             transform: translateY(100%);
             transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+            /* Saat jari/kursor ada di atas bottom panel, jangan biarkan scroll vertikal
+               "bocor" ke laman utama di belakangnya — hanya scroll menyamping (horizontal-list) yang diizinkan */
+            touch-action: pan-x;
+            overscroll-behavior: contain;
         }
         #bottom-panel.open {
             transform: translateY(0);
@@ -473,10 +494,13 @@
             cursor: pointer;
             z-index: 850;
             transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            touch-action: none;
         }
+        @media (hover: hover) and (pointer: fine) {
         #bottom-panel-handle:hover {
             transform: translateX(-50%);
             background: var(--primary-light);
+        }
         }
         #bottom-panel-handle svg {
             color: var(--text-muted);
@@ -505,6 +529,8 @@
             margin: 0 auto;
             scrollbar-width: none; 
             -ms-overflow-style: none;
+            touch-action: pan-x;
+            overscroll-behavior-x: contain;
         }
         .horizontal-list::-webkit-scrollbar { display: none; }
 
@@ -526,6 +552,7 @@
             transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
             /* overflow-y dipindah ke .calendar-sidebar-inner supaya handle (yang menjorok
                keluar via right:-28px) tidak ikut ter-clip oleh overflow container ini */
+            overscroll-behavior-y: contain;
         }
         #calendar-sidebar.open {
             transform: translateX(0);
@@ -546,9 +573,12 @@
             cursor: pointer;
             z-index: 850;
             transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            touch-action: none;
         }
+        @media (hover: hover) and (pointer: fine) {
         #calendar-sidebar-handle:hover {
             background: var(--primary-light);
+        }
         }
         #calendar-sidebar-handle svg {
             color: var(--text-muted);
@@ -562,12 +592,15 @@
         .calendar-sidebar-inner {
             height: 100%;
             overflow-y: auto;
+            /* Saat jari/kursor ada di dalam sidebar ini, scroll hanya berlaku di sini,
+               tidak akan diteruskan/"chaining" ke laman utama di baliknya */
+            overscroll-behavior: contain;
         }
         .calendar-sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
         .calendar-sidebar-header h4 { margin: 0; font-size: 1.1rem; color: var(--primary); }
         .calendar-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
         .calendar-nav button { background: var(--primary-light); color: var(--primary); padding: 6px 10px; border-radius: 10px; font-size: 13px; }
-        .calendar-nav button:hover { background: var(--primary); color: #fff; }
+        @media (hover: hover) and (pointer: fine) { .calendar-nav button:hover { background: var(--primary); color: #fff; } }
         .calendar-month-label { font-weight: 700; font-size: 15px; color: var(--text-main); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
         .calendar-dow { font-size: 11px; font-weight: 700; color: var(--text-muted); padding: 4px 0 8px 0; }
@@ -575,7 +608,7 @@
         .calendar-day.other-month { color: #C7CCD3; }
         .calendar-day.today { background: var(--primary); color: #fff; font-weight: 700; }
         .btn-cal-today { width: 100%; margin-top: 18px; background: var(--primary-light); color: var(--primary); padding: 10px; border-radius: var(--radius-md); font-size: 13px; }
-        .btn-cal-today:hover { background: var(--primary); color: #fff; }
+        @media (hover: hover) and (pointer: fine) { .btn-cal-today:hover { background: var(--primary); color: #fff; } }
         
         .mini-class-card {
             flex: 0 0 220px;
@@ -589,9 +622,11 @@
             flex-direction: column;
             justify-content: center;
         }
+        @media (hover: hover) and (pointer: fine) {
         .mini-class-card:hover {
             border-color: var(--primary);
             background: var(--surface);
+        }
         }
         .mini-class-card h4 { margin:0 0 6px 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
         .mini-class-card p { margin:0; font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
@@ -603,7 +638,7 @@
             padding: 8px 16px; font-size: 13px; border-radius: 99px; font-weight: 700;
             display: flex; align-items: center; gap: 6px;
         }
-        .btn-comment:hover { background: var(--primary); color: #fff; }
+        @media (hover: hover) and (pointer: fine) { .btn-comment:hover { background: var(--primary); color: #fff; } }
 
         .badge-guru {
             background: var(--primary); color: #fff; font-size: 10px; font-weight: 800;
@@ -636,7 +671,7 @@
             min-width: 180px; max-width: 380px; cursor: pointer; user-select: text;
             transition: background 0.15s;
         }
-        .comment-bubble:hover { background: #F1F3F4; }
+        @media (hover: hover) and (pointer: fine) { .comment-bubble:hover { background: #F1F3F4; } }
         .comment-header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
         .comment-name { font-weight: 700; font-size: 13.5px; color: var(--text-main); }
         .comment-text { font-size: 14.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin: 2px 0 6px 0; }
@@ -647,7 +682,7 @@
             background: transparent; padding: 2px 6px; font-size: 16px; color: var(--text-muted);
             border-radius: 8px; line-height: 1; flex-shrink: 0;
         }
-        .comment-menu-btn:hover { background: var(--border); color: var(--text-main); }
+        @media (hover: hover) and (pointer: fine) { .comment-menu-btn:hover { background: var(--border); color: var(--text-main); } }
 
         .comment-replies {
             margin-left: 30px; margin-top: 12px; padding-left: 20px; 
@@ -667,9 +702,9 @@
             padding: 12px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
             display: flex; align-items: center; gap: 8px; color: var(--text-main);
         }
-        .comment-menu-item:hover { background: var(--primary-light); }
+        @media (hover: hover) and (pointer: fine) { .comment-menu-item:hover { background: var(--primary-light); } }
         .comment-menu-item.danger { color: var(--danger); }
-        .comment-menu-item.danger:hover { background: var(--danger-light); }
+        @media (hover: hover) and (pointer: fine) { .comment-menu-item.danger:hover { background: var(--danger-light); } }
 
         .comment-reply-indicator {
             display: flex; justify-content: space-between; align-items: center;
@@ -679,7 +714,7 @@
         .comment-reply-indicator button {
             background: transparent; color: var(--primary); padding: 2px 8px; font-size: 15px; font-weight: 800;
         }
-        .comment-reply-indicator button:hover { background: rgba(26,115,232,0.15); border-radius: 50%; }
+        @media (hover: hover) and (pointer: fine) { .comment-reply-indicator button:hover { background: rgba(26,115,232,0.15); border-radius: 50%; } }
 
         /* ================= Sidebar Kanan - Obrolan Kelas ================= */
         #chat-sidebar {
@@ -690,6 +725,8 @@
             transform: translateX(100%);
             transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
             display: flex; flex-direction: column;
+            /* Saat jari/kursor ada di dalam sidebar ini, scroll tidak diteruskan ke laman utama */
+            overscroll-behavior-y: contain;
         }
         #chat-sidebar.open { transform: translateX(0); }
         #chat-sidebar-handle {
@@ -697,8 +734,9 @@
             width: 28px; height: 70px; background: var(--surface); border-radius: 14px 0 0 14px;
             box-shadow: -2px 0 10px rgba(0,0,0,0.08); display: flex; justify-content: center; align-items: center;
             cursor: pointer; z-index: 850; transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            touch-action: none;
         }
-        #chat-sidebar-handle:hover { background: var(--primary-light); }
+        @media (hover: hover) and (pointer: fine) { #chat-sidebar-handle:hover { background: var(--primary-light); } }
         #chat-sidebar-handle svg { color: var(--text-muted); width: 20px; height: 20px; transition: transform 0.3s ease; }
         #chat-sidebar.open #chat-sidebar-handle svg { transform: rotate(180deg); }
         #chat-sidebar-badge {
@@ -717,7 +755,7 @@
             padding: 7px 11px; border-radius: 99px; font-size: 12.5px; font-weight: 700;
             display: flex; align-items: center; gap: 5px; flex-shrink: 0; line-height: 1;
         }
-        .chat-toggle-btn:hover { filter: brightness(0.96); }
+        @media (hover: hover) and (pointer: fine) { .chat-toggle-btn:hover { filter: brightness(0.96); } }
         .chat-toggle-btn.active { background: var(--danger-light); color: var(--danger); }
         #chat-disabled-banner {
             margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm);
@@ -745,10 +783,11 @@
             font-weight: 800; padding: 0 0 0 4px; margin: 0 -2px 0 2px; line-height: 1;
             cursor: pointer;
         }
-        #btn-eduai-end-session:hover { text-decoration: underline; }
+        @media (hover: hover) and (pointer: fine) { #btn-eduai-end-session:hover { text-decoration: underline; } }
         #chat-messages-container {
             flex-grow: 1; overflow-y: auto; padding: 16px 16px 4px 16px;
             display: flex; flex-direction: column; gap: 10px;
+            overscroll-behavior: contain;
         }
         #chat-messages-container::-webkit-scrollbar { width: 6px; }
         #chat-messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
@@ -765,7 +804,8 @@
             display: flex; align-items: center; gap: 10px; padding: 12px 14px;
             cursor: pointer; transition: background 0.15s ease;
         }
-        .eduai-suggest-item:hover, .eduai-suggest-item.active { background: #F7F1FB; }
+        .eduai-suggest-item.active { background: #F7F1FB; }
+        @media (hover: hover) and (pointer: fine) { .eduai-suggest-item:hover { background: #F7F1FB; } }
         .eduai-suggest-icon { font-size: 20px; }
         .eduai-suggest-name { font-weight: 700; font-size: 14px; color: #6A1B9A; }
         .eduai-suggest-desc { font-size: 12px; color: var(--text-muted); }
@@ -788,10 +828,10 @@
         .chat-menu-btn { background: transparent; padding: 0 4px; font-size: 15px; line-height: 1; border-radius: 8px; flex-shrink: 0; }
         .chat-bubble-self .chat-menu-btn { color: rgba(255,255,255,0.85); }
         .chat-bubble-other .chat-menu-btn { color: var(--text-muted); }
-        .chat-bubble-self .chat-menu-btn:hover { background: rgba(255,255,255,0.2); }
-        .chat-bubble-other .chat-menu-btn:hover { background: var(--border); color: var(--text-main); }
+        @media (hover: hover) and (pointer: fine) { .chat-bubble-self .chat-menu-btn:hover { background: rgba(255,255,255,0.2); } }
+        @media (hover: hover) and (pointer: fine) { .chat-bubble-other .chat-menu-btn:hover { background: var(--border); color: var(--text-main); } }
         .chat-reply-quote { font-size: 12px; padding: 6px 8px; border-radius: 8px; margin-bottom: 6px; cursor: pointer; border-left: 3px solid; }
-        .chat-reply-quote:hover { filter: brightness(0.97); }
+        @media (hover: hover) and (pointer: fine) { .chat-reply-quote:hover { filter: brightness(0.97); } }
         .chat-bubble-self .chat-reply-quote { background: rgba(255,255,255,0.15); border-left-color: rgba(255,255,255,0.7); color: rgba(255,255,255,0.92); }
         .chat-bubble-other .chat-reply-quote { background: rgba(26,115,232,0.07); border-left-color: var(--primary); color: var(--text-muted); }
         .chat-bubble.chat-highlight { box-shadow: 0 0 0 3px var(--accent); }
@@ -801,7 +841,7 @@
             background: #F1F3F4; color: var(--text-main); padding: 12px 14px; margin: 0;
             border-radius: var(--radius-md); flex-shrink: 0; font-size: 16px; line-height: 1;
         }
-        .btn-chat-attach-icon:hover { background: #E2E4E7; }
+        @media (hover: hover) and (pointer: fine) { .btn-chat-attach-icon:hover { background: #E2E4E7; } }
         .chat-attach-preview {
             display: flex; align-items: center; gap: 8px; justify-content: space-between;
             background: var(--primary-light); border-radius: var(--radius-sm); padding: 10px 12px;
@@ -809,7 +849,7 @@
         }
         .chat-attach-preview-body { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; flex-grow: 1; min-width: 0; }
         .chat-attach-preview > button { background: transparent; color: var(--primary); padding: 2px 8px; font-size: 15px; font-weight: 800; flex-shrink: 0; }
-        .chat-attach-preview > button:hover { background: rgba(26,115,232,0.15); border-radius: 50%; }
+        @media (hover: hover) and (pointer: fine) { .chat-attach-preview > button:hover { background: rgba(26,115,232,0.15); border-radius: 50%; } }
         .chat-attach-icon { font-size: 16px; flex-shrink: 0; }
         .chat-attach-preview-text, .chat-attach-chip-text { min-width: 0; }
         .chat-attach-preview-label, .chat-attach-chip-label { font-size: 11.5px; font-weight: 800; color: var(--primary); }
@@ -825,32 +865,32 @@
         .chat-bubble-self .chat-attach-chip-label { color: rgba(255,255,255,0.95); }
         .chat-bubble-self .chat-attach-chip-snippet { color: rgba(255,255,255,0.85); }
         .chat-bubble-other .chat-attachment-chip { background: rgba(26,115,232,0.06); border-color: rgba(26,115,232,0.2); }
-        .chat-attachment-chip:hover { filter: brightness(0.97); }
+        @media (hover: hover) and (pointer: fine) { .chat-attachment-chip:hover { filter: brightness(0.97); } }
         .chat-attachment-chip.chat-attachment-missing { color: var(--text-muted); font-size: 12.5px; font-style: italic; cursor: default; }
 
         .chat-attach-picker-item {
             background: #F8F9FA; border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer;
             border: 2px solid transparent; transition: all 0.15s ease;
         }
-        .chat-attach-picker-item:hover { background: var(--primary-light); border-color: var(--primary); }
+        @media (hover: hover) and (pointer: fine) { .chat-attach-picker-item:hover { background: var(--primary-light); border-color: var(--primary); } }
         .chat-attach-picker-item-header { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px; }
         .chat-attach-picker-item-header strong { color: var(--text-main); font-size: 13.5px; }
         .chat-attach-picker-item-snippet { font-size: 13.5px; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .chat-attach-picker-item-disabled { opacity: 0.5; cursor: not-allowed; }
-        .chat-attach-picker-item-disabled:hover { background: #F8F9FA; border-color: transparent; }
+        @media (hover: hover) and (pointer: fine) { .chat-attach-picker-item-disabled:hover { background: #F8F9FA; border-color: transparent; } }
         .chat-attach-picker-item-locked { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--danger); }
 
         .ann-share-menu-btn {
             background: transparent; color: var(--text-muted); padding: 6px 10px; font-size: 15px;
             line-height: 1; border-radius: 8px; z-index: 10; position: relative;
         }
-        .ann-share-menu-btn:hover { background: var(--border); color: var(--text-main); }
+        @media (hover: hover) and (pointer: fine) { .ann-share-menu-btn:hover { background: var(--border); color: var(--text-main); } }
         .announcement-card.jump-highlight { box-shadow: 0 0 0 3px var(--accent); }
 
 
         /* ================= TUGAS ================= */
         .task-card { background: var(--surface); border-radius: var(--radius-md); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow-sm); border-left: 6px solid #94A3B8; transition: box-shadow .2s, transform .2s; }
-        .task-card:hover { box-shadow: var(--shadow-md); }
+        @media (hover: hover) and (pointer: fine) { .task-card:hover { box-shadow: var(--shadow-md); } }
         .task-card.deadline { border-left-color: var(--primary); }
         .task-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; }
         .task-title-badge { display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border-radius:99px; font-size:11px; font-weight:800; background:#EEF0F3; color:#64748B; }
@@ -875,7 +915,7 @@
         .task-upload-section { margin-top:4px; }
         .task-upload-picker { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
         .task-upload-picker button { padding:10px 14px; font-size:13px; background:#F1F3F4; color:var(--text-main); }
-        .task-upload-picker button:hover { background:#E2E4E7; }
+        @media (hover: hover) and (pointer: fine) { .task-upload-picker button:hover { background:#E2E4E7; } }
         .task-criteria { font-size:12px; color:var(--text-muted); line-height:1.5; margin-top:6px; }
         .calendar-task-list { margin-top:20px; border-top:1px solid var(--border); padding-top:16px; }
         .calendar-task-list h5 { margin:0 0 10px; color:var(--primary); font-size:13px; }
@@ -1547,6 +1587,59 @@
                 e.preventDefault();
             }
         });
+
+        // ========= KUNCI SCROLL & INTERAKSI LAMAN UTAMA SAAT OVERLAY/MODAL TERBUKA =========
+        // Semua overlay di aplikasi ini id-nya diakhiri "-overlay" (modal-overlay, media-lightbox-overlay, dst).
+        // Begitu salah satu di antaranya terlihat (class "hidden" dilepas), body dikunci total:
+        // tidak bisa discroll maupun berinteraksi. Ditutup lagi -> otomatis dibuka kuncinya.
+        (function () {
+            let savedScrollY = 0;
+
+            function isOverlayVisible(el) {
+                return !!el && !el.classList.contains('hidden');
+            }
+            function anyOverlayOpen() {
+                return Array.from(document.querySelectorAll('[id$="-overlay"]')).some(isOverlayVisible);
+            }
+            function lockBackgroundScroll() {
+                if (document.body.classList.contains('bg-scroll-locked')) return;
+                savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+                document.body.style.top = (-savedScrollY) + 'px';
+                document.body.classList.add('bg-scroll-locked');
+            }
+            function unlockBackgroundScroll() {
+                if (!document.body.classList.contains('bg-scroll-locked')) return;
+                document.body.classList.remove('bg-scroll-locked');
+                document.body.style.top = '';
+                window.scrollTo(0, savedScrollY);
+            }
+            function syncBackgroundScrollLock() {
+                if (anyOverlayOpen()) lockBackgroundScroll(); else unlockBackgroundScroll();
+            }
+
+            const classObserver = new MutationObserver(syncBackgroundScrollLock);
+            function observeOverlay(el) {
+                if (el.dataset.scrollLockObserved) return;
+                el.dataset.scrollLockObserved = '1';
+                classObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
+            }
+            document.querySelectorAll('[id$="-overlay"]').forEach(observeOverlay);
+
+            // Jaga-jaga bila ada overlay baru yang disisipkan ke DOM setelah halaman dimuat.
+            new MutationObserver((mutations) => {
+                let needSync = false;
+                mutations.forEach((m) => {
+                    m.addedNodes && m.addedNodes.forEach((node) => {
+                        if (node.nodeType !== 1) return;
+                        if (node.id && node.id.endsWith('-overlay')) { observeOverlay(node); needSync = true; }
+                        node.querySelectorAll && node.querySelectorAll('[id$="-overlay"]').forEach((el) => { observeOverlay(el); needSync = true; });
+                    });
+                });
+                if (needSync) syncBackgroundScrollLock();
+            }).observe(document.body, { childList: true, subtree: true });
+
+            syncBackgroundScrollLock();
+        })();
 
         // ================= UI Elements Global =================
         const mainHeader = document.getElementById('main-header');
