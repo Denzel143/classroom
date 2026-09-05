@@ -1982,15 +1982,6 @@
             });
         };
 
-        // Native Alert jika user tidak sengaja memencet tombol "Reload/Refresh" di address bar Browser
-        window.addEventListener('beforeunload', (e) => {
-            if (currentUserId) { // Hanya aktif jika sudah login
-                e.preventDefault();
-                e.returnValue = ''; 
-            }
-        });
-
-
         // ================= SISTEM ROUTING SPA (HISTORY API) & EXIT TRAP =================
         window.navigateTo = function(path) {
             if (window.location.pathname !== path) {
