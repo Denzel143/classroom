@@ -2073,6 +2073,13 @@
             if (path.startsWith('/classroom/dashboard/')) {
                 const classId = path.split('/')[3];
                 if (classId) {
+                    // Periksa apakah user langsung reload di URL kelas (mis. tekan F5 di /classroom/dashboard/xyz).
+                    // Jika ya, sisipkan dulu entri dashboard di bawahnya sebagai Trap, supaya tombol back
+                    // tetap memunculkan konfirmasi keluar, bukan langsung meninggalkan web.
+                    if (!history.state || (!history.state.path && !history.state.trap)) {
+                        history.replaceState({ trap: true }, '', '/classroom/dashboard');
+                        history.pushState({ path: path }, '', path);
+                    }
                     showSection('class-room-section');
                     setupClassRoom(classId);
                 } else {
